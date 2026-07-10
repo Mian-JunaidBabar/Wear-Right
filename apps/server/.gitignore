@@ -1,0 +1,24 @@
+# Python bytecode environment artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments tracking folders
+server-env/
+venv/
+ENV/
+env/
+
+# Database local footprints and configuration files
+*.sqlite3
+.env
+.secrets
+
+# System/IDE structures
+.DS_Store
+.vscode/
+.idea/
+
+# Media storage and asset tracking uploads
+media/
+static/

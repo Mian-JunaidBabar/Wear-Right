@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Poppins:wght@500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-serif: "Playfair Display", Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-poppins: "Poppins", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Theme Forest Green Palette (mapped to blue & emerald for complete compatibility) */
+  --color-blue-50: #EBF1EC;
+  --color-blue-100: #D3E0D6;
+  --color-blue-200: #B7CCBD;
+  --color-blue-300: #97B69E;
+  --color-blue-400: #6D9877;
+  --color-blue-500: #4B7A56;
+  --color-blue-600: #36533D;
+  --color-blue-700: #2C4231;
+  --color-blue-800: #203125;
+  --color-blue-900: #152018;
+  --color-blue-950: #0B100C;
+
+  --color-emerald-50: #EBF1EC;
+  --color-emerald-100: #D3E0D6;
+  --color-emerald-200: #B7CCBD;
+  --color-emerald-300: #97B69E;
+  --color-emerald-400: #6D9877;
+  --color-emerald-500: #4B7A56;
+  --color-emerald-600: #36533D;
+  --color-emerald-700: #2C4231;
+  --color-emerald-800: #203125;
+  --color-emerald-900: #152018;
+  --color-emerald-950: #0B100C;
+
+  /* Theme Warm Beige Palette (mapped to slate for complete compatibility) */
+  --color-slate-50: #F8F2EC;
+  --color-slate-100: #F1ECE2;
+  --color-slate-200: #E6E1D5;
+  --color-slate-300: #D4CEBF;
+  --color-slate-400: #AB9E8E;
+  --color-slate-500: #8C8274;
+  --color-slate-600: #6E665B;
+  --color-slate-700: #524B43;
+  --color-slate-800: #39352F;
+  --color-slate-900: #23211D;
+  --color-slate-950: #141311;
+
+  /* Accent Gold/Camel colors from the screenshot */
+  --color-brand-gold: #C08E3E;
+  --color-brand-dark: #23211D;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-serif);
+}
