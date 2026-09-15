@@ -26,6 +26,7 @@ import {
   BadgeCheck,
   Eye,
   ArrowLeft,
+  LogOut,
 } from 'lucide-react';
 
 const API_BASE = 'http://127.0.0.1:8000/api';
@@ -65,6 +66,11 @@ type Product = {
   price: string | number;
   profit_per_item?: string | number;
   stock_quantity: number;
+  size_s_stock: number;
+  size_m_stock: number;
+  size_l_stock: number;
+  size_xl_stock: number;
+  size_xxl_stock: number;
   status: string;
   created_at?: string;
 };
@@ -162,7 +168,12 @@ const emptyProductForm = {
   garment_type: 'Top',
   cost_price: '0',
   price: '',
-  stock_quantity: '10',
+  stock_quantity: '0',
+  size_s_stock: '0',
+  size_m_stock: '0',
+  size_l_stock: '0',
+  size_xl_stock: '0',
+  size_xxl_stock: '0',
   status: 'Active',
 };
 
@@ -175,7 +186,11 @@ function getImage(product: Product) {
   return product.image_url || 'https://placehold.co/300x400?text=Wear+Right';
 }
 
-export default function AdminView() {
+interface AdminViewProps {
+  onLogout?: () => void;
+}
+
+export default function AdminView({ onLogout }: AdminViewProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
 
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
@@ -298,6 +313,11 @@ export default function AdminView() {
       cost_price: String(product.cost_price),
       price: String(product.price),
       stock_quantity: String(product.stock_quantity),
+      size_s_stock: String(product.size_s_stock || 0),
+      size_m_stock: String(product.size_m_stock || 0),
+      size_l_stock: String(product.size_l_stock || 0),
+      size_xl_stock: String(product.size_xl_stock || 0),
+      size_xxl_stock: String(product.size_xxl_stock || 0),
       status: product.status,
     });
     setProductImage(null);
@@ -328,7 +348,18 @@ export default function AdminView() {
     formData.append('garment_type', productForm.garment_type);
     formData.append('cost_price', productForm.cost_price || '0');
     formData.append('price', productForm.price);
-    formData.append('stock_quantity', productForm.stock_quantity || '0');
+    const totalStock = Number(productForm.size_s_stock || 0) +
+                       Number(productForm.size_m_stock || 0) +
+                       Number(productForm.size_l_stock || 0) +
+                       Number(productForm.size_xl_stock || 0) +
+                       Number(productForm.size_xxl_stock || 0);
+
+    formData.append('stock_quantity', String(totalStock));
+    formData.append('size_s_stock', productForm.size_s_stock || '0');
+    formData.append('size_m_stock', productForm.size_m_stock || '0');
+    formData.append('size_l_stock', productForm.size_l_stock || '0');
+    formData.append('size_xl_stock', productForm.size_xl_stock || '0');
+    formData.append('size_xxl_stock', productForm.size_xxl_stock || '0');
     formData.append('status', productForm.status);
 
     if (productImage) {
@@ -735,16 +766,16 @@ export default function AdminView() {
                 <table className="w-full min-w-[1150px] text-sm">
                   <thead className="bg-cream-base border-b border-slate-100">
                     <tr className="text-[11px] uppercase tracking-widest text-slate-400 font-black">
-                      <th className="p-4 text-left">Product</th>
-                      <th className="p-4 text-left">Category</th>
-                      <th className="p-4 text-left">Style</th>
-                      <th className="p-4 text-left">Skin Tone</th>
-                      <th className="p-4 text-left">Color</th>
-                      <th className="p-4 text-left">Cost</th>
-                      <th className="p-4 text-left">Price</th>
-                      <th className="p-4 text-left">Stock</th>
-                      <th className="p-4 text-left">Status</th>
-                      <th className="p-4 text-right w-[320px]">Actions</th>
+                      <th className="p-4 text-left min-w-[250px]">Product</th>
+                      <th className="p-4 text-left min-w-[130px]">Category</th>
+                      <th className="p-4 text-left min-w-[100px]">Style</th>
+                      <th className="p-4 text-left min-w-[110px]">Skin Tone</th>
+                      <th className="p-4 text-left min-w-[100px]">Color</th>
+                      <th className="p-4 text-left min-w-[100px]">Cost</th>
+                      <th className="p-4 text-left min-w-[100px]">Price</th>
+                      <th className="p-4 text-left min-w-[200px]">Stock</th>
+                      <th className="p-4 text-left min-w-[100px]">Status</th>
+                      <th className="p-4 text-right w-[100px]">Actions</th>
                     </tr>
                   </thead>
 
@@ -795,15 +826,24 @@ export default function AdminView() {
                         </td>
 
                         <td className="p-4 font-bold">
-                          <span
-                            className={
-                              product.stock_quantity <= 5
-                                ? 'text-red-600'
-                                : 'text-emerald-600'
-                            }
-                          >
-                            {product.stock_quantity}
-                          </span>
+                          <div>
+                            <span
+                              className={
+                                product.stock_quantity <= 5
+                                  ? 'text-red-600'
+                                  : 'text-emerald-600'
+                              }
+                            >
+                              {product.stock_quantity}
+                            </span>
+                            <div className="text-[9px] text-slate-400 font-sans mt-0.5 space-x-1 font-semibold">
+                              <span className="bg-slate-100 px-1 rounded">S:{product.size_s_stock || 0}</span>
+                              <span className="bg-slate-100 px-1 rounded">M:{product.size_m_stock || 0}</span>
+                              <span className="bg-slate-100 px-1 rounded">L:{product.size_l_stock || 0}</span>
+                              <span className="bg-slate-100 px-1 rounded">XL:{product.size_xl_stock || 0}</span>
+                              <span className="bg-slate-100 px-1 rounded">XXL:{product.size_xxl_stock || 0}</span>
+                            </div>
+                          </div>
                         </td>
 
                         <td className="p-4">
@@ -1489,6 +1529,22 @@ export default function AdminView() {
                   ))}
                 </div>
               </Panel>
+
+              <Panel title="Session Management">
+                <div className="bg-red-50/10 border border-red-200/45 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-red-600">Sign Out of Admin Panel</h4>
+                    <p className="text-xs text-slate-400 font-sans mt-0.5">End your administrative session on this device.</p>
+                  </div>
+                  <button
+                    onClick={onLogout}
+                    className="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md cursor-pointer border-none"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout Admin
+                  </button>
+                </div>
+              </Panel>
             </section>
           )}
         </main>
@@ -1595,15 +1651,71 @@ export default function AdminView() {
                   placeholder="2500"
                 />
 
-                <Input
-                  label="Stock Quantity"
-                  type="number"
-                  value={productForm.stock_quantity}
-                  onChange={(value) =>
-                    setProductForm({ ...productForm, stock_quantity: value })
-                  }
-                  placeholder="10"
-                />
+                {/* Editable Sizing Stocks */}
+                <div className="md:col-span-3 bg-blue-50/20 border border-blue-200/40 rounded-2xl p-5 space-y-4">
+                  <p className="text-[10px] uppercase tracking-widest text-slate-400 font-black">
+                    Edit Stock per Size
+                  </p>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <Input
+                      label="Size S"
+                      type="number"
+                      value={productForm.size_s_stock}
+                      onChange={(value) =>
+                        setProductForm({ ...productForm, size_s_stock: value })
+                      }
+                      placeholder="0"
+                    />
+                    <Input
+                      label="Size M"
+                      type="number"
+                      value={productForm.size_m_stock}
+                      onChange={(value) =>
+                        setProductForm({ ...productForm, size_m_stock: value })
+                      }
+                      placeholder="0"
+                    />
+                    <Input
+                      label="Size L"
+                      type="number"
+                      value={productForm.size_l_stock}
+                      onChange={(value) =>
+                        setProductForm({ ...productForm, size_l_stock: value })
+                      }
+                      placeholder="0"
+                    />
+                    <Input
+                      label="Size XL"
+                      type="number"
+                      value={productForm.size_xl_stock}
+                      onChange={(value) =>
+                        setProductForm({ ...productForm, size_xl_stock: value })
+                      }
+                      placeholder="0"
+                    />
+                    <Input
+                      label="Size XXL"
+                      type="number"
+                      value={productForm.size_xxl_stock}
+                      onChange={(value) =>
+                        setProductForm({ ...productForm, size_xxl_stock: value })
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-xs font-black uppercase text-slate-500">Calculated Total Stock</span>
+                    <span className="text-sm font-black text-brand-dark bg-cream-card px-3 py-1 rounded-xl">
+                      {Number(productForm.size_s_stock || 0) +
+                       Number(productForm.size_m_stock || 0) +
+                       Number(productForm.size_l_stock || 0) +
+                       Number(productForm.size_xl_stock || 0) +
+                       Number(productForm.size_xxl_stock || 0)} items
+                    </span>
+                  </div>
+                </div>
 
                 <Select
                   label="Status"

@@ -22,6 +22,11 @@ class ProductSerializer(serializers.ModelSerializer):
             'price',
             'profit_per_item',
             'stock_quantity',
+            'size_s_stock',
+            'size_m_stock',
+            'size_l_stock',
+            'size_xl_stock',
+            'size_xxl_stock',
             'status',
             'created_at',
         ]

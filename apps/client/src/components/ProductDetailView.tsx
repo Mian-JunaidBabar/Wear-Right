@@ -34,6 +34,11 @@ type ApiProduct = {
   image?: string | null;
   image_url?: string | null;
   stock_quantity?: number;
+  size_s_stock?: number;
+  size_m_stock?: number;
+  size_l_stock?: number;
+  size_xl_stock?: number;
+  size_xxl_stock?: number;
   status?: string;
 };
 
@@ -56,7 +61,24 @@ type ProductDetailViewProps = {
   toggleWishlist: (product: CartProduct) => void;
 };
 
-const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+const SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
+
+function getSizeQuantity(size: string, product: ApiProduct) {
+  switch (size) {
+    case 'S':
+      return Number(product.size_s_stock || 0);
+    case 'M':
+      return Number(product.size_m_stock || 0);
+    case 'L':
+      return Number(product.size_l_stock || 0);
+    case 'XL':
+      return Number(product.size_xl_stock || 0);
+    case 'XXL':
+      return Number(product.size_xxl_stock || 0);
+    default:
+      return Number(product.stock_quantity || 0);
+  }
+}
 
 function formatPKR(value: string | number | undefined) {
   const num = Number(value || 0);
@@ -509,6 +531,15 @@ Please share more details.`;
                   </button>
                 ))}
               </div>
+
+              {product && (
+                <div className="mt-3 inline-flex items-center gap-2 px-3.5 py-2 bg-blue-50/50 border border-blue-200/40 rounded-xl text-xs text-blue-800 font-medium font-sans">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+                  <span>
+                    Only <strong className="font-bold">{getSizeQuantity(selectedSize, product)} items</strong> left in size <strong className="font-bold">{selectedSize}</strong>!
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* ─── Feature 3: Quantity Selector ─── */}

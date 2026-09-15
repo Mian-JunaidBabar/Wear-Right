@@ -130,6 +130,11 @@ class Product(models.Model):
     cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock_quantity = models.PositiveIntegerField(default=0)
+    size_s_stock = models.PositiveIntegerField(default=0)
+    size_m_stock = models.PositiveIntegerField(default=0)
+    size_l_stock = models.PositiveIntegerField(default=0)
+    size_xl_stock = models.PositiveIntegerField(default=0)
+    size_xxl_stock = models.PositiveIntegerField(default=0)
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Active')
 
     created_at = models.DateTimeField(auto_now_add=True)

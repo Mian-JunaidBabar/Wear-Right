@@ -42,19 +42,7 @@ export default function ProtectedAdminView() {
 
   if (isAdminLoggedIn) {
     return (
-      <div className="relative">
-        <div className="fixed top-24 right-6 z-[70]">
-          <button
-            onClick={handleLogout}
-            className="bg-slate-950 hover:bg-black text-white px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-xl"
-          >
-            <LogOut className="w-4 h-4" />
-            Admin Logout
-          </button>
-        </div>
-
-        <AdminView />
-      </div>
+      <AdminView onLogout={handleLogout} />
     );
   }
 

@@ -49,6 +49,16 @@
   /* Accent Gold/Camel colors from the screenshot */
   --color-brand-gold: #C08E3E;
   --color-brand-dark: #23211D;
+
+  /* Custom theme vars */
+  --color-cream-base: #F8F2EC;
+  --color-cream-card: #F1ECE2;
+  --color-brand-border: #E6E1D5;
+}
+
+body {
+  background-color: var(--color-cream-base);
+  color: var(--color-brand-dark);
 }
 
 h1,

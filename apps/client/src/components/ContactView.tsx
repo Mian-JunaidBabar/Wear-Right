@@ -5,6 +5,7 @@ import {
   MessageCircle,
   Phone,
   Send,
+  Sparkles,
   User,
 } from 'lucide-react';
 
@@ -58,44 +59,61 @@ ${form.message}`;
   };
 
   return (
-    <div className="w-full min-h-[calc(100vh-80px)] bg-cream-base px-6 py-12 text-left font-sans">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-10 max-w-3xl">
-          <p className="text-[10px] uppercase tracking-widest text-sage-green font-black mb-2">
-            Contact Support
-          </p>
+    <div className="w-full min-h-[calc(100vh-80px)] bg-cream-base px-6 py-16 text-left font-sans">
+      {/* Background ambient light gradients */}
+      <div className="absolute right-0 top-20 w-96 h-96 bg-blue-100/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute left-0 bottom-20 w-96 h-96 bg-blue-50/10 rounded-full blur-3xl pointer-events-none" />
 
-          <h1 className="text-4xl sm:text-6xl font-black text-brand-dark tracking-tight">
+      <div className="max-w-7xl mx-auto relative z-10">
+        
+        {/* Header Section */}
+        <div className="mb-14 max-w-3xl">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 w-max mb-6 shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 text-brand-gold animate-pulse" />
+            <span className="text-[10px] uppercase tracking-widest text-blue-700 font-extrabold font-sans">
+              Contact Support
+            </span>
+          </div>
+
+          <h1 className="text-4xl sm:text-5xl font-serif font-bold text-brand-dark tracking-tight leading-tight">
             Get Help from Wear Right
           </h1>
+          <div className="w-12 h-1 bg-brand-gold mt-4 rounded-full" />
 
-          <p className="text-sm text-slate-500 font-semibold leading-relaxed mt-4">
+          <p className="text-sm text-slate-500 font-sans leading-relaxed mt-6 font-medium max-w-2xl">
             Need help with face scan, product recommendation, order status or outfit selection? Contact Wear Right support.
           </p>
         </div>
 
+        {/* Content Columns */}
         <div className="grid grid-cols-1 lg:grid-cols-[42%_58%] gap-8">
-          <div className="space-y-5">
+          
+          {/* Support Info Cards (Left Column) */}
+          <div className="space-y-6">
             <ContactCard
-              icon={<Phone className="w-5 h-5" />}
+              icon={<Phone className="w-5 h-5 text-brand-gold" />}
               title="Phone / WhatsApp"
               value="+92 302 1191771"
             />
 
             <ContactCard
-              icon={<Mail className="w-5 h-5" />}
+              icon={<Mail className="w-5 h-5 text-brand-gold" />}
               title="Email"
               value="hammadahmadch17@gmail.com"
             />
 
             <ContactCard
-              icon={<MapPin className="w-5 h-5" />}
+              icon={<MapPin className="w-5 h-5 text-brand-gold" />}
               title="Location"
               value="Lahore, Pakistan"
             />
 
-            <div className="bg-slate-950 text-white rounded-3xl p-8 shadow-sm">
-              <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-5">
+            {/* Quick WhatsApp Support Forest Green Card */}
+            <div className="bg-blue-600 text-white rounded-[2rem] p-8 shadow-lg relative overflow-hidden border border-blue-700/50">
+              {/* Decorative glows */}
+              <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-6 shadow-md relative z-10">
                 <img
                   src="/brand/wr-icon.png"
                   alt="Wear Right"
@@ -106,34 +124,35 @@ ${form.message}`;
                 />
               </div>
 
-              <h2 className="text-2xl font-black">
+              <h2 className="text-2xl font-serif font-normal relative z-10">
                 Quick WhatsApp Support
               </h2>
 
-              <p className="text-sm text-slate-300 font-semibold mt-3">
+              <p className="text-xs text-blue-50 font-sans mt-3 leading-relaxed relative z-10">
                 For fastest help, send a direct WhatsApp message to the admin.
               </p>
 
               <button
                 onClick={openWhatsApp}
-                className="mt-6 bg-green-500 hover:bg-green-600 text-white px-5 py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2"
+                className="mt-6 bg-white hover:bg-slate-50 text-blue-900 px-6 py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 border-none cursor-pointer shadow-md hover:scale-[1.02] active:scale-95 transition-all duration-300 relative z-10"
               >
-                <MessageCircle className="w-4 h-4" />
+                <MessageCircle className="w-4 h-4 text-blue-700" />
                 Open WhatsApp
               </button>
             </div>
           </div>
 
-          <div className="bg-white border border-brand-border/60 rounded-3xl p-6 lg:p-8 shadow-sm">
-            <h2 className="text-3xl font-black text-brand-dark">
+          {/* Form Card (Right Column) */}
+          <div className="bg-white border border-blue-200/60 rounded-[2rem] p-6 lg:p-8 shadow-sm">
+            <h2 className="text-2xl font-serif font-bold text-brand-dark">
               Send Message
             </h2>
 
-            <p className="text-sm text-slate-500 font-semibold mt-2">
+            <p className="text-xs text-slate-400 font-sans mt-2">
               Fill the form and your message will open directly in WhatsApp.
             </p>
 
-            <form onSubmit={submitContact} className="mt-8 space-y-5">
+            <form onSubmit={submitContact} className="mt-8 space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <InputField
                   label="Full Name"
@@ -153,7 +172,7 @@ ${form.message}`;
               </div>
 
               <InputField
-                label="Email Optional"
+                label="Email (Optional)"
                 type="email"
                 value={form.email}
                 onChange={(value) => setForm({ ...form, email: value })}
@@ -162,7 +181,7 @@ ${form.message}`;
               />
 
               <div>
-                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2 font-sans">
                   Message
                 </label>
 
@@ -173,15 +192,15 @@ ${form.message}`;
                   }
                   rows={6}
                   placeholder="Write your message..."
-                  className="w-full bg-cream-base border border-brand-border/60 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-sage-green/20 focus:border-sage-green resize-none"
+                  className="w-full bg-cream-base border border-blue-200/60 rounded-xl px-4 py-3 text-sm font-sans font-medium outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold resize-none transition-all"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-brand-gold hover:opacity-90 text-white py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-brand-gold/10"
+                className="w-full bg-brand-gold hover:opacity-95 text-white py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-brand-gold/10 hover:scale-[1.01] active:scale-99 transition-all duration-300 border-none cursor-pointer"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-4 h-4 text-white" />
                 Send Message on WhatsApp
               </button>
             </form>
@@ -202,17 +221,17 @@ function ContactCard({
   value: string;
 }) {
   return (
-    <div className="bg-white border border-brand-border/60 rounded-3xl p-6 shadow-sm flex items-center gap-4">
-      <div className="w-14 h-14 rounded-2xl bg-sage-green/10 text-sage-green flex items-center justify-center flex-shrink-0">
+    <div className="bg-white border border-blue-200/60 rounded-3xl p-6 shadow-sm flex items-center gap-5 hover:shadow-md transition-shadow">
+      <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
         {icon}
       </div>
 
       <div>
-        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-black">
+        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-extrabold font-sans">
           {title}
         </p>
 
-        <p className="text-sm font-black text-brand-dark mt-1">
+        <p className="text-sm font-sans font-bold text-brand-dark mt-1">
           {value}
         </p>
       </div>
@@ -237,7 +256,7 @@ function InputField({
 }) {
   return (
     <div>
-      <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
+      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2 font-sans">
         {label}
       </label>
 
@@ -251,7 +270,7 @@ function InputField({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
-          className="w-full bg-cream-base border border-brand-border/60 rounded-xl py-3 pl-11 pr-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-sage-green/20 focus:border-sage-green"
+          className="w-full bg-cream-base border border-blue-200/60 rounded-xl py-3.5 pl-11 pr-4 text-sm font-sans font-medium outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold transition-all"
         />
       </div>
     </div>

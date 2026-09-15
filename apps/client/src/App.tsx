@@ -17,6 +17,7 @@ import ProductDetailView from './components/ProductDetailView';
 import WishlistView from './components/WishlistView';
 import AboutView from './components/AboutView';
 import ContactView from './components/ContactView';
+import Footer from './components/Footer';
 
 import { ViewType, UserState } from './types';
 import { INITIAL_USER } from './data';
@@ -342,52 +343,7 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {location.pathname !== '/' && (
-        <footer className="w-full bg-white border-t border-slate-200 py-8 text-center text-[10px] uppercase font-bold tracking-widest text-slate-400 font-sans">
-          <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <span>
-              &copy; {new Date().getFullYear()} WEAR RIGHT Atelier. All Rights Reserved.
-            </span>
-
-            <div className="flex flex-wrap justify-center gap-4">
-              <button
-                onClick={() => setView('home')}
-                className="hover:text-blue-600 transition-colors cursor-pointer bg-transparent border-none p-0"
-              >
-                Home
-              </button>
-
-              <button
-                onClick={() => setView('shop')}
-                className="hover:text-blue-600 transition-colors cursor-pointer bg-transparent border-none p-0"
-              >
-                Shop
-              </button>
-
-              <button
-                onClick={() => setView('wishlist')}
-                className="hover:text-blue-600 transition-colors cursor-pointer bg-transparent border-none p-0"
-              >
-                Wishlist
-              </button>
-
-              <button
-                onClick={() => setView('about')}
-                className="hover:text-blue-600 transition-colors cursor-pointer bg-transparent border-none p-0"
-              >
-                About
-              </button>
-
-              <button
-                onClick={() => setView('contact')}
-                className="hover:text-blue-600 transition-colors cursor-pointer bg-transparent border-none p-0"
-              >
-                Contact
-              </button>
-            </div>
-          </div>
-        </footer>
-      )}
+      <Footer />
     </div>
   );
 }

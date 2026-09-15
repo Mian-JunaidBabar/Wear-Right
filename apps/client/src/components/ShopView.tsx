@@ -1097,7 +1097,7 @@ Please share more details.`;
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <button
                           onClick={() => openProductDetail(selectedProduct)}
-                          className="w-full bg-cream-card/60 hover:bg-slate-200 text-slate-800 text-xs font-black uppercase tracking-wider py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer border-none shadow-md hover:scale-[1.02] active:scale-95"
                         >
                           <Eye className="w-4 h-4" />
                           Full Detail Page
