@@ -80,7 +80,6 @@ export default function MyOrdersView() {
       setLoading(true);
       setErrorMessage("");
 
-      const response = await fetch("http://127.0.0.1:8000/api/orders/");
       const response = await fetch(API_ENDPOINTS.orders);
 
       if (!response.ok) {

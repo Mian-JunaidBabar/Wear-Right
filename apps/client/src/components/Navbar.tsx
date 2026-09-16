@@ -104,7 +104,6 @@ export default function Navbar({
     payment_status: "Cash on Delivery",
   });
 
-  const adminWhatsAppNumber = "923021191771";
   const adminWhatsAppNumber = ADMIN_WHATSAPP_NUMBER;
   const whatsappMessage = "Hello Admin, I need help regarding Wear Right.";
 
@@ -182,7 +181,6 @@ export default function Navbar({
       const uniqueOrderCode = `WR-${Date.now()}`;
 
       for (const item of cartItems) {
-        const response = await fetch("http://127.0.0.1:8000/api/orders/", {
         const response = await fetch(API_ENDPOINTS.orders, {
           method: "POST",
           headers: {
@@ -846,7 +844,7 @@ export default function Navbar({
 
       <AnimatePresence>
         {checkoutOpen && (
-          <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
+          <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center z-90 p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 10 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}

@@ -77,7 +77,6 @@ export default function RecommendedProductsView({
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const placeholderImage = "http://127.0.0.1:8000/products/images.jpeg";
   const placeholderImage = getProductImageUrl("products/images.jpeg");
 
   const formatPrice = (price: string | number) => {
@@ -97,7 +96,6 @@ export default function RecommendedProductsView({
       setLoading(true);
       setErrorMessage("");
 
-      const response = await fetch("http://127.0.0.1:8000/api/products/");
       const response = await fetch(API_ENDPOINTS.products);
 
       if (!response.ok) {

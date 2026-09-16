@@ -18,7 +18,6 @@ export default function ContactView() {
     message: "",
   });
 
-  const adminWhatsAppNumber = "923021191771";
   const adminWhatsAppNumber = ADMIN_WHATSAPP_NUMBER;
 
   const openWhatsApp = () => {

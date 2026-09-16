@@ -1,5 +1,3 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -10,11 +8,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   Sparkles,
-} from 'lucide-react';
 } from "lucide-react";
-
-import { CartProduct } from '../App';
-import { UserState } from '../types';
 import { CartProduct } from "../App";
 import { UserState } from "../types";
 import {
@@ -27,7 +21,6 @@ import {
   GarmentKey,
   SkinToneKey,
   StyleKey,
-} from '../utils/recommendationRules';
 } from "../utils/recommendationRules";
 import { API_ENDPOINTS, getProductImageUrl } from "../config/api";
 
@@ -67,49 +60,37 @@ export default function CompleteOutfitView({
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const productId = searchParams.get('productId');
-  const skinToneParam = searchParams.get('skinTone');
-  const styleParam = searchParams.get('style');
   const productId = searchParams.get("productId");
   const skinToneParam = searchParams.get("skinTone");
   const styleParam = searchParams.get("style");
 
   const detectedSkinTone: SkinToneKey = normalizeSkinTone(
-    skinToneParam || user.contrastType || 'medium'
     skinToneParam || user.contrastType || "medium",
   );
 
-  const selectedStyle: StyleKey = normalizeStyle(styleParam || 'casual');
   const selectedStyle: StyleKey = normalizeStyle(styleParam || "casual");
 
   const [products, setProducts] = useState<OutfitProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState("");
 
-  const [selectedShirt, setSelectedShirt] = useState<OutfitProduct | null>(null);
   const [selectedShirt, setSelectedShirt] = useState<OutfitProduct | null>(
     null,
   );
   const [selectedPant, setSelectedPant] = useState<OutfitProduct | null>(null);
-  const [selectedShoes, setSelectedShoes] = useState<OutfitProduct | null>(null);
   const [selectedShoes, setSelectedShoes] = useState<OutfitProduct | null>(
     null,
   );
 
-  const placeholderImage = 'http://127.0.0.1:8000/products/images.jpeg';
   const placeholderImage = getProductImageUrl("products/images.jpeg");
 
   const formatPrice = (price: string | number) => {
-    return `Rs. ${Number(price || 0).toLocaleString('en-PK')}`;
     return `Rs. ${Number(price || 0).toLocaleString("en-PK")}`;
   };
 
   const isOutOfStock = (product: OutfitProduct) => {
     return (
       product.stock_quantity <= 0 ||
-      product.status === 'Out of Stock' ||
-      product.status === 'Inactive'
       product.status === "Out of Stock" ||
       product.status === "Inactive"
     );
@@ -118,14 +99,11 @@ export default function CompleteOutfitView({
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      setErrorMessage('');
       setErrorMessage("");
 
-      const response = await fetch('http://127.0.0.1:8000/api/products/');
       const response = await fetch(API_ENDPOINTS.products);
 
       if (!response.ok) {
-        throw new Error('Products API response was not successful.');
         throw new Error("Products API response was not successful.");
       }
 
@@ -133,8 +111,6 @@ export default function CompleteOutfitView({
 
       const mappedProducts: OutfitProduct[] = (data.products || []).map(
         (item: ApiProduct) => {
-          const normalizedStyle = normalizeStyle(item.style || item.cultural_tag || 'casual');
-          const normalizedGarment = normalizeGarmentType(item.garment_type, item.category);
           const normalizedStyle = normalizeStyle(
             item.style || item.cultural_tag || "casual",
           );
@@ -146,14 +122,11 @@ export default function CompleteOutfitView({
           return {
             id: item.id,
             name: item.name,
-            category: item.category || 'Product',
             category: item.category || "Product",
             style: normalizedStyle,
-            color: item.color || '',
             color: item.color || "",
             garment_type: normalizedGarment,
             cultural_tag: item.cultural_tag || item.style || normalizedStyle,
-            compatible_skin_tone: item.compatible_skin_tone || '',
             compatible_skin_tone: item.compatible_skin_tone || "",
             image_url: item.image_url || null,
             image: item.image_url
@@ -163,31 +136,25 @@ export default function CompleteOutfitView({
                 : placeholderImage,
             price: Number(item.price || 0),
             stock_quantity: Number(item.stock_quantity || 0),
-            status: item.status || 'Active',
             status: item.status || "Active",
           };
-        }
         },
       );
 
       setProducts(mappedProducts);
 
       const initialProduct = mappedProducts.find(
-        (product) => String(product.id) === String(productId)
         (product) => String(product.id) === String(productId),
       );
 
       if (initialProduct) {
         const garmentType = normalizeGarmentType(
           initialProduct.garment_type,
-          initialProduct.category
           initialProduct.category,
         );
 
-        if (garmentType === 'shirt') {
         if (garmentType === "shirt") {
           setSelectedShirt(initialProduct);
-        } else if (garmentType === 'pant') {
         } else if (garmentType === "pant") {
           setSelectedPant(initialProduct);
         } else {
@@ -195,8 +162,8 @@ export default function CompleteOutfitView({
         }
       }
     } catch (error) {
-      console.error('Complete Outfit API Error:', error);
-      setErrorMessage('Unable to load outfit products from backend API.');
+      console.error("Complete Outfit API Error:", error);
+      setErrorMessage("Unable to load outfit products from backend API.");
       console.error("Complete Outfit API Error:", error);
       setErrorMessage("Unable to load outfit products from backend API.");
     } finally {
@@ -216,7 +183,6 @@ export default function CompleteOutfitView({
         return false;
       }
 
-      const garmentType = normalizeGarmentType(product.garment_type, product.category);
       const garmentType = normalizeGarmentType(
         product.garment_type,
         product.category,
@@ -224,7 +190,6 @@ export default function CompleteOutfitView({
       const allowedColors = getAllowedColorsForProduct(
         detectedSkinTone,
         selectedStyle,
-        garmentType
         garmentType,
       );
 
@@ -236,12 +201,10 @@ export default function CompleteOutfitView({
     const allowedColors = getAllowedColorsForProduct(
       detectedSkinTone,
       selectedStyle,
-      garmentType
       garmentType,
     );
 
     return styleAndSkinToneFilteredProducts.filter((product) => {
-      const productGarment = normalizeGarmentType(product.garment_type, product.category);
       const productGarment = normalizeGarmentType(
         product.garment_type,
         product.category,
@@ -255,7 +218,6 @@ export default function CompleteOutfitView({
         return false;
       }
 
-      if (garmentType === 'shoes' && selectedShirt && selectedPant) {
       if (garmentType === "shoes" && selectedShirt && selectedPant) {
         return isColorAllowed(product.color, allowedColors);
       }
@@ -264,14 +226,10 @@ export default function CompleteOutfitView({
     });
   };
 
-  const shirtSuggestions = getSuggestions('shirt');
-  const pantSuggestions = getSuggestions('pant');
-  const shoesSuggestions = getSuggestions('shoes');
   const shirtSuggestions = getSuggestions("shirt");
   const pantSuggestions = getSuggestions("pant");
   const shoesSuggestions = getSuggestions("shoes");
 
-  const selectedItems = [selectedShirt, selectedPant, selectedShoes].filter(Boolean) as OutfitProduct[];
   const selectedItems = [selectedShirt, selectedPant, selectedShoes].filter(
     Boolean,
   ) as OutfitProduct[];
@@ -282,7 +240,7 @@ export default function CompleteOutfitView({
 
   const addFullOutfitToCart = () => {
     if (selectedItems.length === 0) {
-      alert('Please select at least one outfit item.');
+      alert("Please select at least one outfit item.");
       alert("Please select at least one outfit item.");
       return;
     }
@@ -291,7 +249,7 @@ export default function CompleteOutfitView({
       addToCart(product);
     });
 
-    alert('Complete outfit added to cart.');
+    alert("Complete outfit added to cart.");
     alert("Complete outfit added to cart.");
   };
 
@@ -319,19 +277,22 @@ export default function CompleteOutfitView({
             </h1>
 
             <p className="text-sm text-slate-500 font-semibold mt-3 max-w-2xl">
-              Suggestions stay within same style category and detected skin tone allowed colors.
               Suggestions stay within same style category and detected skin tone
-              allowed colors.
+              allowed colors. Suggestions stay within same style category and
+              detected skin tone allowed colors.
             </p>
           </div>
 
-          <div className="bg-white border border-brand-border/60 rounded-2xl p-4 min-w-[260px]">
+          <div className="bg-white border border-brand-border/60 rounded-2xl p-4 min-w-65">
             <p className="text-[10px] uppercase tracking-widest text-slate-400 font-black">
               Active Rules
             </p>
 
             <div className="mt-3 space-y-2">
-              <RuleLine label="Skin Tone" value={prettyLabel(detectedSkinTone)} />
+              <RuleLine
+                label="Skin Tone"
+                value={prettyLabel(detectedSkinTone)}
+              />
               <RuleLine
                 label="Skin Tone"
                 value={prettyLabel(detectedSkinTone)}
@@ -361,12 +322,14 @@ export default function CompleteOutfitView({
               No selected product found
             </h3>
             <p className="text-sm text-slate-500 font-semibold mt-2">
-              Recommended Products page se kisi product par Complete Outfit click karo.
               Recommended Products page se kisi product par Complete Outfit
-              click karo.
+              click karo. Recommended Products page se kisi product par Complete
+              Outfit click karo.
             </p>
             <button
-              onClick={() => navigate(`/recommended?skinTone=${detectedSkinTone}`)}
+              onClick={() =>
+                navigate(`/recommended?skinTone=${detectedSkinTone}`)
+              }
               onClick={() =>
                 navigate(`/recommended?skinTone=${detectedSkinTone}`)
               }
@@ -403,14 +366,12 @@ export default function CompleteOutfitView({
             <div className="bg-slate-950 rounded-3xl p-6 text-white shadow-xl mb-8">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
                 <div>
-                  <h2 className="text-2xl font-black">
-                    Outfit Summary
-                  </h2>
+                  <h2 className="text-2xl font-black">Outfit Summary</h2>
                   <h2 className="text-2xl font-black">Outfit Summary</h2>
                   <p className="text-sm text-slate-300 font-semibold mt-2">
-                    Select missing items from suggestions and add the full outfit to cart.
                     Select missing items from suggestions and add the full
-                    outfit to cart.
+                    outfit to cart. Select missing items from suggestions and
+                    add the full outfit to cart.
                   </p>
                 </div>
 
@@ -424,7 +385,9 @@ export default function CompleteOutfitView({
                   </button>
 
                   <button
-                    onClick={() => navigate(`/recommended?skinTone=${detectedSkinTone}`)}
+                    onClick={() =>
+                      navigate(`/recommended?skinTone=${detectedSkinTone}`)
+                    }
                     onClick={() =>
                       navigate(`/recommended?skinTone=${detectedSkinTone}`)
                     }
@@ -476,9 +439,7 @@ function RuleLine({ label, value }: { label: string; value: string }) {
       <span className="text-xs font-black text-slate-400 uppercase tracking-wider">
         {label}
       </span>
-      <span className="text-sm font-black text-brand-dark">
-        {value}
-      </span>
+      <span className="text-sm font-black text-brand-dark">{value}</span>
       <span className="text-sm font-black text-brand-dark">{value}</span>
     </div>
   );
@@ -498,9 +459,7 @@ function SelectedSlot({
   return (
     <div className="bg-white border border-brand-border/60 rounded-3xl overflow-hidden shadow-sm">
       <div className="p-4 border-b border-slate-100">
-        <h3 className="text-sm font-black text-brand-dark">
-          {title}
-        </h3>
+        <h3 className="text-sm font-black text-brand-dark">{title}</h3>
         <h3 className="text-sm font-black text-brand-dark">{title}</h3>
       </div>
 
@@ -530,12 +489,12 @@ function SelectedSlot({
             </h4>
 
             <p className="text-xs text-slate-500 font-bold mt-1">
-              Color: {prettyLabel(product.color || 'Not Set')}
+              Color: {prettyLabel(product.color || "Not Set")}
               Color: {prettyLabel(product.color || "Not Set")}
             </p>
 
             <p className="text-sm font-black text-brand-dark mt-3">
-              Rs. {Number(product.price || 0).toLocaleString('en-PK')}
+              Rs. {Number(product.price || 0).toLocaleString("en-PK")}
               Rs. {Number(product.price || 0).toLocaleString("en-PK")}
             </p>
 
@@ -550,9 +509,7 @@ function SelectedSlot({
       ) : (
         <div className="p-8 text-center">
           <PackageCheck className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm font-black text-slate-600">
-            Not selected yet
-          </p>
+          <p className="text-sm font-black text-slate-600">Not selected yet</p>
           <p className="text-sm font-black text-slate-600">Not selected yet</p>
         </div>
       )}
@@ -575,9 +532,7 @@ function SuggestionSection({
     <div className="mb-10">
       <div className="flex items-center gap-2 mb-5">
         <ShoppingBag className="w-5 h-5 text-sage-green" />
-        <h2 className="text-2xl font-black text-brand-dark">
-          {title}
-        </h2>
+        <h2 className="text-2xl font-black text-brand-dark">{title}</h2>
         <h2 className="text-2xl font-black text-brand-dark">{title}</h2>
       </div>
 
@@ -587,9 +542,9 @@ function SuggestionSection({
             No matching products available.
           </p>
           <p className="text-xs text-slate-400 font-semibold mt-1">
-            Admin panel me same style aur matching allowed color ka product add karo.
             Admin panel me same style aur matching allowed color ka product add
-            karo.
+            karo. Admin panel me same style aur matching allowed color ka
+            product add karo.
           </p>
         </div>
       ) : (
@@ -600,7 +555,7 @@ function SuggestionSection({
               onClick={() => onSelect(product)}
               className="bg-white border border-brand-border/60 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all text-left"
             >
-              <div className="aspect-[3/4] bg-cream-card/60">
+              <div className="aspect-3/4 bg-cream-card/60">
                 <img
                   src={String(product.image || placeholderImage)}
                   alt={product.name}
@@ -613,7 +568,7 @@ function SuggestionSection({
 
               <div className="p-4">
                 <p className="text-[10px] uppercase tracking-widest text-sage-green font-black mb-1">
-                  {prettyLabel(product.color || 'Not Set')}
+                  {prettyLabel(product.color || "Not Set")}
                   {prettyLabel(product.color || "Not Set")}
                 </p>
 
@@ -626,7 +581,7 @@ function SuggestionSection({
                 </p>
 
                 <p className="text-sm font-black text-brand-dark mt-3">
-                  Rs. {Number(product.price || 0).toLocaleString('en-PK')}
+                  Rs. {Number(product.price || 0).toLocaleString("en-PK")}
                   Rs. {Number(product.price || 0).toLocaleString("en-PK")}
                 </p>
 

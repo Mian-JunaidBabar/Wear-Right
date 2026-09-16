@@ -39,7 +39,6 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
   const updateCulturalPreference = async (pref: string) => {
     setCulturalPref(pref);
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/profiles/", {
       const response = await fetch(API_ENDPOINTS.profiles, {
         method: "POST",
         headers: {

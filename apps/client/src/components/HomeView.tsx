@@ -49,7 +49,6 @@ export default function HomeView({ setView }: HomeViewProps) {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:8000/api/products/");
         const response = await fetch(API_ENDPOINTS.products);
         if (response.ok) {
           const data = await response.json();
@@ -110,9 +109,7 @@ export default function HomeView({ setView }: HomeViewProps) {
             <h1 className="font-serif tracking-tight text-slate-900 leading-[1.15] mb-6 text-4xl sm:text-5xl lg:text-[56px] font-normal">
               Find Your <br />
               Perfect Outfit <br />
-              <span className="text-blue-600 italic font-serif">
-                with AI
-              </span>
+              <span className="text-blue-600 italic font-serif">with AI</span>
               <span className="text-blue-600 italic font-serif">with AI</span>
             </h1>
 
@@ -137,8 +134,6 @@ export default function HomeView({ setView }: HomeViewProps) {
                 <ArrowRight className="w-4 h-4 text-brand-gold" />
               </button>
             </div>
-
-
           </motion.div>
 
           {/* Hero Right Visual Column */}
@@ -173,8 +168,12 @@ export default function HomeView({ setView }: HomeViewProps) {
               <LayoutGrid className="w-6 h-6" />
             </div>
             <div className="text-left">
-              <p className="text-xl sm:text-2xl font-black font-display text-slate-900">1000+</p>
-              <p className="text-xs text-slate-400 font-bold font-sans">Premium Products</p>
+              <p className="text-xl sm:text-2xl font-black font-display text-slate-900">
+                1000+
+              </p>
+              <p className="text-xs text-slate-400 font-bold font-sans">
+                Premium Products
+              </p>
               <p className="text-xl sm:text-2xl font-black font-display text-slate-900">
                 1000+
               </p>
@@ -190,8 +189,12 @@ export default function HomeView({ setView }: HomeViewProps) {
               <Target className="w-6 h-6" />
             </div>
             <div className="text-left">
-              <p className="text-xl sm:text-2xl font-black font-display text-slate-900">95%</p>
-              <p className="text-xs text-slate-400 font-bold font-sans">Match Accuracy</p>
+              <p className="text-xl sm:text-2xl font-black font-display text-slate-900">
+                95%
+              </p>
+              <p className="text-xs text-slate-400 font-bold font-sans">
+                Match Accuracy
+              </p>
               <p className="text-xl sm:text-2xl font-black font-display text-slate-900">
                 95%
               </p>
@@ -207,8 +210,12 @@ export default function HomeView({ setView }: HomeViewProps) {
               <Users className="w-6 h-6" />
             </div>
             <div className="text-left">
-              <p className="text-xl sm:text-2xl font-black font-display text-slate-900">500+</p>
-              <p className="text-xs text-slate-400 font-bold font-sans">Happy Customers</p>
+              <p className="text-xl sm:text-2xl font-black font-display text-slate-900">
+                500+
+              </p>
+              <p className="text-xs text-slate-400 font-bold font-sans">
+                Happy Customers
+              </p>
               <p className="text-xl sm:text-2xl font-black font-display text-slate-900">
                 500+
               </p>
@@ -224,8 +231,12 @@ export default function HomeView({ setView }: HomeViewProps) {
               <Shirt className="w-6 h-6" />
             </div>
             <div className="text-left">
-              <p className="text-xl sm:text-2xl font-black font-display text-slate-900">50+</p>
-              <p className="text-xs text-slate-400 font-bold font-sans">Outfit Combinations</p>
+              <p className="text-xl sm:text-2xl font-black font-display text-slate-900">
+                50+
+              </p>
+              <p className="text-xs text-slate-400 font-bold font-sans">
+                Outfit Combinations
+              </p>
               <p className="text-xl sm:text-2xl font-black font-display text-slate-900">
                 50+
               </p>
@@ -261,14 +272,16 @@ export default function HomeView({ setView }: HomeViewProps) {
             <div className="w-14 h-14 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-emerald-600 mb-6 mt-2">
               <Camera className="w-6 h-6" />
             </div>
-            <h3 className="font-sans font-bold text-slate-800 text-base mb-2">Scan Your Face</h3>
+            <h3 className="font-sans font-bold text-slate-800 text-base mb-2">
+              Scan Your Face
+            </h3>
             <h3 className="font-sans font-bold text-slate-800 text-base mb-2">
               Scan Your Face
             </h3>
             <p className="text-xs text-slate-500 font-sans leading-relaxed">
-              Use your camera to capture a quick, high-precision biometric scan of your face.
               Use your camera to capture a quick, high-precision biometric scan
-              of your face.
+              of your face. Use your camera to capture a quick, high-precision
+              biometric scan of your face.
             </p>
           </div>
 
@@ -280,14 +293,16 @@ export default function HomeView({ setView }: HomeViewProps) {
             <div className="w-14 h-14 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-emerald-600 mb-6 mt-2">
               <ScanFace className="w-6 h-6" />
             </div>
-            <h3 className="font-sans font-bold text-slate-800 text-base mb-2">Get Skin Tone Detected</h3>
+            <h3 className="font-sans font-bold text-slate-800 text-base mb-2">
+              Get Skin Tone Detected
+            </h3>
             <h3 className="font-sans font-bold text-slate-800 text-base mb-2">
               Get Skin Tone Detected
             </h3>
             <p className="text-xs text-slate-500 font-sans leading-relaxed">
-              Our advanced AI detects your unique skin undertone and contrast parameters.
               Our advanced AI detects your unique skin undertone and contrast
-              parameters.
+              parameters. Our advanced AI detects your unique skin undertone and
+              contrast parameters.
             </p>
           </div>
 
@@ -299,14 +314,16 @@ export default function HomeView({ setView }: HomeViewProps) {
             <div className="w-14 h-14 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-emerald-600 mb-6 mt-2">
               <Shirt className="w-6 h-6" />
             </div>
-            <h3 className="font-sans font-bold text-slate-800 text-base mb-2">Receive Outfit Recommendations</h3>
+            <h3 className="font-sans font-bold text-slate-800 text-base mb-2">
+              Receive Outfit Recommendations
+            </h3>
             <h3 className="font-sans font-bold text-slate-800 text-base mb-2">
               Receive Outfit Recommendations
             </h3>
             <p className="text-xs text-slate-500 font-sans leading-relaxed">
-              Get an instantly curated selection of colors and clothes matching your profile.
               Get an instantly curated selection of colors and clothes matching
-              your profile.
+              your profile. Get an instantly curated selection of colors and
+              clothes matching your profile.
             </p>
           </div>
 
@@ -318,14 +335,16 @@ export default function HomeView({ setView }: HomeViewProps) {
             <div className="w-14 h-14 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-emerald-600 mb-6 mt-2">
               <ShoppingBag className="w-6 h-6" />
             </div>
-            <h3 className="font-sans font-bold text-slate-800 text-base mb-2">Shop & Complete Your Look</h3>
+            <h3 className="font-sans font-bold text-slate-800 text-base mb-2">
+              Shop & Complete Your Look
+            </h3>
             <h3 className="font-sans font-bold text-slate-800 text-base mb-2">
               Shop & Complete Your Look
             </h3>
             <p className="text-xs text-slate-500 font-sans leading-relaxed">
-              Browse matching pairs, view recommendations, and purchase your customized outfits.
               Browse matching pairs, view recommendations, and purchase your
-              customized outfits.
+              customized outfits. Browse matching pairs, view recommendations,
+              and purchase your customized outfits.
             </p>
           </div>
         </div>
@@ -457,7 +476,6 @@ export default function HomeView({ setView }: HomeViewProps) {
       {/* High-Impact CTA Face Scan Banner */}
       <section className="w-full py-12 px-6 max-w-7xl mx-auto">
         <div className="bg-emerald-600 rounded-[32px] p-8 md:p-12 text-white relative overflow-hidden shadow-xl flex flex-col lg:flex-row items-center justify-between gap-8 border border-emerald-700/50">
-
           {/* Subtle background abstract shapes */}
           <div className="absolute -right-10 -bottom-10 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute left-1/3 top-10 w-64 h-64 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
@@ -471,9 +489,10 @@ export default function HomeView({ setView }: HomeViewProps) {
               Not Sure What Suits You?
             </h2>
             <p className="text-sm text-slate-100 font-sans leading-relaxed mb-8 max-w-md">
-              Let our system analyze your unique parameters to match you with custom seasonal palettes and optimal outfit recommendations.
               Let our system analyze your unique parameters to match you with
-              custom seasonal palettes and optimal outfit recommendations.
+              custom seasonal palettes and optimal outfit recommendations. Let
+              our system analyze your unique parameters to match you with custom
+              seasonal palettes and optimal outfit recommendations.
             </p>
             <button
               onClick={() => setView("facescan")}
@@ -493,14 +512,25 @@ export default function HomeView({ setView }: HomeViewProps) {
             <div className="flex flex-col gap-5">
               {/* Fair Swatch */}
               <div className="flex items-center justify-between gap-6 border-b border-emerald-500/10 pb-3">
-                <span className="text-xs font-sans font-bold text-slate-200">Fair Tone</span>
+                <span className="text-xs font-sans font-bold text-slate-200">
+                  Fair Tone
+                </span>
                 <span className="text-xs font-sans font-bold text-slate-200">
                   Fair Tone
                 </span>
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full border border-white/20 bg-[#FCD5C8]" title="Soft Peach" />
-                  <div className="w-5 h-5 rounded-full border border-white/20 bg-[#D4E6F1]" title="Powder Blue" />
-                  <div className="w-5 h-5 rounded-full border border-white/20 bg-[#E6DCD2]" title="Desert Sand" />
+                  <div
+                    className="w-5 h-5 rounded-full border border-white/20 bg-[#FCD5C8]"
+                    title="Soft Peach"
+                  />
+                  <div
+                    className="w-5 h-5 rounded-full border border-white/20 bg-[#D4E6F1]"
+                    title="Powder Blue"
+                  />
+                  <div
+                    className="w-5 h-5 rounded-full border border-white/20 bg-[#E6DCD2]"
+                    title="Desert Sand"
+                  />
                   <div
                     className="w-5 h-5 rounded-full border border-white/20 bg-[#FCD5C8]"
                     title="Soft Peach"
@@ -518,14 +548,25 @@ export default function HomeView({ setView }: HomeViewProps) {
 
               {/* Medium Swatch */}
               <div className="flex items-center justify-between gap-6 border-b border-emerald-500/10 pb-3">
-                <span className="text-xs font-sans font-bold text-slate-200">Medium Tone</span>
+                <span className="text-xs font-sans font-bold text-slate-200">
+                  Medium Tone
+                </span>
                 <span className="text-xs font-sans font-bold text-slate-200">
                   Medium Tone
                 </span>
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full border border-white/20 bg-[#C87A53]" title="Warm Terracotta" />
-                  <div className="w-5 h-5 rounded-full border border-white/20 bg-[#6E8B3D]" title="Olive Drab" />
-                  <div className="w-5 h-5 rounded-full border border-white/20 bg-[#D4AF37]" title="Warm Gold" />
+                  <div
+                    className="w-5 h-5 rounded-full border border-white/20 bg-[#C87A53]"
+                    title="Warm Terracotta"
+                  />
+                  <div
+                    className="w-5 h-5 rounded-full border border-white/20 bg-[#6E8B3D]"
+                    title="Olive Drab"
+                  />
+                  <div
+                    className="w-5 h-5 rounded-full border border-white/20 bg-[#D4AF37]"
+                    title="Warm Gold"
+                  />
                   <div
                     className="w-5 h-5 rounded-full border border-white/20 bg-[#C87A53]"
                     title="Warm Terracotta"
@@ -543,14 +584,25 @@ export default function HomeView({ setView }: HomeViewProps) {
 
               {/* Dark Swatch */}
               <div className="flex items-center justify-between gap-6">
-                <span className="text-xs font-sans font-bold text-slate-200">Dark Tone</span>
+                <span className="text-xs font-sans font-bold text-slate-200">
+                  Dark Tone
+                </span>
                 <span className="text-xs font-sans font-bold text-slate-200">
                   Dark Tone
                 </span>
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full border border-white/20 bg-[#004B23]" title="Deep Emerald" />
-                  <div className="w-5 h-5 rounded-full border border-white/20 bg-[#0A1128]" title="Obsidian Midnight" />
-                  <div className="w-5 h-5 rounded-full border border-white/20 bg-[#5F0F40]" title="Rich Burgundy" />
+                  <div
+                    className="w-5 h-5 rounded-full border border-white/20 bg-[#004B23]"
+                    title="Deep Emerald"
+                  />
+                  <div
+                    className="w-5 h-5 rounded-full border border-white/20 bg-[#0A1128]"
+                    title="Obsidian Midnight"
+                  />
+                  <div
+                    className="w-5 h-5 rounded-full border border-white/20 bg-[#5F0F40]"
+                    title="Rich Burgundy"
+                  />
                   <div
                     className="w-5 h-5 rounded-full border border-white/20 bg-[#004B23]"
                     title="Deep Emerald"
@@ -592,9 +644,9 @@ export default function HomeView({ setView }: HomeViewProps) {
               Personalized Recommendations
             </h3>
             <p className="text-xs text-slate-500 font-sans leading-relaxed">
-              Our advanced AI detects your exact skin tone profile to calibrate perfect clothing matches.
               Our advanced AI detects your exact skin tone profile to calibrate
-              perfect clothing matches.
+              perfect clothing matches. Our advanced AI detects your exact skin
+              tone profile to calibrate perfect clothing matches.
             </p>
           </div>
 
@@ -607,9 +659,10 @@ export default function HomeView({ setView }: HomeViewProps) {
               Reduced Returns
             </h3>
             <p className="text-xs text-slate-500 font-sans leading-relaxed">
-              Know exactly how each garment matches your profile before ordering to eliminate sizing and color mismatch returns.
               Know exactly how each garment matches your profile before ordering
-              to eliminate sizing and color mismatch returns.
+              to eliminate sizing and color mismatch returns. Know exactly how
+              each garment matches your profile before ordering to eliminate
+              sizing and color mismatch returns.
             </p>
           </div>
 
@@ -622,9 +675,10 @@ export default function HomeView({ setView }: HomeViewProps) {
               Complete Outfit Matching
             </h3>
             <p className="text-xs text-slate-500 font-sans leading-relaxed">
-              Don't buy single items. Build matching sets of tops, bottoms, and accessories tailored to your skin tone.
               Don't buy single items. Build matching sets of tops, bottoms, and
-              accessories tailored to your skin tone.
+              accessories tailored to your skin tone. Don't buy single items.
+              Build matching sets of tops, bottoms, and accessories tailored to
+              your skin tone.
             </p>
           </div>
 
@@ -637,9 +691,10 @@ export default function HomeView({ setView }: HomeViewProps) {
               Fast Delivery
             </h3>
             <p className="text-xs text-slate-500 font-sans leading-relaxed">
-              Enjoy express packaging and quick courier dispatch to receive your tailored wardrobe right at your doorstep.
               Enjoy express packaging and quick courier dispatch to receive your
-              tailored wardrobe right at your doorstep.
+              tailored wardrobe right at your doorstep. Enjoy express packaging
+              and quick courier dispatch to receive your tailored wardrobe right
+              at your doorstep.
             </p>
           </div>
         </div>
@@ -668,12 +723,18 @@ export default function HomeView({ setView }: HomeViewProps) {
                 HC
               </div>
               <div>
-                <h4 className="font-sans font-extrabold text-sm text-slate-800">Hammad Ch</h4>
+                <h4 className="font-sans font-extrabold text-sm text-slate-800">
+                  Hammad Ch
+                </h4>
                 <h4 className="font-sans font-extrabold text-sm text-slate-800">
                   Hammad Ch
                 </h4>
                 <div className="flex gap-0.5 mt-1 text-emerald-600 text-xs">
-                  <span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span>
+                  <span>⭐</span>
+                  <span>⭐</span>
+                  <span>⭐</span>
+                  <span>⭐</span>
+                  <span>⭐</span>
                   <span>⭐</span>
                   <span>⭐</span>
                   <span>⭐</span>
@@ -683,9 +744,10 @@ export default function HomeView({ setView }: HomeViewProps) {
               </div>
             </div>
             <p className="text-xs text-slate-600 font-sans leading-relaxed italic">
-              "The AI accurately detected my skin tone and recommended outfits that suited me perfectly. Shopping has never been this easy."
               "The AI accurately detected my skin tone and recommended outfits
-              that suited me perfectly. Shopping has never been this easy."
+              that suited me perfectly. Shopping has never been this easy." "The
+              AI accurately detected my skin tone and recommended outfits that
+              suited me perfectly. Shopping has never been this easy."
             </p>
           </div>
 
@@ -696,12 +758,18 @@ export default function HomeView({ setView }: HomeViewProps) {
                 AT
               </div>
               <div>
-                <h4 className="font-sans font-extrabold text-sm text-slate-800">Ali Tariq</h4>
+                <h4 className="font-sans font-extrabold text-sm text-slate-800">
+                  Ali Tariq
+                </h4>
                 <h4 className="font-sans font-extrabold text-sm text-slate-800">
                   Ali Tariq
                 </h4>
                 <div className="flex gap-0.5 mt-1 text-emerald-600 text-xs">
-                  <span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span>
+                  <span>⭐</span>
+                  <span>⭐</span>
+                  <span>⭐</span>
+                  <span>⭐</span>
+                  <span>⭐</span>
                   <span>⭐</span>
                   <span>⭐</span>
                   <span>⭐</span>
@@ -711,9 +779,10 @@ export default function HomeView({ setView }: HomeViewProps) {
               </div>
             </div>
             <p className="text-xs text-slate-600 font-sans leading-relaxed italic">
-              "I loved the personalized outfit suggestions. The complete outfit matching feature saved me a lot of time."
               "I loved the personalized outfit suggestions. The complete outfit
-              matching feature saved me a lot of time."
+              matching feature saved me a lot of time." "I loved the
+              personalized outfit suggestions. The complete outfit matching
+              feature saved me a lot of time."
             </p>
           </div>
 
@@ -724,12 +793,18 @@ export default function HomeView({ setView }: HomeViewProps) {
                 SA
               </div>
               <div>
-                <h4 className="font-sans font-extrabold text-sm text-slate-800">Sameer Ahmad</h4>
+                <h4 className="font-sans font-extrabold text-sm text-slate-800">
+                  Sameer Ahmad
+                </h4>
                 <h4 className="font-sans font-extrabold text-sm text-slate-800">
                   Sameer Ahmad
                 </h4>
                 <div className="flex gap-0.5 mt-1 text-emerald-600 text-xs">
-                  <span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span>
+                  <span>⭐</span>
+                  <span>⭐</span>
+                  <span>⭐</span>
+                  <span>⭐</span>
+                  <span>⭐</span>
                   <span>⭐</span>
                   <span>⭐</span>
                   <span>⭐</span>
@@ -739,16 +814,14 @@ export default function HomeView({ setView }: HomeViewProps) {
               </div>
             </div>
             <p className="text-xs text-slate-600 font-sans leading-relaxed italic">
-              "Great experience! The recommendations were accurate, and I found the perfect outfit within minutes."
               "Great experience! The recommendations were accurate, and I found
-              the perfect outfit within minutes."
+              the perfect outfit within minutes." "Great experience! The
+              recommendations were accurate, and I found the perfect outfit
+              within minutes."
             </p>
           </div>
         </div>
       </section>
-
-
-
     </motion.div>
   );
 }

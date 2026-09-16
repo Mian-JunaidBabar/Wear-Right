@@ -219,7 +219,6 @@ export default function ShopView({
     payment_status: "Cash on Delivery",
   });
 
-  const placeholderImage = "http://127.0.0.1:8000/products/images.jpeg";
   const placeholderImage = getProductImageUrl("products/images.jpeg");
 
   const normalizeCategory = (category?: string) => {
@@ -255,9 +254,7 @@ export default function ShopView({
   };
 
   const normalizeStyle = (style?: string) => {
-    const value = String(style || "Casual").toLowerCase();
     if (!style) return "Casual";
-
     const value = style.toLowerCase();
 
     if (value.includes("eastern")) return "Eastern";
@@ -295,7 +292,6 @@ export default function ShopView({
       setLoadingProducts(true);
       setProductError("");
 
-      const response = await fetch("http://127.0.0.1:8000/api/products/");
       const response = await fetch(API_ENDPOINTS.products);
 
       if (!response.ok) {
@@ -442,10 +438,7 @@ export default function ShopView({
       setGeneratedOutfit(null);
       setIsPreviewModalOpen(true);
 
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/outfit/generate/?product_id=${product.id}`,
-        API_ENDPOINTS.outfitGenerate(product.id),
-      );
+      const response = await fetch(API_ENDPOINTS.outfitGenerate(product.id));
 
       if (!response.ok) {
         throw new Error("Outfit API failed");
@@ -467,7 +460,6 @@ export default function ShopView({
   };
 
   const openProductWhatsApp = (product: ShopProduct) => {
-    const adminWhatsAppNumber = "923021191771";
     const adminWhatsAppNumber = ADMIN_WHATSAPP_NUMBER;
 
     const message = `Hello Admin, I am interested in this product:
@@ -605,7 +597,6 @@ Please share more details.`;
     try {
       setOrderSubmitting(true);
 
-      const response = await fetch("http://127.0.0.1:8000/api/orders/", {
       const response = await fetch(API_ENDPOINTS.orders, {
         method: "POST",
         headers: {

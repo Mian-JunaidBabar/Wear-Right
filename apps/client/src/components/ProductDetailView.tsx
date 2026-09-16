@@ -202,7 +202,6 @@ export default function ProductDetailView({
       setLoading(true);
       setErrorMessage("");
 
-      const response = await fetch("http://127.0.0.1:8000/api/products/");
       const response = await fetch(API_ENDPOINTS.products);
 
       if (!response.ok) {
@@ -238,9 +237,6 @@ export default function ProductDetailView({
     try {
       setOutfitLoading(true);
 
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/outfit/generate/?product_id=${productId}`,
-      );
       const response = await fetch(API_ENDPOINTS.outfitGenerate(productId));
 
       if (!response.ok) {
@@ -333,7 +329,6 @@ export default function ProductDetailView({
   const openWhatsApp = () => {
     if (!product) return;
 
-    const adminWhatsAppNumber = "923021191771";
     const adminWhatsAppNumber = ADMIN_WHATSAPP_NUMBER;
 
     const message = `Hello Admin, I am interested in this product:
