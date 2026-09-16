@@ -97,6 +97,8 @@ DATABASES = {
         'PASSWORD': 'your_secure_password',
         'HOST': 'localhost',
         'PORT': '5432',
+    }
+}
 if database_url:
     try:
         import dj_database_url
@@ -133,7 +135,6 @@ elif db_engine == 'postgresql' and not use_sqlite:
             'PORT': os.environ.get('DB_PORT', '5432'),
         }
     }
-}
 else:
     # Safe zero-friction local SQLite database
     DATABASES = {
