@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
   Heart,
@@ -18,8 +18,9 @@ import {
   ShoppingBag,
   Shirt,
   ChevronRight,
-} from 'lucide-react';
-import { CartProduct } from '../App';
+} from "lucide-react";
+import { CartProduct } from "../App";
+import { API_ENDPOINTS, ADMIN_WHATSAPP_NUMBER } from "../config/api";
 
 type ApiProduct = {
   id: number | string;
@@ -61,19 +62,19 @@ type ProductDetailViewProps = {
   toggleWishlist: (product: CartProduct) => void;
 };
 
-const SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
+const SIZES = ["S", "M", "L", "XL", "XXL"];
 
 function getSizeQuantity(size: string, product: ApiProduct) {
   switch (size) {
-    case 'S':
+    case "S":
       return Number(product.size_s_stock || 0);
-    case 'M':
+    case "M":
       return Number(product.size_m_stock || 0);
-    case 'L':
+    case "L":
       return Number(product.size_l_stock || 0);
-    case 'XL':
+    case "XL":
       return Number(product.size_xl_stock || 0);
-    case 'XXL':
+    case "XXL":
       return Number(product.size_xxl_stock || 0);
     default:
       return Number(product.stock_quantity || 0);
@@ -82,27 +83,27 @@ function getSizeQuantity(size: string, product: ApiProduct) {
 
 function formatPKR(value: string | number | undefined) {
   const num = Number(value || 0);
-  return `Rs. ${num.toLocaleString('en-PK')}`;
+  return `Rs. ${num.toLocaleString("en-PK")}`;
 }
 
 function normalizeStyle(style?: string) {
-  const value = String(style || 'Casual').toLowerCase();
+  const value = String(style || "Casual").toLowerCase();
 
-  if (value.includes('eastern')) return 'Eastern';
-  if (value.includes('western')) return 'Western';
-  if (value.includes('formal')) return 'Formal';
-  if (value.includes('casual')) return 'Casual';
+  if (value.includes("eastern")) return "Eastern";
+  if (value.includes("western")) return "Western";
+  if (value.includes("formal")) return "Formal";
+  if (value.includes("casual")) return "Casual";
 
-  return 'Casual';
+  return "Casual";
 }
 
 function getProductImage(product?: ApiProduct | null) {
-  if (!product) return 'https://placehold.co/600x800?text=Wear+Right';
+  if (!product) return "https://placehold.co/600x800?text=Wear+Right";
 
   return (
     product.image_url ||
     product.image ||
-    'https://placehold.co/600x800?text=Wear+Right'
+    "https://placehold.co/600x800?text=Wear+Right"
   );
 }
 
@@ -110,17 +111,17 @@ function toCartProduct(product: ApiProduct): CartProduct {
   return {
     id: product.id,
     name: product.name,
-    category: product.category || 'Wear Right Product',
+    category: product.category || "Wear Right Product",
     style: normalizeStyle(product.style || product.cultural_tag),
-    color: product.color || '',
-    garment_type: product.garment_type || '',
-    cultural_tag: product.cultural_tag || '',
-    compatible_skin_tone: product.compatible_skin_tone || '',
+    color: product.color || "",
+    garment_type: product.garment_type || "",
+    cultural_tag: product.cultural_tag || "",
+    compatible_skin_tone: product.compatible_skin_tone || "",
     image: getProductImage(product),
     image_url: product.image_url || product.image || null,
     price: product.price,
     stock_quantity: Number(product.stock_quantity || 0),
-    status: product.status || 'Active',
+    status: product.status || "Active",
   };
 }
 
@@ -135,13 +136,13 @@ export default function ProductDetailView({
   const [product, setProduct] = useState<ApiProduct | null>(null);
   const [allProducts, setAllProducts] = useState<ApiProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState("");
 
   // Feature 1: Image Zoom
   const [showZoom, setShowZoom] = useState(false);
 
   // Feature 2: Size Selector
-  const [selectedSize, setSelectedSize] = useState('M');
+  const [selectedSize, setSelectedSize] = useState("M");
 
   // Feature 3: Quantity Selector
   const [quantity, setQuantity] = useState(1);
@@ -159,8 +160,8 @@ export default function ProductDetailView({
 
     return (
       Number(product.stock_quantity || 0) <= 0 ||
-      product.status === 'Out of Stock' ||
-      product.status === 'Inactive'
+      product.status === "Out of Stock" ||
+      product.status === "Inactive"
     );
   }, [product]);
 
@@ -179,12 +180,13 @@ export default function ProductDetailView({
     if (!product || allProducts.length === 0) return [];
 
     const productStyle = normalizeStyle(product.style || product.cultural_tag);
-    const productCategory = product.category || '';
+    const productCategory = product.category || "";
 
     return allProducts
       .filter((item) => {
         if (String(item.id) === String(product.id)) return false;
-        if (item.status === 'Out of Stock' || item.status === 'Inactive') return false;
+        if (item.status === "Out of Stock" || item.status === "Inactive")
+          return false;
 
         const itemStyle = normalizeStyle(item.style || item.cultural_tag);
         const sameStyle = itemStyle === productStyle;
@@ -198,12 +200,13 @@ export default function ProductDetailView({
   const fetchProduct = useCallback(async () => {
     try {
       setLoading(true);
-      setErrorMessage('');
+      setErrorMessage("");
 
-      const response = await fetch('http://127.0.0.1:8000/api/products/');
+      const response = await fetch("http://127.0.0.1:8000/api/products/");
+      const response = await fetch(API_ENDPOINTS.products);
 
       if (!response.ok) {
-        throw new Error('Products API response was not successful.');
+        throw new Error("Products API response was not successful.");
       }
 
       const data = await response.json();
@@ -212,19 +215,19 @@ export default function ProductDetailView({
       setAllProducts(products);
 
       const foundProduct = products.find(
-        (item: ApiProduct) => String(item.id) === String(id)
+        (item: ApiProduct) => String(item.id) === String(id),
       );
 
       if (!foundProduct) {
         setProduct(null);
-        setErrorMessage('Product not found.');
+        setErrorMessage("Product not found.");
         return;
       }
 
       setProduct(foundProduct);
     } catch (error) {
-      console.error('Product detail error:', error);
-      setErrorMessage('Unable to load product details from backend API.');
+      console.error("Product detail error:", error);
+      setErrorMessage("Unable to load product details from backend API.");
     } finally {
       setLoading(false);
     }
@@ -236,8 +239,9 @@ export default function ProductDetailView({
       setOutfitLoading(true);
 
       const response = await fetch(
-        `http://127.0.0.1:8000/api/outfit/generate/?product_id=${productId}`
+        `http://127.0.0.1:8000/api/outfit/generate/?product_id=${productId}`,
       );
+      const response = await fetch(API_ENDPOINTS.outfitGenerate(productId));
 
       if (!response.ok) {
         setOutfitData(null);
@@ -246,13 +250,13 @@ export default function ProductDetailView({
 
       const data = await response.json();
 
-      if (data.status === 'success') {
+      if (data.status === "success") {
         setOutfitData(data);
       } else {
         setOutfitData(null);
       }
     } catch (error) {
-      console.error('Outfit fetch error:', error);
+      console.error("Outfit fetch error:", error);
       setOutfitData(null);
     } finally {
       setOutfitLoading(false);
@@ -261,7 +265,7 @@ export default function ProductDetailView({
 
   useEffect(() => {
     setQuantity(1);
-    setSelectedSize('M');
+    setSelectedSize("M");
     setShowZoom(false);
     setOutfitData(null);
     fetchProduct();
@@ -276,19 +280,19 @@ export default function ProductDetailView({
   // Close zoom on Escape key
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         setShowZoom(false);
       }
     };
 
     if (showZoom) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
+      document.addEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
     };
   }, [showZoom]);
 
@@ -296,7 +300,7 @@ export default function ProductDetailView({
     if (!cartProduct || !product) return;
 
     if (isOutOfStock) {
-      alert('This product is currently out of stock.');
+      alert("This product is currently out of stock.");
       return;
     }
 
@@ -315,7 +319,9 @@ export default function ProductDetailView({
     }
 
     // Navigate to shop where user can proceed from cart drawer
-    alert(`${product.name} (x${quantity}) added to cart. Open the cart to checkout!`);
+    alert(
+      `${product.name} (x${quantity}) added to cart. Open the cart to checkout!`,
+    );
   };
 
   const handleWishlist = () => {
@@ -327,15 +333,16 @@ export default function ProductDetailView({
   const openWhatsApp = () => {
     if (!product) return;
 
-    const adminWhatsAppNumber = '923021191771';
+    const adminWhatsAppNumber = "923021191771";
+    const adminWhatsAppNumber = ADMIN_WHATSAPP_NUMBER;
 
     const message = `Hello Admin, I am interested in this product:
 
 Product: ${product.name}
 Product ID: ${product.id}
-Category: ${product.category || 'N/A'}
+Category: ${product.category || "N/A"}
 Style: ${normalizeStyle(product.style || product.cultural_tag)}
-Color: ${product.color || 'N/A'}
+Color: ${product.color || "N/A"}
 Size: ${selectedSize}
 Quantity: ${quantity}
 Price: ${formatPKR(product.price)}
@@ -344,7 +351,7 @@ Please share more details.`;
 
     window.open(
       `https://wa.me/${adminWhatsAppNumber}?text=${encodeURIComponent(message)}`,
-      '_blank'
+      "_blank",
     );
   };
 
@@ -367,11 +374,13 @@ Please share more details.`;
     const items: { label: string; product: ApiProduct }[] = [];
     const outfit = outfitData.outfit;
 
-    if (outfit.shirt) items.push({ label: 'Shirt', product: outfit.shirt });
-    if (outfit.pant) items.push({ label: 'Pants', product: outfit.pant });
-    if (outfit.shoes) items.push({ label: 'Footwear', product: outfit.shoes });
-    if (outfit.accessory) items.push({ label: 'Accessory', product: outfit.accessory });
-    if (outfit.coat_or_jacket) items.push({ label: 'Outerwear', product: outfit.coat_or_jacket });
+    if (outfit.shirt) items.push({ label: "Shirt", product: outfit.shirt });
+    if (outfit.pant) items.push({ label: "Pants", product: outfit.pant });
+    if (outfit.shoes) items.push({ label: "Footwear", product: outfit.shoes });
+    if (outfit.accessory)
+      items.push({ label: "Accessory", product: outfit.accessory });
+    if (outfit.coat_or_jacket)
+      items.push({ label: "Outerwear", product: outfit.coat_or_jacket });
 
     return items;
   }, [outfitData]);
@@ -410,11 +419,11 @@ Please share more details.`;
           </h1>
 
           <p className="text-sm text-slate-500 font-semibold mt-3">
-            {errorMessage || 'This product is not available.'}
+            {errorMessage || "This product is not available."}
           </p>
 
           <button
-            onClick={() => navigate('/shop')}
+            onClick={() => navigate("/shop")}
             className="mt-6 bg-brand-gold hover:opacity-90 text-white px-6 py-4 rounded-xl text-xs font-black uppercase tracking-wider"
           >
             Back to Shop
@@ -429,7 +438,7 @@ Please share more details.`;
     <div className="w-full min-h-[calc(100vh-80px)] bg-cream-base px-6 py-10 text-left font-sans">
       <div className="max-w-7xl mx-auto">
         <button
-          onClick={() => navigate('/shop')}
+          onClick={() => navigate("/shop")}
           className="mb-6 bg-white hover:bg-cream-card/60 border border-brand-border/60 text-slate-700 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -438,7 +447,6 @@ Please share more details.`;
 
         {/* ─── Product Grid: Image + Details ─── */}
         <div className="grid grid-cols-1 lg:grid-cols-[45%_55%] gap-8">
-
           {/* ═══ LEFT: Product Image with Zoom ═══ */}
           <div className="bg-white border border-brand-border/60 rounded-3xl overflow-hidden shadow-sm">
             <div
@@ -451,21 +459,22 @@ Please share more details.`;
                 className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
                 onError={(event) => {
                   event.currentTarget.src =
-                    'https://placehold.co/600x800?text=Wear+Right';
+                    "https://placehold.co/600x800?text=Wear+Right";
                 }}
               />
 
               {/* Stock Badge */}
               <div
-                className={`absolute top-5 left-5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow ${isOutOfStock
-                  ? 'bg-red-600 text-white'
-                  : Number(product.stock_quantity || 0) <= 5
-                    ? 'bg-amber-500 text-white'
-                    : 'bg-emerald-600 text-white'
-                  }`}
+                className={`absolute top-5 left-5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow ${
+                  isOutOfStock
+                    ? "bg-red-600 text-white"
+                    : Number(product.stock_quantity || 0) <= 5
+                      ? "bg-amber-500 text-white"
+                      : "bg-emerald-600 text-white"
+                }`}
               >
                 {isOutOfStock
-                  ? 'Out of Stock'
+                  ? "Out of Stock"
                   : `${product.stock_quantity || 0} Available`}
               </div>
 
@@ -491,7 +500,8 @@ Please share more details.`;
             </h1>
 
             <p className="text-sm text-slate-500 font-semibold mt-4">
-              Product ID: WR-{product.id} / {product.category || 'Wear Right Product'}
+              Product ID: WR-{product.id} /{" "}
+              {product.category || "Wear Right Product"}
             </p>
 
             <div className="flex items-center gap-2 mt-5">
@@ -503,12 +513,24 @@ Please share more details.`;
 
             {/* Info Cards */}
             <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <InfoCard label="Category" value={product.category || 'N/A'} />
-              <InfoCard label="Style" value={normalizeStyle(product.style || product.cultural_tag)} />
-              <InfoCard label="Color" value={product.color || 'N/A'} />
-              <InfoCard label="Garment Type" value={product.garment_type || 'N/A'} />
-              <InfoCard label="Skin Tone" value={product.compatible_skin_tone || 'N/A'} />
-              <InfoCard label="Stock" value={`${product.stock_quantity || 0} item(s)`} />
+              <InfoCard label="Category" value={product.category || "N/A"} />
+              <InfoCard
+                label="Style"
+                value={normalizeStyle(product.style || product.cultural_tag)}
+              />
+              <InfoCard label="Color" value={product.color || "N/A"} />
+              <InfoCard
+                label="Garment Type"
+                value={product.garment_type || "N/A"}
+              />
+              <InfoCard
+                label="Skin Tone"
+                value={product.compatible_skin_tone || "N/A"}
+              />
+              <InfoCard
+                label="Stock"
+                value={`${product.stock_quantity || 0} item(s)`}
+              />
             </div>
 
             {/* ─── Feature 2: Size Selector ─── */}
@@ -522,10 +544,11 @@ Please share more details.`;
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
-                    className={`min-w-[52px] px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider border-2 transition-all duration-200 ${selectedSize === size
-                      ? 'bg-slate-950 text-white border-slate-950 shadow-lg shadow-slate-950/20'
-                      : 'bg-white text-slate-700 border-brand-border/60 hover:border-slate-400'
-                      }`}
+                    className={`min-w-[52px] px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider border-2 transition-all duration-200 ${
+                      selectedSize === size
+                        ? "bg-slate-950 text-white border-slate-950 shadow-lg shadow-slate-950/20"
+                        : "bg-white text-slate-700 border-brand-border/60 hover:border-slate-400"
+                    }`}
                   >
                     {size}
                   </button>
@@ -536,7 +559,12 @@ Please share more details.`;
                 <div className="mt-3 inline-flex items-center gap-2 px-3.5 py-2 bg-blue-50/50 border border-blue-200/40 rounded-xl text-xs text-blue-800 font-medium font-sans">
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
                   <span>
-                    Only <strong className="font-bold">{getSizeQuantity(selectedSize, product)} items</strong> left in size <strong className="font-bold">{selectedSize}</strong>!
+                    Only{" "}
+                    <strong className="font-bold">
+                      {getSizeQuantity(selectedSize, product)} items
+                    </strong>{" "}
+                    left in size{" "}
+                    <strong className="font-bold">{selectedSize}</strong>!
                   </span>
                 </div>
               )}
@@ -553,10 +581,11 @@ Please share more details.`;
                   <button
                     onClick={decrementQuantity}
                     disabled={quantity <= 1}
-                    className={`w-12 h-12 flex items-center justify-center transition-colors ${quantity <= 1
-                      ? 'text-slate-300 cursor-not-allowed'
-                      : 'text-slate-700 hover:bg-cream-card/60'
-                      }`}
+                    className={`w-12 h-12 flex items-center justify-center transition-colors ${
+                      quantity <= 1
+                        ? "text-slate-300 cursor-not-allowed"
+                        : "text-slate-700 hover:bg-cream-card/60"
+                    }`}
                   >
                     <Minus className="w-4 h-4" />
                   </button>
@@ -568,10 +597,11 @@ Please share more details.`;
                   <button
                     onClick={incrementQuantity}
                     disabled={quantity >= maxQuantity || isOutOfStock}
-                    className={`w-12 h-12 flex items-center justify-center transition-colors ${quantity >= maxQuantity || isOutOfStock
-                      ? 'text-slate-300 cursor-not-allowed'
-                      : 'text-slate-700 hover:bg-cream-card/60'
-                      }`}
+                    className={`w-12 h-12 flex items-center justify-center transition-colors ${
+                      quantity >= maxQuantity || isOutOfStock
+                        ? "text-slate-300 cursor-not-allowed"
+                        : "text-slate-700 hover:bg-cream-card/60"
+                    }`}
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -582,7 +612,7 @@ Please share more details.`;
               <div className="flex-1 bg-cream-base border border-slate-100 rounded-2xl p-5 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] uppercase tracking-widest text-slate-400 font-black block">
-                    {quantity > 1 ? 'Total Price' : 'Price'}
+                    {quantity > 1 ? "Total Price" : "Price"}
                   </span>
                   {quantity > 1 && (
                     <span className="text-xs text-slate-400 font-bold">
@@ -603,10 +633,11 @@ Please share more details.`;
               <button
                 onClick={handleAddToCart}
                 disabled={isOutOfStock}
-                className={`text-white py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-200 ${isOutOfStock
-                  ? 'bg-slate-300 cursor-not-allowed'
-                  : 'bg-brand-gold hover:opacity-90 hover:shadow-lg hover:shadow-blue-600/20'
-                  }`}
+                className={`text-white py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-200 ${
+                  isOutOfStock
+                    ? "bg-slate-300 cursor-not-allowed"
+                    : "bg-brand-gold hover:opacity-90 hover:shadow-lg hover:shadow-blue-600/20"
+                }`}
               >
                 <ShoppingCart className="w-4 h-4" />
                 Add to Cart ({quantity})
@@ -616,10 +647,11 @@ Please share more details.`;
               <button
                 onClick={handleBuyNow}
                 disabled={isOutOfStock}
-                className={`py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-200 ${isOutOfStock
-                  ? 'bg-slate-300 text-white cursor-not-allowed'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-lg hover:shadow-emerald-600/20'
-                  }`}
+                className={`py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-200 ${
+                  isOutOfStock
+                    ? "bg-slate-300 text-white cursor-not-allowed"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-lg hover:shadow-emerald-600/20"
+                }`}
               >
                 <Zap className="w-4 h-4" />
                 Buy Now
@@ -628,16 +660,16 @@ Please share more details.`;
               {/* Wishlist */}
               <button
                 onClick={handleWishlist}
-                className={`py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-200 ${isWishlistActive
-                  ? 'bg-red-600 text-white hover:bg-red-700'
-                  : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100'
-                  }`}
+                className={`py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-200 ${
+                  isWishlistActive
+                    ? "bg-red-600 text-white hover:bg-red-700"
+                    : "bg-red-50 text-red-600 hover:bg-red-100 border border-red-100"
+                }`}
               >
                 <Heart
-                  className={`w-4 h-4 ${isWishlistActive ? 'fill-white' : ''
-                    }`}
+                  className={`w-4 h-4 ${isWishlistActive ? "fill-white" : ""}`}
                 />
-                {isWishlistActive ? 'Saved' : 'Wishlist'}
+                {isWishlistActive ? "Saved" : "Wishlist"}
               </button>
 
               {/* WhatsApp */}
@@ -657,7 +689,9 @@ Please share more details.`;
               </h3>
 
               <p className="text-sm text-slate-600 font-semibold mt-2 leading-relaxed">
-                This product is connected with Wear Right recommendation logic. It can be matched with your style preference, skin tone, product category and outfit completion flow.
+                This product is connected with Wear Right recommendation logic.
+                It can be matched with your style preference, skin tone, product
+                category and outfit completion flow.
               </p>
             </div>
           </div>
@@ -683,7 +717,8 @@ Please share more details.`;
                   </h2>
 
                   <p className="text-sm text-slate-500 font-semibold mt-2">
-                    Matching items based on style, skin tone compatibility and category.
+                    Matching items based on style, skin tone compatibility and
+                    category.
                   </p>
                 </div>
 
@@ -725,7 +760,7 @@ Please share more details.`;
                           className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
                           onError={(event) => {
                             event.currentTarget.src =
-                              'https://placehold.co/400x400?text=Wear+Right';
+                              "https://placehold.co/400x400?text=Wear+Right";
                           }}
                         />
 
@@ -737,7 +772,9 @@ Please share more details.`;
                       <div className="p-3">
                         <h4
                           className="text-xs font-black text-brand-dark line-clamp-1 cursor-pointer hover:text-sage-green transition-colors"
-                          onClick={() => navigate(`/product/${outfitProduct.id}`)}
+                          onClick={() =>
+                            navigate(`/product/${outfitProduct.id}`)
+                          }
                         >
                           {outfitProduct.name}
                         </h4>
@@ -747,7 +784,9 @@ Please share more details.`;
                         </p>
 
                         <button
-                          onClick={() => addToCart(toCartProduct(outfitProduct))}
+                          onClick={() =>
+                            addToCart(toCartProduct(outfitProduct))
+                          }
                           className="w-full mt-2 bg-slate-900 hover:bg-black text-white py-2 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors"
                         >
                           <ShoppingCart className="w-3 h-3" />
@@ -787,7 +826,7 @@ Please share more details.`;
                 </div>
 
                 <button
-                  onClick={() => navigate('/shop')}
+                  onClick={() => navigate("/shop")}
                   className="hidden sm:flex items-center gap-1 text-xs font-black text-sage-green hover:text-sage-green uppercase tracking-wider transition-colors"
                 >
                   View All
@@ -814,7 +853,7 @@ Please share more details.`;
                         className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
                         onError={(event) => {
                           event.currentTarget.src =
-                            'https://placehold.co/400x400?text=Wear+Right';
+                            "https://placehold.co/400x400?text=Wear+Right";
                         }}
                       />
                     </div>
@@ -828,7 +867,7 @@ Please share more details.`;
                       </h4>
 
                       <p className="text-[10px] text-slate-400 font-bold mt-0.5 line-clamp-1">
-                        {relProduct.category || 'Wear Right'}
+                        {relProduct.category || "Wear Right"}
                       </p>
 
                       <p className="text-sm font-black text-slate-700 mt-1">
@@ -849,7 +888,7 @@ Please share more details.`;
 
               {/* Mobile view all button */}
               <button
-                onClick={() => navigate('/shop')}
+                onClick={() => navigate("/shop")}
                 className="sm:hidden w-full mt-4 bg-cream-card/60 hover:bg-slate-200 text-slate-700 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-colors"
               >
                 View All Products
@@ -896,14 +935,14 @@ Please share more details.`;
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
               src={getProductImage(product)}
               alt={product.name}
               className="max-w-[90vw] max-h-[85vh] object-contain rounded-2xl shadow-2xl"
               onClick={(e) => e.stopPropagation()}
               onError={(event) => {
                 event.currentTarget.src =
-                  'https://placehold.co/800x1000?text=Wear+Right';
+                  "https://placehold.co/800x1000?text=Wear+Right";
               }}
             />
           </motion.div>
@@ -920,9 +959,7 @@ function InfoCard({ label, value }: { label: string; value: string }) {
         {label}
       </p>
 
-      <p className="text-sm font-black text-brand-dark mt-2">
-        {value}
-      </p>
+      <p className="text-sm font-black text-brand-dark mt-2">{value}</p>
     </div>
   );
 }

@@ -1,26 +1,32 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
+import { motion, AnimatePresence } from "motion/react";
 
-import Navbar from './components/Navbar';
-import HomeView from './components/HomeView';
-import AuthView from './components/AuthView';
-import ProfileView from './components/ProfileView';
-import FaceScanView from './components/FaceScanView';
-import ShopView from './components/ShopView';
-import ProtectedAdminView from './components/ProtectedAdminView';
-import RecommendedProductsView from './components/RecommendedProductsView';
-import CompleteOutfitView from './components/CompleteOutfitView';
-import OrderConfirmationView from './components/OrderConfirmationView';
-import MyOrdersView from './components/MyOrdersView';
-import ProductDetailView from './components/ProductDetailView';
-import WishlistView from './components/WishlistView';
-import AboutView from './components/AboutView';
-import ContactView from './components/ContactView';
-import Footer from './components/Footer';
+import Navbar from "./components/Navbar";
+import HomeView from "./components/HomeView";
+import AuthView from "./components/AuthView";
+import ProfileView from "./components/ProfileView";
+import FaceScanView from "./components/FaceScanView";
+import ShopView from "./components/ShopView";
+import ProtectedAdminView from "./components/ProtectedAdminView";
+import RecommendedProductsView from "./components/RecommendedProductsView";
+import CompleteOutfitView from "./components/CompleteOutfitView";
+import OrderConfirmationView from "./components/OrderConfirmationView";
+import MyOrdersView from "./components/MyOrdersView";
+import ProductDetailView from "./components/ProductDetailView";
+import WishlistView from "./components/WishlistView";
+import AboutView from "./components/AboutView";
+import ContactView from "./components/ContactView";
+import Footer from "./components/Footer";
 
-import { ViewType, UserState } from './types';
-import { INITIAL_USER } from './data';
+import { ViewType, UserState } from "./types";
+import { INITIAL_USER } from "./data";
 
 export type CartProduct = {
   id: number | string;
@@ -50,30 +56,32 @@ export default function App() {
   const [user, setUser] = useState<UserState>(INITIAL_USER);
 
   const [selectedStyles, setSelectedStyles] = useState<string[]>([
-    'Western',
-    'Casual',
+    "Western",
+    "Casual",
   ]);
 
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<'match' | 'priceAsc' | 'priceDesc'>('match');
+  const [sortBy, setSortBy] = useState<"match" | "priceAsc" | "priceDesc">(
+    "match",
+  );
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [wishlistItems, setWishlistItems] = useState<CartProduct[]>([]);
 
   useEffect(() => {
     try {
-      const savedWishlist = localStorage.getItem('wearRightWishlist');
+      const savedWishlist = localStorage.getItem("wearRightWishlist");
 
       if (savedWishlist) {
         setWishlistItems(JSON.parse(savedWishlist));
       }
     } catch (error) {
-      console.error('Wishlist Load Error:', error);
+      console.error("Wishlist Load Error:", error);
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('wearRightWishlist', JSON.stringify(wishlistItems));
+    localStorage.setItem("wearRightWishlist", JSON.stringify(wishlistItems));
   }, [wishlistItems]);
 
   const toggleStyleFilter = (styleName: string) => {
@@ -93,24 +101,24 @@ export default function App() {
   };
 
   const resetFilters = () => {
-    setSelectedStyles(['Western', 'Casual', 'Formal', 'Eastern']);
+    setSelectedStyles(["Western", "Casual", "Formal", "Eastern"]);
     setSelectedColors([]);
   };
 
   const addToCart = (product: CartProduct) => {
     setCartItems((prevItems) => {
       const existingItem = prevItems.find(
-        (item) => String(item.product.id) === String(product.id)
+        (item) => String(item.product.id) === String(product.id),
       );
 
       if (existingItem) {
         return prevItems.map((item) =>
           String(item.product.id) === String(product.id)
             ? {
-              ...item,
-              quantity: item.quantity + 1,
-            }
-            : item
+                ...item,
+                quantity: item.quantity + 1,
+              }
+            : item,
         );
       }
 
@@ -128,7 +136,7 @@ export default function App() {
 
   const removeFromCart = (productId: number | string) => {
     setCartItems((prevItems) =>
-      prevItems.filter((item) => String(item.product.id) !== String(productId))
+      prevItems.filter((item) => String(item.product.id) !== String(productId)),
     );
   };
 
@@ -142,11 +150,11 @@ export default function App() {
       prevItems.map((item) =>
         String(item.product.id) === String(productId)
           ? {
-            ...item,
-            quantity,
-          }
-          : item
-      )
+              ...item,
+              quantity,
+            }
+          : item,
+      ),
     );
   };
 
@@ -161,7 +169,7 @@ export default function App() {
   const addToWishlist = (product: CartProduct) => {
     setWishlistItems((prevItems) => {
       const exists = prevItems.some(
-        (item) => String(item.id) === String(product.id)
+        (item) => String(item.id) === String(product.id),
       );
 
       if (exists) {
@@ -176,7 +184,7 @@ export default function App() {
 
   const removeFromWishlist = (productId: number | string) => {
     setWishlistItems((prevItems) =>
-      prevItems.filter((item) => String(item.id) !== String(productId))
+      prevItems.filter((item) => String(item.id) !== String(productId)),
     );
   };
 
@@ -201,13 +209,13 @@ export default function App() {
   }, [cartItems]);
 
   const currentView = (
-    location.pathname === '/'
-      ? 'home'
-      : location.pathname.substring(1).split('/')[0]
+    location.pathname === "/"
+      ? "home"
+      : location.pathname.substring(1).split("/")[0]
   ) as ViewType;
 
   const setView = (view: ViewType) => {
-    navigate(view === 'home' ? '/' : `/${view}`);
+    navigate(view === "home" ? "/" : `/${view}`);
   };
 
   return (
@@ -238,7 +246,7 @@ export default function App() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
             className="w-full"
           >
             <Routes location={location}>
@@ -262,20 +270,14 @@ export default function App() {
               <Route
                 path="/recommended"
                 element={
-                  <RecommendedProductsView
-                    user={user}
-                    addToCart={addToCart}
-                  />
+                  <RecommendedProductsView user={user} addToCart={addToCart} />
                 }
               />
 
               <Route
                 path="/complete-outfit"
                 element={
-                  <CompleteOutfitView
-                    user={user}
-                    addToCart={addToCart}
-                  />
+                  <CompleteOutfitView user={user} addToCart={addToCart} />
                 }
               />
 
@@ -330,10 +332,7 @@ export default function App() {
                 element={<OrderConfirmationView />}
               />
 
-              <Route
-                path="/my-orders"
-                element={<MyOrdersView />}
-              />
+              <Route path="/my-orders" element={<MyOrdersView />} />
 
               <Route path="/admin" element={<ProtectedAdminView />} />
 

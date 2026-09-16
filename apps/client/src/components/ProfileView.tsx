@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Sparkles,
   ClipboardList,
   Heart,
   LogOut,
-} from 'lucide-react';
-import { UserState } from '../types';
+} from "lucide-react";
+import { UserState } from "../types";
+import { API_ENDPOINTS } from "../config/api";
 
 interface ProfileViewProps {
   user: UserState;
@@ -20,9 +21,9 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [culturalPref, setCulturalPref] = useState('Western');
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [culturalPref, setCulturalPref] = useState("Western");
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,16 +33,17 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
       email,
     }));
     setIsEditing(false);
-    alert('Changes saved successfully!');
+    alert("Changes saved successfully!");
   };
 
   const updateCulturalPreference = async (pref: string) => {
     setCulturalPref(pref);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/profiles/', {
-        method: 'POST',
+      const response = await fetch("http://127.0.0.1:8000/api/profiles/", {
+      const response = await fetch(API_ENDPOINTS.profiles, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           user: 1,
@@ -49,23 +51,23 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
         }),
       });
       if (!response.ok) {
-        console.warn('Backend profile update failed or pending.');
+        console.warn("Backend profile update failed or pending.");
       }
     } catch (err) {
-      console.error('Error saving cultural preference:', err);
+      console.error("Error saving cultural preference:", err);
     }
   };
 
   const handleLogout = () => {
     setUser({
-      name: '',
-      email: '',
-      avatar: '',
-      role: '',
+      name: "",
+      email: "",
+      avatar: "",
+      role: "",
       isLoggedIn: false,
     });
-    navigate('/');
-    alert('Logged out successfully.');
+    navigate("/");
+    alert("Logged out successfully.");
   };
 
   return (
@@ -75,7 +77,6 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
       <div className="absolute left-0 bottom-20 w-96 h-96 bg-blue-50/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
-        
         {/* Profile Header Card */}
         <div className="bg-white border border-blue-200/60 rounded-[2rem] p-6 sm:p-8 shadow-sm mb-8 flex flex-col sm:flex-row items-center sm:justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
@@ -87,8 +88,15 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
                   alt={name}
                   className="w-full h-full rounded-full object-cover"
                 />
+              ) : name ? (
+                name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2)
               ) : (
-                name ? name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) : 'U'
+                "U"
               )}
             </div>
             {/* User Info Column */}
@@ -107,7 +115,7 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
             onClick={() => setIsEditing(!isEditing)}
             className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-3.5 text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 rounded-xl cursor-pointer shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 border-none"
           >
-            {isEditing ? 'Cancel Edit' : 'Edit Profile'}
+            {isEditing ? "Cancel Edit" : "Edit Profile"}
           </button>
         </div>
 
@@ -217,7 +225,7 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
           </p>
 
           <div className="flex flex-wrap gap-3 mt-6">
-            {['Eastern', 'Western', 'Casual', 'Formal'].map((pref) => {
+            {["Eastern", "Western", "Casual", "Formal"].map((pref) => {
               const isSelected = culturalPref === pref;
 
               return (
@@ -226,8 +234,8 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
                   onClick={() => updateCulturalPreference(pref)}
                   className={`px-6 py-3 rounded-full border text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                     isSelected
-                      ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-150'
-                      : 'bg-white border-brand-border/60 text-slate-700 hover:border-brand-gold'
+                      ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-150"
+                      : "bg-white border-brand-border/60 text-slate-700 hover:border-brand-gold"
                   }`}
                 >
                   {pref}
@@ -249,11 +257,11 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
                 <div className="w-16 h-16 rounded-2xl border border-blue-150 flex flex-col items-center justify-center shadow-inner relative overflow-hidden bg-blue-50/50 shrink-0">
                   <div
                     className={`w-10 h-10 rounded-full border border-white/20 ${
-                      user.contrastType.toLowerCase().includes('fair')
-                        ? 'bg-[#E5C298]'
-                        : user.contrastType.toLowerCase().includes('dark')
-                        ? 'bg-[#5C3818]'
-                        : 'bg-[#A87C59]'
+                      user.contrastType.toLowerCase().includes("fair")
+                        ? "bg-[#E5C298]"
+                        : user.contrastType.toLowerCase().includes("dark")
+                          ? "bg-[#5C3818]"
+                          : "bg-[#A87C59]"
                     }`}
                   />
                 </div>
@@ -269,7 +277,7 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
               </div>
 
               <button
-                onClick={() => navigate('/facescan')}
+                onClick={() => navigate("/facescan")}
                 className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 rounded-xl cursor-pointer border-none shadow-md hover:scale-[1.02] active:scale-95"
               >
                 Re-Scan Face
@@ -282,12 +290,13 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
                   You haven't scanned your face yet.
                 </p>
                 <p className="text-xs text-slate-400 font-sans mt-1 font-medium">
-                  Scan your skin tone to unlock personalized outfit color matchmaking.
+                  Scan your skin tone to unlock personalized outfit color
+                  matchmaking.
                 </p>
               </div>
 
               <button
-                onClick={() => navigate('/facescan')}
+                onClick={() => navigate("/facescan")}
                 className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-3.5 text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 rounded-xl cursor-pointer border-none shadow-md hover:scale-[1.02] active:scale-95"
               >
                 Scan Now
@@ -305,7 +314,7 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
           <div className="space-y-3">
             {/* My Orders link */}
             <button
-              onClick={() => navigate('/my-orders')}
+              onClick={() => navigate("/my-orders")}
               className="w-full bg-cream-base/30 hover:bg-blue-50/40 border border-brand-border/60 hover:border-blue-150 hover:shadow-sm transition-all rounded-2xl p-4 text-left flex items-center justify-between cursor-pointer group"
             >
               <div className="flex items-center gap-4">
@@ -313,8 +322,12 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
                   <ClipboardList className="w-5 h-5 text-brand-gold" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-brand-dark">My Orders</h3>
-                  <p className="text-[10px] text-slate-400 font-sans mt-0.5">Track your order statuses and invoices</p>
+                  <h3 className="text-sm font-bold text-brand-dark">
+                    My Orders
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-sans mt-0.5">
+                    Track your order statuses and invoices
+                  </p>
                 </div>
               </div>
               <ArrowRight className="w-4 h-4 text-slate-350 group-hover:translate-x-1 transition-transform" />
@@ -322,7 +335,7 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
 
             {/* Wishlist link */}
             <button
-              onClick={() => navigate('/wishlist')}
+              onClick={() => navigate("/wishlist")}
               className="w-full bg-cream-base/30 hover:bg-blue-50/40 border border-brand-border/60 hover:border-blue-150 hover:shadow-sm transition-all rounded-2xl p-4 text-left flex items-center justify-between cursor-pointer group"
             >
               <div className="flex items-center gap-4">
@@ -330,8 +343,12 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
                   <Heart className="w-5 h-5 text-brand-gold" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-brand-dark">Wishlist</h3>
-                  <p className="text-[10px] text-slate-400 font-sans mt-0.5">View your saved items</p>
+                  <h3 className="text-sm font-bold text-brand-dark">
+                    Wishlist
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-sans mt-0.5">
+                    View your saved items
+                  </p>
                 </div>
               </div>
               <ArrowRight className="w-4 h-4 text-slate-350 group-hover:translate-x-1 transition-transform" />
@@ -348,14 +365,15 @@ export default function ProfileView({ user, setUser }: ProfileViewProps) {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-red-600">Logout</h3>
-                  <p className="text-[10px] text-red-400 font-sans mt-0.5">End your active styling session</p>
+                  <p className="text-[10px] text-red-400 font-sans mt-0.5">
+                    End your active styling session
+                  </p>
                 </div>
               </div>
               <ArrowRight className="w-4 h-4 text-red-300 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );

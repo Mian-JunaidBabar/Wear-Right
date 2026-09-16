@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Home,
   User,
@@ -19,9 +19,10 @@ import {
   Heart,
   Info,
   Phone,
-} from 'lucide-react';
-import { ViewType, UserState } from '../types';
-import { CartItem } from '../App';
+} from "lucide-react";
+import { ViewType, UserState } from "../types";
+import { CartItem } from "../App";
+import { API_ENDPOINTS, ADMIN_WHATSAPP_NUMBER } from "../config/api";
 
 interface NavbarProps {
   currentView: ViewType;
@@ -45,14 +46,14 @@ interface NavbarProps {
 
 function formatPKR(value: string | number | undefined) {
   const num = Number(value || 0);
-  return `Rs. ${num.toLocaleString('en-PK')}`;
+  return `Rs. ${num.toLocaleString("en-PK")}`;
 }
 
 function getCartImage(item: CartItem) {
   return (
     item.product.image_url ||
     item.product.image ||
-    'https://placehold.co/120x160?text=Wear+Right'
+    "https://placehold.co/120x160?text=Wear+Right"
   );
 }
 
@@ -79,13 +80,16 @@ export default function Navbar({
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
         setProfileOpen(false);
       }
     }
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -93,22 +97,23 @@ export default function Navbar({
   const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
 
   const [checkoutForm, setCheckoutForm] = useState({
-    customer_name: '',
-    customer_email: '',
-    customer_phone: '',
-    customer_address: '',
-    payment_status: 'Cash on Delivery',
+    customer_name: "",
+    customer_email: "",
+    customer_phone: "",
+    customer_address: "",
+    payment_status: "Cash on Delivery",
   });
 
-  const adminWhatsAppNumber = '923021191771';
-  const whatsappMessage = 'Hello Admin, I need help regarding Wear Right.';
+  const adminWhatsAppNumber = "923021191771";
+  const adminWhatsAppNumber = ADMIN_WHATSAPP_NUMBER;
+  const whatsappMessage = "Hello Admin, I need help regarding Wear Right.";
 
   const navItems = [
-    { id: 'home' as ViewType, label: 'Home', icon: Home },
-    { id: 'shop' as ViewType, label: 'Shop', icon: ShoppingBag },
-    { id: 'facescan' as ViewType, label: 'Face Scan', icon: Camera },
-    { id: 'about' as ViewType, label: 'About', icon: Info },
-    { id: 'contact' as ViewType, label: 'Contact', icon: Phone },
+    { id: "home" as ViewType, label: "Home", icon: Home },
+    { id: "shop" as ViewType, label: "Shop", icon: ShoppingBag },
+    { id: "facescan" as ViewType, label: "Face Scan", icon: Camera },
+    { id: "about" as ViewType, label: "About", icon: Info },
+    { id: "contact" as ViewType, label: "Contact", icon: Phone },
   ];
 
   const goToView = (view: ViewType) => {
@@ -123,20 +128,20 @@ export default function Navbar({
       isLoggedIn: false,
     }));
     setProfileOpen(false);
-    alert('Logged out successfully.');
-    goToView('home');
+    alert("Logged out successfully.");
+    goToView("home");
   };
 
   const openWhatsApp = () => {
     window.open(
       `https://wa.me/${adminWhatsAppNumber}?text=${encodeURIComponent(whatsappMessage)}`,
-      '_blank'
+      "_blank",
     );
   };
 
   const openCheckout = () => {
     if (cartItems.length === 0) {
-      alert('Your cart is empty.');
+      alert("Your cart is empty.");
       return;
     }
 
@@ -152,22 +157,22 @@ export default function Navbar({
     event.preventDefault();
 
     if (!checkoutForm.customer_name.trim()) {
-      alert('Please enter your full name.');
+      alert("Please enter your full name.");
       return;
     }
 
     if (!checkoutForm.customer_phone.trim()) {
-      alert('Please enter your phone number.');
+      alert("Please enter your phone number.");
       return;
     }
 
     if (!checkoutForm.customer_address.trim()) {
-      alert('Please enter your delivery address.');
+      alert("Please enter your delivery address.");
       return;
     }
 
     if (cartItems.length === 0) {
-      alert('Your cart is empty.');
+      alert("Your cart is empty.");
       return;
     }
 
@@ -177,10 +182,11 @@ export default function Navbar({
       const uniqueOrderCode = `WR-${Date.now()}`;
 
       for (const item of cartItems) {
-        const response = await fetch('http://127.0.0.1:8000/api/orders/', {
-          method: 'POST',
+        const response = await fetch("http://127.0.0.1:8000/api/orders/", {
+        const response = await fetch(API_ENDPOINTS.orders, {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             order_code: uniqueOrderCode,
@@ -190,21 +196,21 @@ export default function Navbar({
             customer_address: checkoutForm.customer_address,
             product: Number(item.product.id),
             quantity: item.quantity,
-            order_status: 'Pending',
+            order_status: "Pending",
             payment_status: checkoutForm.payment_status,
           }),
         });
 
         const data = await response.json();
 
-        if (!response.ok || data.status === 'error') {
+        if (!response.ok || data.status === "error") {
           console.log(data);
 
           const errorMessage =
             data.message ||
             data.errors?.quantity?.[0] ||
             data.errors?.product?.[0] ||
-            'Order could not be placed. Please check backend fields.';
+            "Order could not be placed. Please check backend fields.";
 
           alert(errorMessage);
           return;
@@ -231,22 +237,22 @@ export default function Navbar({
         })),
       };
 
-      localStorage.setItem('wearRightLastOrder', JSON.stringify(orderSummary));
+      localStorage.setItem("wearRightLastOrder", JSON.stringify(orderSummary));
 
       clearCart();
       setCheckoutOpen(false);
       setCheckoutForm({
-        customer_name: '',
-        customer_email: '',
-        customer_phone: '',
-        customer_address: '',
-        payment_status: 'Cash on Delivery',
+        customer_name: "",
+        customer_email: "",
+        customer_phone: "",
+        customer_address: "",
+        payment_status: "Cash on Delivery",
       });
 
-      navigate('/order-confirmation');
+      navigate("/order-confirmation");
     } catch (error) {
-      console.error('Checkout Error:', error);
-      alert('Something went wrong while placing your order.');
+      console.error("Checkout Error:", error);
+      alert("Something went wrong while placing your order.");
     } finally {
       setCheckoutSubmitting(false);
     }
@@ -257,7 +263,7 @@ export default function Navbar({
       <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm w-full">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <button
-            onClick={() => goToView('home')}
+            onClick={() => goToView("home")}
             className="flex items-center gap-3 cursor-pointer select-none"
           >
             <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden">
@@ -266,7 +272,7 @@ export default function Navbar({
                 alt="Wear Right Icon"
                 className="w-11 h-11 object-contain"
                 onError={(event) => {
-                  event.currentTarget.src = '/brand/wr-monogram.png';
+                  event.currentTarget.src = "/brand/wr-monogram.png";
                 }}
               />
             </div>
@@ -290,22 +296,25 @@ export default function Navbar({
                 <button
                   key={item.id}
                   onClick={() => goToView(item.id)}
-                  className={`relative px-4 py-3 text-xs font-poppins font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer ${isActive
-                    ? 'text-black'
-                    : 'text-black/60 hover:text-black'
-                    }`}
+                  className={`relative px-4 py-3 text-xs font-poppins font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer ${
+                    isActive ? "text-black" : "text-black/60 hover:text-black"
+                  }`}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="activeNavLine"
                       className="absolute bottom-0 left-0 right-0 h-0.5 bg-black"
-                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 380,
+                        damping: 30,
+                      }}
                     />
                   )}
 
                   <span className="uppercase tracking-wider">{item.label}</span>
 
-                  {item.id === 'wishlist' && wishlistCount > 0 && (
+                  {item.id === "wishlist" && wishlistCount > 0 && (
                     <span className="ml-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">
                       {wishlistCount}
                     </span>
@@ -328,11 +337,12 @@ export default function Navbar({
             </button>
 
             <button
-              onClick={() => goToView('admin')}
-              className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-black transition-all shadow-sm cursor-pointer ${currentView === 'admin'
-                ? 'bg-blue-600 text-white'
-                : 'bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white'
-                }`}
+              onClick={() => goToView("admin")}
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-black transition-all shadow-sm cursor-pointer ${
+                currentView === "admin"
+                  ? "bg-blue-600 text-white"
+                  : "bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white"
+              }`}
             >
               <ShieldAlert className="w-4 h-4" />
               Admin
@@ -342,10 +352,11 @@ export default function Navbar({
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className={`w-12 h-12 rounded-full border-2 transition-all duration-200 flex items-center justify-center overflow-hidden cursor-pointer shadow-sm ${profileOpen
-                  ? 'border-blue-600 ring-4 ring-blue-50'
-                  : 'border-slate-200 hover:border-blue-600 bg-white'
-                  }`}
+                className={`w-12 h-12 rounded-full border-2 transition-all duration-200 flex items-center justify-center overflow-hidden cursor-pointer shadow-sm ${
+                  profileOpen
+                    ? "border-blue-600 ring-4 ring-blue-50"
+                    : "border-slate-200 hover:border-blue-600 bg-white"
+                }`}
                 title="Account Menu"
               >
                 {user.isLoggedIn && user.avatar ? (
@@ -354,7 +365,7 @@ export default function Navbar({
                     alt={user.name}
                     className="w-full h-full object-cover"
                     onError={(event) => {
-                      event.currentTarget.src = '';
+                      event.currentTarget.src = "";
                     }}
                   />
                 ) : (
@@ -373,17 +384,21 @@ export default function Navbar({
                     <div className="px-3 py-3 border-b border-slate-100 flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
                         {user.isLoggedIn && user.avatar ? (
-                          <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                          <img
+                            src={user.avatar}
+                            alt={user.name}
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
                           <User className="w-5 h-5 text-slate-500" />
                         )}
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-black text-slate-900 truncate">
-                          {user.isLoggedIn ? user.name : 'Guest User'}
+                          {user.isLoggedIn ? user.name : "Guest User"}
                         </p>
                         <p className="text-xs text-slate-400 font-bold truncate">
-                          {user.isLoggedIn ? user.email : 'Not logged in'}
+                          {user.isLoggedIn ? user.email : "Not logged in"}
                         </p>
                       </div>
                     </div>
@@ -393,7 +408,7 @@ export default function Navbar({
                         <>
                           <button
                             onClick={() => {
-                              goToView('profile');
+                              goToView("profile");
                               setProfileOpen(false);
                             }}
                             className="w-full px-3 py-2.5 text-xs font-bold text-slate-700 hover:text-blue-600 hover:bg-slate-50 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer"
@@ -404,7 +419,7 @@ export default function Navbar({
 
                           <button
                             onClick={() => {
-                              goToView('wishlist');
+                              goToView("wishlist");
                               setProfileOpen(false);
                             }}
                             className="w-full px-3 py-2.5 text-xs font-bold text-slate-700 hover:text-blue-600 hover:bg-slate-50 rounded-xl flex items-center justify-between transition-colors text-left cursor-pointer"
@@ -422,7 +437,7 @@ export default function Navbar({
 
                           <button
                             onClick={() => {
-                              goToView('my-orders');
+                              goToView("my-orders");
                               setProfileOpen(false);
                             }}
                             className="w-full px-3 py-2.5 text-xs font-bold text-slate-700 hover:text-blue-600 hover:bg-slate-50 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer"
@@ -445,7 +460,7 @@ export default function Navbar({
                         <>
                           <button
                             onClick={() => {
-                              goToView('auth');
+                              goToView("auth");
                               setProfileOpen(false);
                             }}
                             className="w-full px-3 py-2.5 text-xs font-bold text-slate-700 hover:text-blue-600 hover:bg-slate-50 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer"
@@ -456,7 +471,7 @@ export default function Navbar({
 
                           <button
                             onClick={() => {
-                              goToView('wishlist');
+                              goToView("wishlist");
                               setProfileOpen(false);
                             }}
                             className="w-full px-3 py-2.5 text-xs font-bold text-slate-700 hover:text-blue-600 hover:bg-slate-50 rounded-xl flex items-center justify-between transition-colors text-left cursor-pointer"
@@ -474,7 +489,7 @@ export default function Navbar({
 
                           <button
                             onClick={() => {
-                              goToView('my-orders');
+                              goToView("my-orders");
                               setProfileOpen(false);
                             }}
                             className="w-full px-3 py-2.5 text-xs font-bold text-slate-700 hover:text-blue-600 hover:bg-slate-50 rounded-xl flex items-center gap-3 transition-colors text-left cursor-pointer"
@@ -537,7 +552,7 @@ export default function Navbar({
                               className="w-16 h-20 rounded-xl object-cover bg-slate-100 border border-slate-200"
                               onError={(event) => {
                                 event.currentTarget.src =
-                                  'https://placehold.co/120x160?text=Wear+Right';
+                                  "https://placehold.co/120x160?text=Wear+Right";
                               }}
                             />
 
@@ -558,7 +573,10 @@ export default function Navbar({
                                 <div className="flex items-center gap-2">
                                   <button
                                     onClick={() =>
-                                      updateCartQuantity(item.product.id, item.quantity - 1)
+                                      updateCartQuantity(
+                                        item.product.id,
+                                        item.quantity - 1,
+                                      )
                                     }
                                     className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center"
                                   >
@@ -571,7 +589,10 @@ export default function Navbar({
 
                                   <button
                                     onClick={() =>
-                                      updateCartQuantity(item.product.id, item.quantity + 1)
+                                      updateCartQuantity(
+                                        item.product.id,
+                                        item.quantity + 1,
+                                      )
                                     }
                                     className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center"
                                   >
@@ -580,7 +601,9 @@ export default function Navbar({
                                 </div>
 
                                 <button
-                                  onClick={() => removeFromCart(item.product.id)}
+                                  onClick={() =>
+                                    removeFromCart(item.product.id)
+                                  }
                                   className="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -639,7 +662,11 @@ export default function Navbar({
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="text-slate-600 hover:text-slate-900 focus:outline-none transition-colors cursor-pointer"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
             </button>
           </div>
         </div>
@@ -648,7 +675,7 @@ export default function Navbar({
           {mobileMenuOpen && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
+              animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               className="xl:hidden w-full bg-white border-t border-slate-200 overflow-hidden text-left"
             >
@@ -657,17 +684,21 @@ export default function Navbar({
                 <div className="mb-2 p-3 bg-slate-50 rounded-xl flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-300">
                     {user.isLoggedIn && user.avatar ? (
-                      <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <User className="w-5 h-5 text-slate-500" />
                     )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-black text-slate-900 truncate">
-                      {user.isLoggedIn ? user.name : 'Guest'}
+                      {user.isLoggedIn ? user.name : "Guest"}
                     </p>
                     <p className="text-[10px] text-slate-400 font-bold truncate">
-                      {user.isLoggedIn ? user.email : 'Log in to save settings'}
+                      {user.isLoggedIn ? user.email : "Log in to save settings"}
                     </p>
                   </div>
                 </div>
@@ -684,10 +715,11 @@ export default function Navbar({
                     <button
                       key={item.id}
                       onClick={() => goToView(item.id)}
-                      className={`flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${isActive
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                        }`}
+                      className={`flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                        isActive
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-100"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      }`}
                     >
                       <Icon className="w-5 h-5" />
                       <span>{item.label}</span>
@@ -704,22 +736,24 @@ export default function Navbar({
                 {user.isLoggedIn ? (
                   <>
                     <button
-                      onClick={() => goToView('profile')}
-                      className={`flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${currentView === 'profile'
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
-                        : 'text-slate-600 hover:bg-slate-50'
-                        }`}
+                      onClick={() => goToView("profile")}
+                      className={`flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                        currentView === "profile"
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-100"
+                          : "text-slate-600 hover:bg-slate-50"
+                      }`}
                     >
                       <User className="w-5 h-5" />
                       <span>Profile</span>
                     </button>
 
                     <button
-                      onClick={() => goToView('wishlist')}
-                      className={`flex items-center justify-between gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${currentView === 'wishlist'
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
-                        : 'text-slate-600 hover:bg-slate-50'
-                        }`}
+                      onClick={() => goToView("wishlist")}
+                      className={`flex items-center justify-between gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                        currentView === "wishlist"
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-100"
+                          : "text-slate-600 hover:bg-slate-50"
+                      }`}
                     >
                       <span className="flex items-center gap-3">
                         <Heart className="w-5 h-5" />
@@ -733,11 +767,12 @@ export default function Navbar({
                     </button>
 
                     <button
-                      onClick={() => goToView('my-orders')}
-                      className={`flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${currentView === 'my-orders'
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
-                        : 'text-slate-600 hover:bg-slate-50'
-                        }`}
+                      onClick={() => goToView("my-orders")}
+                      className={`flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                        currentView === "my-orders"
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-100"
+                          : "text-slate-600 hover:bg-slate-50"
+                      }`}
                     >
                       <ClipboardList className="w-5 h-5" />
                       <span>My Orders</span>
@@ -754,7 +789,7 @@ export default function Navbar({
                 ) : (
                   <>
                     <button
-                      onClick={() => goToView('auth')}
+                      onClick={() => goToView("auth")}
                       className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-lg bg-slate-900 text-white transition-all cursor-pointer"
                     >
                       <LogIn className="w-5 h-5" />
@@ -762,11 +797,12 @@ export default function Navbar({
                     </button>
 
                     <button
-                      onClick={() => goToView('wishlist')}
-                      className={`flex items-center justify-between gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${currentView === 'wishlist'
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
-                        : 'text-slate-600 hover:bg-slate-50'
-                        }`}
+                      onClick={() => goToView("wishlist")}
+                      className={`flex items-center justify-between gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                        currentView === "wishlist"
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-100"
+                          : "text-slate-600 hover:bg-slate-50"
+                      }`}
                     >
                       <span className="flex items-center gap-3">
                         <Heart className="w-5 h-5" />
@@ -780,11 +816,12 @@ export default function Navbar({
                     </button>
 
                     <button
-                      onClick={() => goToView('my-orders')}
-                      className={`flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${currentView === 'my-orders'
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
-                        : 'text-slate-600 hover:bg-slate-50'
-                        }`}
+                      onClick={() => goToView("my-orders")}
+                      className={`flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                        currentView === "my-orders"
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-100"
+                          : "text-slate-600 hover:bg-slate-50"
+                      }`}
                     >
                       <ClipboardList className="w-5 h-5" />
                       <span>My Orders</span>
@@ -795,7 +832,7 @@ export default function Navbar({
                 <div className="h-px bg-slate-100 my-2" />
 
                 <button
-                  onClick={() => goToView('admin')}
+                  onClick={() => goToView("admin")}
                   className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-blue-50 text-blue-700 text-xs font-black uppercase tracking-wider cursor-pointer"
                 >
                   <ShieldAlert className="w-4 h-4" />
@@ -851,7 +888,7 @@ export default function Navbar({
                           className="w-12 h-14 rounded-lg object-cover bg-slate-100 border border-slate-200"
                           onError={(event) => {
                             event.currentTarget.src =
-                              'https://placehold.co/120x160?text=Wear+Right';
+                              "https://placehold.co/120x160?text=Wear+Right";
                           }}
                         />
 
@@ -866,7 +903,9 @@ export default function Navbar({
                       </div>
 
                       <p className="text-sm font-black text-blue-600 whitespace-nowrap">
-                        {formatPKR(Number(item.product.price || 0) * item.quantity)}
+                        {formatPKR(
+                          Number(item.product.price || 0) * item.quantity,
+                        )}
                       </p>
                     </div>
                   ))}
@@ -963,7 +1002,7 @@ export default function Navbar({
                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-xs font-black uppercase tracking-wider py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-100"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  {checkoutSubmitting ? 'Placing Order...' : 'Place Order'}
+                  {checkoutSubmitting ? "Placing Order..." : "Place Order"}
                 </button>
               </form>
             </motion.div>

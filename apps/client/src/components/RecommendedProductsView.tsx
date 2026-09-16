@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   CheckCircle2,
@@ -9,10 +9,10 @@ import {
   ShoppingBag,
   ShoppingCart,
   Sparkles,
-} from 'lucide-react';
+} from "lucide-react";
 
-import { CartProduct } from '../App';
-import { UserState } from '../types';
+import { CartProduct } from "../App";
+import { UserState } from "../types";
 import {
   getAllowedColorsForProduct,
   isColorAllowed,
@@ -22,7 +22,8 @@ import {
   prettyLabel,
   SkinToneKey,
   StyleKey,
-} from '../utils/recommendationRules';
+} from "../utils/recommendationRules";
+import { API_ENDPOINTS, getProductImageUrl } from "../config/api";
 
 interface RecommendedProductsViewProps {
   user: UserState;
@@ -54,7 +55,7 @@ type RecommendationProduct = CartProduct & {
   match: number;
 };
 
-const styleOptions: StyleKey[] = ['eastern', 'western', 'casual', 'formal'];
+const styleOptions: StyleKey[] = ["eastern", "western", "casual", "formal"];
 
 export default function RecommendedProductsView({
   user,
@@ -63,60 +64,67 @@ export default function RecommendedProductsView({
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const skinToneFromUrl = searchParams.get('skinTone');
+  const skinToneFromUrl = searchParams.get("skinTone");
   const skinToneFromUser = user.contrastType;
 
   const detectedSkinTone: SkinToneKey = normalizeSkinTone(
-    skinToneFromUrl || skinToneFromUser || 'medium'
+    skinToneFromUrl || skinToneFromUser || "medium",
   );
 
-  const [selectedStyle, setSelectedStyle] = useState<StyleKey>('casual');
-  const [searchText, setSearchText] = useState('');
+  const [selectedStyle, setSelectedStyle] = useState<StyleKey>("casual");
+  const [searchText, setSearchText] = useState("");
   const [products, setProducts] = useState<RecommendationProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const placeholderImage = 'http://127.0.0.1:8000/products/images.jpeg';
+  const placeholderImage = "http://127.0.0.1:8000/products/images.jpeg";
+  const placeholderImage = getProductImageUrl("products/images.jpeg");
 
   const formatPrice = (price: string | number) => {
-    return `Rs. ${Number(price || 0).toLocaleString('en-PK')}`;
+    return `Rs. ${Number(price || 0).toLocaleString("en-PK")}`;
   };
 
   const isOutOfStock = (product: RecommendationProduct) => {
     return (
       product.stock_quantity <= 0 ||
-      product.status === 'Out of Stock' ||
-      product.status === 'Inactive'
+      product.status === "Out of Stock" ||
+      product.status === "Inactive"
     );
   };
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      setErrorMessage('');
+      setErrorMessage("");
 
-      const response = await fetch('http://127.0.0.1:8000/api/products/');
+      const response = await fetch("http://127.0.0.1:8000/api/products/");
+      const response = await fetch(API_ENDPOINTS.products);
 
       if (!response.ok) {
-        throw new Error('Products API response was not successful.');
+        throw new Error("Products API response was not successful.");
       }
 
       const data = await response.json();
 
       const mappedProducts: RecommendationProduct[] = (data.products || []).map(
         (item: ApiProduct) => {
-          const normalizedStyle = normalizeStyle(item.style || item.cultural_tag || 'casual');
-          const normalizedGarment = normalizeGarmentType(item.garment_type, item.category);
+          const normalizedStyle = normalizeStyle(
+            item.style || item.cultural_tag || "casual",
+          );
+          const normalizedGarment = normalizeGarmentType(
+            item.garment_type,
+            item.category,
+          );
 
           return {
             id: item.id,
             name: item.name,
-            category: item.category || 'Product',
+            category: item.category || "Product",
             style: normalizedStyle,
-            color: item.color || '',
+            color: item.color || "",
             garment_type: normalizedGarment,
             cultural_tag: item.cultural_tag || item.style || normalizedStyle,
-            compatible_skin_tone: item.compatible_skin_tone || '',
+            compatible_skin_tone: item.compatible_skin_tone || "",
             image_url: item.image_url || null,
             image: item.image_url
               ? `${item.image_url}?v=${Date.now()}`
@@ -125,16 +133,16 @@ export default function RecommendedProductsView({
                 : placeholderImage,
             price: Number(item.price || 0),
             stock_quantity: Number(item.stock_quantity || 0),
-            status: item.status || 'Active',
+            status: item.status || "Active",
             match: 95,
           };
-        }
+        },
       );
 
       setProducts(mappedProducts);
     } catch (error) {
-      console.error('Recommended Products API Error:', error);
-      setErrorMessage('Unable to load recommended products from backend API.');
+      console.error("Recommended Products API Error:", error);
+      setErrorMessage("Unable to load recommended products from backend API.");
     } finally {
       setLoading(false);
     }
@@ -145,15 +153,15 @@ export default function RecommendedProductsView({
   }, []);
 
   const allowedTopColors = useMemo(() => {
-    return getAllowedColorsForProduct(detectedSkinTone, selectedStyle, 'shirt');
+    return getAllowedColorsForProduct(detectedSkinTone, selectedStyle, "shirt");
   }, [detectedSkinTone, selectedStyle]);
 
   const allowedPantColors = useMemo(() => {
-    return getAllowedColorsForProduct(detectedSkinTone, selectedStyle, 'pant');
+    return getAllowedColorsForProduct(detectedSkinTone, selectedStyle, "pant");
   }, [detectedSkinTone, selectedStyle]);
 
   const allowedShoesColors = useMemo(() => {
-    return getAllowedColorsForProduct(detectedSkinTone, selectedStyle, 'shoes');
+    return getAllowedColorsForProduct(detectedSkinTone, selectedStyle, "shoes");
   }, [detectedSkinTone, selectedStyle]);
 
   const allAllowedColors = useMemo(() => {
@@ -162,7 +170,7 @@ export default function RecommendedProductsView({
         ...allowedTopColors,
         ...allowedPantColors,
         ...allowedShoesColors,
-      ])
+      ]),
     );
   }, [allowedTopColors, allowedPantColors, allowedShoesColors]);
 
@@ -172,7 +180,10 @@ export default function RecommendedProductsView({
     return products
       .filter((product) => {
         const productStyle = normalizeStyle(product.style);
-        const garmentType = normalizeGarmentType(product.garment_type, product.category);
+        const garmentType = normalizeGarmentType(
+          product.garment_type,
+          product.category,
+        );
 
         if (productStyle !== selectedStyle) {
           return false;
@@ -181,7 +192,7 @@ export default function RecommendedProductsView({
         const allowedColors = getAllowedColorsForProduct(
           detectedSkinTone,
           selectedStyle,
-          garmentType
+          garmentType,
         );
 
         if (!isColorAllowed(product.color, allowedColors)) {
@@ -189,7 +200,8 @@ export default function RecommendedProductsView({
         }
 
         if (search) {
-          const combinedText = `${product.name} ${product.category} ${product.style} ${product.color} ${product.garment_type}`.toLowerCase();
+          const combinedText =
+            `${product.name} ${product.category} ${product.style} ${product.color} ${product.garment_type}`.toLowerCase();
           return combinedText.includes(search);
         }
 
@@ -200,7 +212,7 @@ export default function RecommendedProductsView({
 
   const openCompleteOutfit = (product: RecommendationProduct) => {
     navigate(
-      `/complete-outfit?skinTone=${detectedSkinTone}&style=${selectedStyle}&productId=${product.id}`
+      `/complete-outfit?skinTone=${detectedSkinTone}&style=${selectedStyle}&productId=${product.id}`,
     );
   };
 
@@ -220,20 +232,21 @@ export default function RecommendedProductsView({
                 Recommended for {prettyLabel(detectedSkinTone)} Skin Tone
               </h1>
 
-              {searchParams.get('confidence') && (
+              {searchParams.get("confidence") && (
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold font-sans mt-3">
                   <Sparkles className="w-3.5 h-3.5" />
-                  Match Confidence: {searchParams.get('confidence')}%
+                  Match Confidence: {searchParams.get("confidence")}%
                 </div>
               )}
 
               <p className="text-sm text-slate-300 font-semibold mt-3 max-w-2xl leading-relaxed">
-                Products are filtered using your detected skin tone, selected style category and allowed color palette.
+                Products are filtered using your detected skin tone, selected
+                style category and allowed color palette.
               </p>
             </div>
 
             <button
-              onClick={() => navigate('/facescan')}
+              onClick={() => navigate("/facescan")}
               className="bg-white/10 hover:bg-white/20 border border-white/10 text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2"
             >
               <RefreshCw className="w-4 h-4" />
@@ -249,7 +262,8 @@ export default function RecommendedProductsView({
                 Select Style Category
               </h2>
               <p className="text-sm text-slate-500 font-semibold mt-1">
-                Same style category will be used for Complete Outfit suggestions.
+                Same style category will be used for Complete Outfit
+                suggestions.
               </p>
             </div>
 
@@ -260,8 +274,8 @@ export default function RecommendedProductsView({
                   onClick={() => setSelectedStyle(style)}
                   className={`px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                     selectedStyle === style
-                      ? 'bg-emerald-600 text-white shadow-lg shadow-brand-gold/10'
-                      : 'bg-cream-base text-slate-700 border border-brand-border/60 hover:bg-cream-card/60'
+                      ? "bg-emerald-600 text-white shadow-lg shadow-brand-gold/10"
+                      : "bg-cream-base text-slate-700 border border-brand-border/60 hover:bg-cream-card/60"
                   }`}
                 >
                   {prettyLabel(style)}
@@ -271,9 +285,18 @@ export default function RecommendedProductsView({
           </div>
 
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <ColorBox title="Top / Shirt / Kurta Colors" colors={allowedTopColors} />
-            <ColorBox title="Pant / Shalwar Colors" colors={allowedPantColors} />
-            <ColorBox title="Shoes / Sandals Colors" colors={allowedShoesColors} />
+            <ColorBox
+              title="Top / Shirt / Kurta Colors"
+              colors={allowedTopColors}
+            />
+            <ColorBox
+              title="Pant / Shalwar Colors"
+              colors={allowedPantColors}
+            />
+            <ColorBox
+              title="Shoes / Sandals Colors"
+              colors={allowedShoesColors}
+            />
           </div>
         </div>
 
@@ -284,7 +307,8 @@ export default function RecommendedProductsView({
                 Matching Products
               </h2>
               <p className="text-sm text-slate-500 font-semibold mt-1">
-                Showing products whose colors match: {allAllowedColors.map(prettyLabel).join(', ')}
+                Showing products whose colors match:{" "}
+                {allAllowedColors.map(prettyLabel).join(", ")}
               </p>
             </div>
 
@@ -320,7 +344,9 @@ export default function RecommendedProductsView({
               No recommended products found
             </h3>
             <p className="text-sm text-slate-500 font-semibold mt-2 max-w-xl mx-auto">
-              Admin panel me selected skin tone, style aur allowed colors ke products add karo. Product color field exact allowed color list se match honi chahiye.
+              Admin panel me selected skin tone, style aur allowed colors ke
+              products add karo. Product color field exact allowed color list se
+              match honi chahiye.
             </p>
           </div>
         ) : (
@@ -329,7 +355,7 @@ export default function RecommendedProductsView({
               <article
                 key={product.id}
                 className={`bg-white border border-brand-border/60 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all ${
-                  isOutOfStock(product) ? 'opacity-70' : ''
+                  isOutOfStock(product) ? "opacity-70" : ""
                 }`}
               >
                 <div className="aspect-[3/4] bg-cream-card/60 relative overflow-hidden">
@@ -350,11 +376,13 @@ export default function RecommendedProductsView({
                   <div
                     className={`absolute top-3 right-3 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                       isOutOfStock(product)
-                        ? 'bg-red-600 text-white'
-                        : 'bg-emerald-600 text-white'
+                        ? "bg-red-600 text-white"
+                        : "bg-emerald-600 text-white"
                     }`}
                   >
-                    {isOutOfStock(product) ? 'Out of Stock' : `${product.stock_quantity} Stock`}
+                    {isOutOfStock(product)
+                      ? "Out of Stock"
+                      : `${product.stock_quantity} Stock`}
                   </div>
                 </div>
 
@@ -381,7 +409,7 @@ export default function RecommendedProductsView({
                       Color
                     </span>
                     <span className="text-xs font-black text-brand-dark">
-                      {prettyLabel(product.color || 'Not Set')}
+                      {prettyLabel(product.color || "Not Set")}
                     </span>
                   </div>
 
@@ -400,8 +428,8 @@ export default function RecommendedProductsView({
                       disabled={isOutOfStock(product)}
                       className={`w-full py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 ${
                         isOutOfStock(product)
-                          ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                          : 'bg-brand-gold hover:opacity-90 text-white shadow-lg shadow-brand-gold/10'
+                          ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                          : "bg-brand-gold hover:opacity-90 text-white shadow-lg shadow-brand-gold/10"
                       }`}
                     >
                       <ShoppingCart className="w-4 h-4" />

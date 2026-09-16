@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Footer() {
   const navigate = useNavigate();
@@ -9,11 +9,13 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
         {/* Column 1: Quick Links */}
         <div>
-          <h4 className="font-serif text-lg font-normal text-brand-gold mb-6">Quick Links</h4>
+          <h4 className="font-serif text-lg font-normal text-brand-gold mb-6">
+            Quick Links
+          </h4>
           <ul className="space-y-3 text-xs text-slate-400 font-medium">
             <li>
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate("/")}
                 className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 text-left"
               >
                 Home
@@ -21,7 +23,7 @@ export default function Footer() {
             </li>
             <li>
               <button
-                onClick={() => navigate('/shop')}
+                onClick={() => navigate("/shop")}
                 className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 text-left"
               >
                 Shop
@@ -29,7 +31,7 @@ export default function Footer() {
             </li>
             <li>
               <button
-                onClick={() => navigate('/about')}
+                onClick={() => navigate("/about")}
                 className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 text-left"
               >
                 About Us
@@ -37,7 +39,7 @@ export default function Footer() {
             </li>
             <li>
               <button
-                onClick={() => navigate('/contact')}
+                onClick={() => navigate("/contact")}
                 className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 text-left"
               >
                 Contact
@@ -48,11 +50,13 @@ export default function Footer() {
 
         {/* Column 2: Categories */}
         <div>
-          <h4 className="font-serif text-lg font-normal text-brand-gold mb-6">Categories</h4>
+          <h4 className="font-serif text-lg font-normal text-brand-gold mb-6">
+            Categories
+          </h4>
           <ul className="space-y-3 text-xs text-slate-400 font-medium">
             <li>
               <button
-                onClick={() => navigate('/shop?gender=Men')}
+                onClick={() => navigate("/shop?gender=Men")}
                 className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 text-left"
               >
                 Men Collection
@@ -60,7 +64,7 @@ export default function Footer() {
             </li>
             <li>
               <button
-                onClick={() => navigate('/shop?gender=Women')}
+                onClick={() => navigate("/shop?gender=Women")}
                 className="hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 text-left"
               >
                 Women Collection
@@ -71,9 +75,11 @@ export default function Footer() {
 
         {/* Column 3: Contact Info */}
         <div>
-          <h4 className="font-serif text-lg font-normal text-brand-gold mb-6">Contact Info</h4>
+          <h4 className="font-serif text-lg font-normal text-brand-gold mb-6">
+            Contact Info
+          </h4>
           <p className="text-xs text-slate-400 font-medium mb-3">
-            WhatsApp:{' '}
+            WhatsApp:{" "}
             <a
               href="https://wa.me/923001234567"
               target="_blank"
@@ -93,7 +99,9 @@ export default function Footer() {
 
         {/* Column 4: Social Media */}
         <div>
-          <h4 className="font-serif text-lg font-normal text-brand-gold mb-6">Follow Us</h4>
+          <h4 className="font-serif text-lg font-normal text-brand-gold mb-6">
+            Follow Us
+          </h4>
           <div className="flex gap-4">
             <a
               href="#"
@@ -127,7 +135,9 @@ export default function Footer() {
       <div className="w-full border-t border-emerald-900/40 py-6 text-center text-[10px] uppercase font-bold tracking-widest text-slate-500">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <span>&copy; 2026 Wear Right. All rights reserved.</span>
-          <span className="text-[9px] text-slate-600">Designed with AI Calibration</span>
+          <span className="text-[9px] text-slate-600">
+            Designed with AI Calibration
+          </span>
         </div>
       </div>
     </footer>

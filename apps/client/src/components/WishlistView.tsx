@@ -1,12 +1,7 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Heart,
-  ShoppingBag,
-  ShoppingCart,
-} from 'lucide-react';
-import { CartProduct } from '../App';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Heart, ShoppingBag, ShoppingCart } from "lucide-react";
+import { CartProduct } from "../App";
 
 type WishlistViewProps = {
   wishlistItems: CartProduct[];
@@ -16,14 +11,14 @@ type WishlistViewProps = {
 
 function formatPKR(value: string | number | undefined) {
   const num = Number(value || 0);
-  return `Rs. ${num.toLocaleString('en-PK')}`;
+  return `Rs. ${num.toLocaleString("en-PK")}`;
 }
 
 function getProductImage(product: CartProduct) {
   return (
     product.image_url ||
     product.image ||
-    'https://placehold.co/300x400?text=Wear+Right'
+    "https://placehold.co/300x400?text=Wear+Right"
   );
 }
 
@@ -37,10 +32,10 @@ export default function WishlistView({
   const handleAddToCart = (product: CartProduct) => {
     if (
       Number(product.stock_quantity || 0) <= 0 ||
-      product.status === 'Out of Stock' ||
-      product.status === 'Inactive'
+      product.status === "Out of Stock" ||
+      product.status === "Inactive"
     ) {
-      alert('This product is currently out of stock.');
+      alert("This product is currently out of stock.");
       return;
     }
 
@@ -55,7 +50,7 @@ export default function WishlistView({
 
       <div className="max-w-7xl mx-auto relative z-10">
         <button
-          onClick={() => navigate('/shop')}
+          onClick={() => navigate("/shop")}
           className="mb-8 bg-white hover:bg-cream-card/60 border border-brand-border/60 text-slate-700 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer border-none shadow-sm transition-all"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -65,7 +60,8 @@ export default function WishlistView({
         {/* Wishlist Header */}
         <div className="mb-10 max-w-3xl">
           <p className="text-[10px] uppercase tracking-widest text-blue-700 font-extrabold font-sans mb-2">
-            {wishlistItems.length} {wishlistItems.length === 1 ? 'item' : 'items'} saved
+            {wishlistItems.length}{" "}
+            {wishlistItems.length === 1 ? "item" : "items"} saved
           </p>
 
           <h1 className="text-4xl sm:text-5xl font-serif font-bold text-brand-dark tracking-tight leading-tight">
@@ -92,7 +88,7 @@ export default function WishlistView({
             </p>
 
             <button
-              onClick={() => navigate('/shop')}
+              onClick={() => navigate("/shop")}
               className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider inline-flex items-center gap-2 border-none shadow-md cursor-pointer hover:scale-[1.02] active:scale-95 transition-all"
             >
               <ShoppingBag className="w-4 h-4" />
@@ -114,7 +110,7 @@ export default function WishlistView({
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
                     onError={(event) => {
                       event.currentTarget.src =
-                        'https://placehold.co/300x400?text=Wear+Right';
+                        "https://placehold.co/300x400?text=Wear+Right";
                     }}
                   />
 
@@ -131,8 +127,10 @@ export default function WishlistView({
                 <div className="p-4 flex flex-col justify-between flex-1">
                   <div>
                     <div className="flex items-center justify-between gap-2 text-[10px] uppercase text-slate-400 font-extrabold font-sans mb-1">
-                      <span>{product.style || product.cultural_tag || 'Casual'}</span>
-                      <span>{product.color || 'N/A'}</span>
+                      <span>
+                        {product.style || product.cultural_tag || "Casual"}
+                      </span>
+                      <span>{product.color || "N/A"}</span>
                     </div>
 
                     <h3 className="text-xs uppercase font-extrabold tracking-wider text-brand-dark line-clamp-1">

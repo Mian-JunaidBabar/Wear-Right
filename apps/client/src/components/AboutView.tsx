@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Brain,
@@ -9,7 +9,7 @@ import {
   Shirt,
   Sparkles,
   User,
-} from 'lucide-react';
+} from "lucide-react";
 
 export default function AboutView() {
   const navigate = useNavigate();
@@ -33,18 +33,18 @@ export default function AboutView() {
 
             <h1 className="font-serif tracking-tight text-brand-dark leading-[1.15] mb-6 text-4xl sm:text-5xl lg:text-[56px] font-normal">
               Redefining Fashion <br />
-              <span className="text-blue-600 italic font-serif">
-                With AI
-              </span>
+              <span className="text-blue-600 italic font-serif">With AI</span>
             </h1>
 
             <p className="text-sm sm:text-base text-slate-500 mb-8 max-w-xl leading-relaxed font-sans font-medium">
-              We believe everyone deserves to look their best. Wear Right combines AI technology with fashion expertise to help you discover styles that truly suit you.
+              We believe everyone deserves to look their best. Wear Right
+              combines AI technology with fashion expertise to help you discover
+              styles that truly suit you.
             </p>
 
             <div className="flex flex-wrap gap-4">
               <button
-                onClick={() => navigate('/facescan')}
+                onClick={() => navigate("/facescan")}
                 className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-4 text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2.5 rounded-xl shadow-lg shadow-blue-600/10 hover:shadow-xl hover:shadow-blue-600/20 group cursor-pointer"
               >
                 <Camera className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
@@ -52,7 +52,7 @@ export default function AboutView() {
               </button>
 
               <button
-                onClick={() => navigate('/shop')}
+                onClick={() => navigate("/shop")}
                 className="border border-brand-gold text-slate-800 hover:bg-slate-50 px-6 py-4 text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 rounded-xl cursor-pointer bg-transparent"
               >
                 Browse Shop
@@ -79,13 +79,17 @@ export default function AboutView() {
                       alt="Wear Right"
                       className="w-7 h-7 object-contain"
                       onError={(event) => {
-                        event.currentTarget.src = '/brand/wr-monogram.png';
+                        event.currentTarget.src = "/brand/wr-monogram.png";
                       }}
                     />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-brand-dark font-sans leading-tight">Wear Right</h4>
-                    <p className="text-[9px] text-slate-400 font-sans mt-0.5">Style Calibration AI</p>
+                    <h4 className="text-xs font-bold text-brand-dark font-sans leading-tight">
+                      Wear Right
+                    </h4>
+                    <p className="text-[9px] text-slate-400 font-sans mt-0.5">
+                      Style Calibration AI
+                    </p>
                   </div>
                 </div>
               </div>
@@ -113,7 +117,11 @@ export default function AboutView() {
             {/* Left side: Mission statement paragraph */}
             <div className="flex flex-col text-left justify-center lg:pr-6">
               <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed font-sans">
-                Online shopping often leaves customers confused with too many choices. Our mission is to simplify fashion decisions using AI-powered skin tone analysis and smart outfit matching, so every customer finds clothes that truly suit them — reducing returns and saving time.
+                Online shopping often leaves customers confused with too many
+                choices. Our mission is to simplify fashion decisions using
+                AI-powered skin tone analysis and smart outfit matching, so
+                every customer finds clothes that truly suit them — reducing
+                returns and saving time.
               </p>
             </div>
 
@@ -154,7 +162,8 @@ export default function AboutView() {
               AI Skin Tone Detection
             </h3>
             <p className="text-xs text-slate-500 font-sans leading-relaxed">
-              Advanced scanning technology detects your unique skin tone in seconds
+              Advanced scanning technology detects your unique skin tone in
+              seconds
             </p>
           </div>
 
@@ -193,7 +202,8 @@ export default function AboutView() {
               Virtual Mannequin Preview
             </h3>
             <p className="text-xs text-slate-500 font-sans leading-relaxed">
-              Preview your complete outfit on an AI-generated mannequin before making your purchase.
+              Preview your complete outfit on an AI-generated mannequin before
+              making your purchase.
             </p>
           </div>
         </div>
@@ -226,7 +236,8 @@ export default function AboutView() {
                 Founder & Developer
               </p>
               <p className="text-xs text-slate-500 font-sans mt-3.5 leading-relaxed">
-                Leads software development, AI model integrations, and backend architecture of Style Calibration.
+                Leads software development, AI model integrations, and backend
+                architecture of Style Calibration.
               </p>
             </div>
 
@@ -242,7 +253,8 @@ export default function AboutView() {
                 UI/UX Designer
               </p>
               <p className="text-xs text-slate-500 font-sans mt-3.5 leading-relaxed">
-                Crafts the premium brand visual identity, designs style curation interfaces, and maintains seamless web flows.
+                Crafts the premium brand visual identity, designs style curation
+                interfaces, and maintains seamless web flows.
               </p>
             </div>
 
@@ -258,7 +270,8 @@ export default function AboutView() {
                 Co-Developer & QA
               </p>
               <p className="text-xs text-slate-500 font-sans mt-3.5 leading-relaxed">
-                Manages catalog intelligence validation, system deployment auditing, and rule engines quality assurance.
+                Manages catalog intelligence validation, system deployment
+                auditing, and rule engines quality assurance.
               </p>
             </div>
           </div>
@@ -268,7 +281,6 @@ export default function AboutView() {
       {/* High-Impact CTA Section */}
       <section className="w-full py-12 px-6 max-w-7xl mx-auto mt-6 mb-12">
         <div className="bg-blue-600 rounded-[32px] p-8 md:p-12 text-white relative overflow-hidden shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-8 border border-blue-700/50">
-
           {/* Subtle background abstract shapes */}
           <div className="absolute -right-10 -bottom-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute left-1/3 top-10 w-64 h-64 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
@@ -282,14 +294,15 @@ export default function AboutView() {
               Ready to Find Your Perfect Style?
             </h2>
             <p className="text-xs sm:text-sm text-slate-100 font-sans leading-relaxed max-w-md">
-              Start your AI-powered fashion journey today. Calibration will analyze your skin parameters and recommend colors.
+              Start your AI-powered fashion journey today. Calibration will
+              analyze your skin parameters and recommend colors.
             </p>
           </div>
 
           {/* Right Buttons Column */}
           <div className="flex flex-wrap gap-4 relative z-10 shrink-0">
             <button
-              onClick={() => navigate('/facescan')}
+              onClick={() => navigate("/facescan")}
               className="bg-white text-blue-900 hover:bg-slate-50 px-8 py-4 text-xs font-black uppercase tracking-wider transition-all duration-300 rounded-xl shadow-lg hover:shadow-xl flex items-center justify-center gap-2 cursor-pointer border-none group"
             >
               <Camera className="w-4 h-4 text-blue-700 group-hover:scale-110 transition-transform" />
@@ -297,7 +310,7 @@ export default function AboutView() {
             </button>
 
             <button
-              onClick={() => navigate('/shop')}
+              onClick={() => navigate("/shop")}
               className="bg-blue-700/40 text-white hover:bg-blue-700/60 border border-white/20 px-8 py-4 text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 rounded-xl cursor-pointer"
             >
               Browse Shop
@@ -306,7 +319,6 @@ export default function AboutView() {
           </div>
         </div>
       </section>
-
     </div>
   );
 }

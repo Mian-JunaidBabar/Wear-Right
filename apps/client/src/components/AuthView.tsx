@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Eye,
   EyeOff,
@@ -9,8 +9,8 @@ import {
   LogIn,
   Mail,
   KeyRound,
-} from 'lucide-react';
-import { UserState } from '../types';
+} from "lucide-react";
+import { UserState } from "../types";
 
 interface AuthViewProps {
   user: UserState;
@@ -21,26 +21,26 @@ export default function AuthView({ user, setUser }: AuthViewProps) {
   const [isSignIn, setIsSignIn] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
 
-  const [email, setEmail] = useState(user.isLoggedIn ? user.email : '');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState(user.isLoggedIn ? user.name : '');
-  const [successMsg, setSuccessMsg] = useState('');
+  const [email, setEmail] = useState(user.isLoggedIn ? user.email : "");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState(user.isLoggedIn ? user.name : "");
+  const [successMsg, setSuccessMsg] = useState("");
 
   const [forgotMode, setForgotMode] = useState(false);
   const [resetLinkSent, setResetLinkSent] = useState(false);
-  const [resetPassword, setResetPassword] = useState('');
-  const [confirmResetPassword, setConfirmResetPassword] = useState('');
+  const [resetPassword, setResetPassword] = useState("");
+  const [confirmResetPassword, setConfirmResetPassword] = useState("");
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
 
     if (!email || !password) {
-      setSuccessMsg('Please enter your email and password.');
+      setSuccessMsg("Please enter your email and password.");
       return;
     }
 
     if (!isSignIn && !name) {
-      setSuccessMsg('Please enter your full name.');
+      setSuccessMsg("Please enter your full name.");
       return;
     }
 
@@ -48,24 +48,24 @@ export default function AuthView({ user, setUser }: AuthViewProps) {
       setUser((prev) => ({
         ...prev,
         email,
-        name: prev.name || 'Wear Right Customer',
+        name: prev.name || "Wear Right Customer",
         isLoggedIn: true,
       }));
 
-      setSuccessMsg('Login successful.');
+      setSuccessMsg("Login successful.");
     } else {
       setUser((prev) => ({
         ...prev,
         email,
-        name: name || 'Wear Right Customer',
+        name: name || "Wear Right Customer",
         isLoggedIn: true,
       }));
 
-      setSuccessMsg('Account created successfully.');
+      setSuccessMsg("Account created successfully.");
     }
 
     setTimeout(() => {
-      setSuccessMsg('');
+      setSuccessMsg("");
     }, 3000);
   };
 
@@ -73,15 +73,15 @@ export default function AuthView({ user, setUser }: AuthViewProps) {
     event.preventDefault();
 
     if (!email) {
-      setSuccessMsg('Please enter your email address.');
+      setSuccessMsg("Please enter your email address.");
       return;
     }
 
     setResetLinkSent(true);
-    setSuccessMsg('Reset link sent to your email.');
+    setSuccessMsg("Reset link sent to your email.");
 
     setTimeout(() => {
-      setSuccessMsg('');
+      setSuccessMsg("");
     }, 3000);
   };
 
@@ -89,35 +89,35 @@ export default function AuthView({ user, setUser }: AuthViewProps) {
     event.preventDefault();
 
     if (!resetPassword || !confirmResetPassword) {
-      setSuccessMsg('Please enter and confirm your new password.');
+      setSuccessMsg("Please enter and confirm your new password.");
       return;
     }
 
     if (resetPassword !== confirmResetPassword) {
-      setSuccessMsg('Passwords do not match.');
+      setSuccessMsg("Passwords do not match.");
       return;
     }
 
-    setSuccessMsg('Password reset successfully.');
+    setSuccessMsg("Password reset successfully.");
     setForgotMode(false);
     setResetLinkSent(false);
-    setResetPassword('');
-    setConfirmResetPassword('');
-    setPassword('');
+    setResetPassword("");
+    setConfirmResetPassword("");
+    setPassword("");
     setIsSignIn(true);
 
     setTimeout(() => {
-      setSuccessMsg('');
+      setSuccessMsg("");
     }, 3000);
   };
 
   const handleBackToLogin = () => {
     setForgotMode(false);
     setResetLinkSent(false);
-    setResetPassword('');
-    setConfirmResetPassword('');
+    setResetPassword("");
+    setConfirmResetPassword("");
     setIsSignIn(true);
-    setSuccessMsg('');
+    setSuccessMsg("");
   };
 
   const handleSignOut = () => {
@@ -126,11 +126,11 @@ export default function AuthView({ user, setUser }: AuthViewProps) {
       isLoggedIn: false,
     }));
 
-    setPassword('');
-    setSuccessMsg('Signed out successfully.');
+    setPassword("");
+    setSuccessMsg("Signed out successfully.");
 
     setTimeout(() => {
-      setSuccessMsg('');
+      setSuccessMsg("");
     }, 3000);
   };
 
@@ -151,7 +151,7 @@ export default function AuthView({ user, setUser }: AuthViewProps) {
                   alt="Wear Right Logo"
                   className="w-14 h-14 object-contain"
                   onError={(event) => {
-                    event.currentTarget.src = '/brand/wr-monogram.png';
+                    event.currentTarget.src = "/brand/wr-monogram.png";
                   }}
                 />
               </div>
@@ -258,7 +258,9 @@ export default function AuthView({ user, setUser }: AuthViewProps) {
                         <input
                           type="password"
                           value={resetPassword}
-                          onChange={(event) => setResetPassword(event.target.value)}
+                          onChange={(event) =>
+                            setResetPassword(event.target.value)
+                          }
                           placeholder="Enter new password"
                           className="w-full bg-cream-base border border-brand-border/60 rounded-xl px-4 py-4 pr-12 text-sm font-semibold outline-none focus:ring-2 focus:ring-sage-green/20 focus:border-sage-green"
                         />
@@ -276,7 +278,9 @@ export default function AuthView({ user, setUser }: AuthViewProps) {
                         <input
                           type="password"
                           value={confirmResetPassword}
-                          onChange={(event) => setConfirmResetPassword(event.target.value)}
+                          onChange={(event) =>
+                            setConfirmResetPassword(event.target.value)
+                          }
                           placeholder="Confirm new password"
                           className="w-full bg-cream-base border border-brand-border/60 rounded-xl px-4 py-4 pr-12 text-sm font-semibold outline-none focus:ring-2 focus:ring-sage-green/20 focus:border-sage-green"
                         />
@@ -305,13 +309,13 @@ export default function AuthView({ user, setUser }: AuthViewProps) {
             ) : (
               <div>
                 <h3 className="text-4xl font-black text-brand-dark tracking-tight">
-                  {isSignIn ? 'Welcome Back' : 'Create Your Account'}
+                  {isSignIn ? "Welcome Back" : "Create Your Account"}
                 </h3>
 
                 <p className="text-sm text-slate-500 font-semibold mt-2 mb-7">
                   {isSignIn
-                    ? 'Login to continue your Wear Right experience.'
-                    : 'Create your account to save your style preferences and orders.'}
+                    ? "Login to continue your Wear Right experience."
+                    : "Create your account to save your style preferences and orders."}
                 </p>
 
                 <div className="grid grid-cols-2 gap-2 bg-cream-card/60 border border-brand-border/60 rounded-2xl p-1.5 mb-8">
@@ -320,12 +324,13 @@ export default function AuthView({ user, setUser }: AuthViewProps) {
                     onClick={() => {
                       setIsSignIn(true);
                       setForgotMode(false);
-                      setSuccessMsg('');
+                      setSuccessMsg("");
                     }}
-                    className={`py-3 rounded-xl text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${isSignIn
-                        ? 'bg-white text-sage-green shadow-sm'
-                        : 'text-slate-500 hover:text-brand-dark'
-                      }`}
+                    className={`py-3 rounded-xl text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                      isSignIn
+                        ? "bg-white text-sage-green shadow-sm"
+                        : "text-slate-500 hover:text-brand-dark"
+                    }`}
                   >
                     <LogIn className="w-4 h-4" />
                     Login
@@ -336,12 +341,13 @@ export default function AuthView({ user, setUser }: AuthViewProps) {
                     onClick={() => {
                       setIsSignIn(false);
                       setForgotMode(false);
-                      setSuccessMsg('');
+                      setSuccessMsg("");
                     }}
-                    className={`py-3 rounded-xl text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${!isSignIn
-                        ? 'bg-white text-sage-green shadow-sm'
-                        : 'text-slate-500 hover:text-brand-dark'
-                      }`}
+                    className={`py-3 rounded-xl text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                      !isSignIn
+                        ? "bg-white text-sage-green shadow-sm"
+                        : "text-slate-500 hover:text-brand-dark"
+                    }`}
                   >
                     <UserPlus className="w-4 h-4" />
                     Sign Up
@@ -385,7 +391,7 @@ export default function AuthView({ user, setUser }: AuthViewProps) {
 
                     <div className="relative">
                       <input
-                        type={showPassword ? 'text' : 'password'}
+                        type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                         placeholder="Enter password"
@@ -413,7 +419,7 @@ export default function AuthView({ user, setUser }: AuthViewProps) {
                         onClick={() => {
                           setForgotMode(true);
                           setResetLinkSent(false);
-                          setSuccessMsg('');
+                          setSuccessMsg("");
                         }}
                         className="text-xs font-black text-sage-green hover:text-sage-green transition-colors"
                       >
@@ -426,12 +432,10 @@ export default function AuthView({ user, setUser }: AuthViewProps) {
                     type="submit"
                     className="w-full bg-brand-gold hover:opacity-90 text-white font-black py-4 rounded-xl uppercase tracking-wider text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-brand-gold/10"
                   >
-                    <span>{isSignIn ? 'Login' : 'Create Account'}</span>
+                    <span>{isSignIn ? "Login" : "Create Account"}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </form>
-
-
               </div>
             )}
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Mail,
   MapPin,
@@ -7,24 +7,26 @@ import {
   Send,
   Sparkles,
   User,
-} from 'lucide-react';
+} from "lucide-react";
+import { ADMIN_WHATSAPP_NUMBER } from "../config/api";
 
 export default function ContactView() {
   const [form, setForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    message: '',
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
   });
 
-  const adminWhatsAppNumber = '923021191771';
+  const adminWhatsAppNumber = "923021191771";
+  const adminWhatsAppNumber = ADMIN_WHATSAPP_NUMBER;
 
   const openWhatsApp = () => {
     const message = `Hello Admin, I need help regarding Wear Right.`;
 
     window.open(
       `https://wa.me/${adminWhatsAppNumber}?text=${encodeURIComponent(message)}`,
-      '_blank'
+      "_blank",
     );
   };
 
@@ -32,14 +34,14 @@ export default function ContactView() {
     event.preventDefault();
 
     if (!form.name.trim() || !form.phone.trim() || !form.message.trim()) {
-      alert('Please enter your name, phone and message.');
+      alert("Please enter your name, phone and message.");
       return;
     }
 
     const message = `Wear Right Contact Request
 
 Name: ${form.name}
-Email: ${form.email || 'Not provided'}
+Email: ${form.email || "Not provided"}
 Phone: ${form.phone}
 
 Message:
@@ -47,14 +49,14 @@ ${form.message}`;
 
     window.open(
       `https://wa.me/${adminWhatsAppNumber}?text=${encodeURIComponent(message)}`,
-      '_blank'
+      "_blank",
     );
 
     setForm({
-      name: '',
-      email: '',
-      phone: '',
-      message: '',
+      name: "",
+      email: "",
+      phone: "",
+      message: "",
     });
   };
 
@@ -65,7 +67,6 @@ ${form.message}`;
       <div className="absolute left-0 bottom-20 w-96 h-96 bg-blue-50/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto relative z-10">
-        
         {/* Header Section */}
         <div className="mb-14 max-w-3xl">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 w-max mb-6 shadow-sm">
@@ -81,13 +82,13 @@ ${form.message}`;
           <div className="w-12 h-1 bg-brand-gold mt-4 rounded-full" />
 
           <p className="text-sm text-slate-500 font-sans leading-relaxed mt-6 font-medium max-w-2xl">
-            Need help with face scan, product recommendation, order status or outfit selection? Contact Wear Right support.
+            Need help with face scan, product recommendation, order status or
+            outfit selection? Contact Wear Right support.
           </p>
         </div>
 
         {/* Content Columns */}
         <div className="grid grid-cols-1 lg:grid-cols-[42%_58%] gap-8">
-          
           {/* Support Info Cards (Left Column) */}
           <div className="space-y-6">
             <ContactCard
@@ -119,7 +120,7 @@ ${form.message}`;
                   alt="Wear Right"
                   className="w-14 h-14 object-contain"
                   onError={(event) => {
-                    event.currentTarget.src = '/brand/wr-monogram.png';
+                    event.currentTarget.src = "/brand/wr-monogram.png";
                   }}
                 />
               </div>
@@ -245,7 +246,7 @@ function InputField({
   onChange,
   placeholder,
   icon,
-  type = 'text',
+  type = "text",
 }: {
   label: string;
   value: string;

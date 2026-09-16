@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
   ShoppingBag,
@@ -7,7 +7,7 @@ import {
   ReceiptText,
   PackageCheck,
   ClipboardList,
-} from 'lucide-react';
+} from "lucide-react";
 
 type ConfirmationItem = {
   id: number | string;
@@ -33,14 +33,14 @@ type ConfirmationData = {
 
 function formatPKR(value: string | number | undefined) {
   const num = Number(value || 0);
-  return `Rs. ${num.toLocaleString('en-PK')}`;
+  return `Rs. ${num.toLocaleString("en-PK")}`;
 }
 
 function getItemImage(item: ConfirmationItem) {
   return (
     item.image_url ||
     item.image ||
-    'https://placehold.co/120x160?text=Wear+Right'
+    "https://placehold.co/120x160?text=Wear+Right"
   );
 }
 
@@ -49,7 +49,7 @@ export default function OrderConfirmationView() {
 
   const confirmationData = useMemo<ConfirmationData | null>(() => {
     try {
-      const savedData = localStorage.getItem('wearRightLastOrder');
+      const savedData = localStorage.getItem("wearRightLastOrder");
 
       if (!savedData) {
         return null;
@@ -57,7 +57,7 @@ export default function OrderConfirmationView() {
 
       return JSON.parse(savedData) as ConfirmationData;
     } catch (error) {
-      console.error('Order confirmation parse error:', error);
+      console.error("Order confirmation parse error:", error);
       return null;
     }
   }, []);
@@ -73,11 +73,12 @@ export default function OrderConfirmationView() {
           </h1>
 
           <p className="text-sm text-slate-500 font-semibold mt-3">
-            No recent order confirmation is available. Please place an order first.
+            No recent order confirmation is available. Please place an order
+            first.
           </p>
 
           <button
-            onClick={() => navigate('/shop')}
+            onClick={() => navigate("/shop")}
             className="mt-6 bg-brand-gold hover:opacity-90 text-white px-6 py-4 rounded-xl text-xs font-black uppercase tracking-wider"
           >
             Continue Shopping
@@ -108,7 +109,8 @@ export default function OrderConfirmationView() {
               </h1>
 
               <p className="text-sm text-slate-300 font-semibold mt-3 max-w-2xl">
-                Your order has been placed successfully. Admin will confirm your order soon.
+                Your order has been placed successfully. Admin will confirm your
+                order soon.
               </p>
             </div>
 
@@ -140,7 +142,8 @@ export default function OrderConfirmationView() {
               </div>
 
               <p className="text-sm text-slate-500 font-semibold mt-1">
-                {confirmationData.items.length} product(s) included in this order.
+                {confirmationData.items.length} product(s) included in this
+                order.
               </p>
             </div>
 
@@ -157,7 +160,7 @@ export default function OrderConfirmationView() {
                       className="w-16 h-20 rounded-xl object-cover bg-cream-card/60 border border-brand-border/60"
                       onError={(event) => {
                         event.currentTarget.src =
-                          'https://placehold.co/120x160?text=Wear+Right';
+                          "https://placehold.co/120x160?text=Wear+Right";
                       }}
                     />
 
@@ -167,7 +170,7 @@ export default function OrderConfirmationView() {
                       </h3>
 
                       <p className="text-xs text-slate-500 font-bold mt-1">
-                        {item.category || 'Wear Right Product'}
+                        {item.category || "Wear Right Product"}
                       </p>
 
                       <p className="text-xs text-slate-400 font-bold mt-1">
@@ -198,14 +201,20 @@ export default function OrderConfirmationView() {
 
               <div className="mt-5 space-y-4">
                 <InfoLine label="Name" value={confirmationData.customer_name} />
-                <InfoLine label="Phone" value={confirmationData.customer_phone} />
+                <InfoLine
+                  label="Phone"
+                  value={confirmationData.customer_phone}
+                />
 
                 <InfoLine
                   label="Email"
-                  value={confirmationData.customer_email || 'Not provided'}
+                  value={confirmationData.customer_email || "Not provided"}
                 />
 
-                <InfoLine label="Payment" value={confirmationData.payment_status} />
+                <InfoLine
+                  label="Payment"
+                  value={confirmationData.payment_status}
+                />
               </div>
 
               <div className="mt-5 pt-5 border-t border-slate-100">
@@ -236,7 +245,7 @@ export default function OrderConfirmationView() {
 
               <div className="mt-5 grid grid-cols-1 gap-3">
                 <button
-                  onClick={() => navigate('/my-orders')}
+                  onClick={() => navigate("/my-orders")}
                   className="w-full bg-slate-950 hover:bg-black text-white py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2"
                 >
                   <ClipboardList className="w-4 h-4" />
@@ -244,7 +253,7 @@ export default function OrderConfirmationView() {
                 </button>
 
                 <button
-                  onClick={() => navigate('/shop')}
+                  onClick={() => navigate("/shop")}
                   className="w-full bg-brand-gold hover:opacity-90 text-white py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2"
                 >
                   <ShoppingBag className="w-4 h-4" />
@@ -252,7 +261,7 @@ export default function OrderConfirmationView() {
                 </button>
 
                 <button
-                  onClick={() => navigate('/profile')}
+                  onClick={() => navigate("/profile")}
                   className="w-full bg-cream-card/60 hover:bg-slate-200 text-slate-700 py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2"
                 >
                   <Home className="w-4 h-4" />

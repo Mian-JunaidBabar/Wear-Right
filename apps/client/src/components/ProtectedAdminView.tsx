@@ -1,18 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { Lock, ShieldCheck, LogOut, Eye, EyeOff } from 'lucide-react';
-import AdminView from './AdminView';
+import React, { useEffect, useState } from "react";
+import { Lock, ShieldCheck, LogOut, Eye, EyeOff } from "lucide-react";
+import AdminView from "./AdminView";
 
-const ADMIN_PASSWORD = 'admin123';
+const ADMIN_PASSWORD = "admin123";
 
 export default function ProtectedAdminView() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    const savedLogin = localStorage.getItem('wearRightAdminLoggedIn');
+    const savedLogin = localStorage.getItem("wearRightAdminLoggedIn");
 
-    if (savedLogin === 'true') {
+    if (savedLogin === "true") {
       setIsAdminLoggedIn(true);
     }
   }, []);
@@ -21,29 +21,27 @@ export default function ProtectedAdminView() {
     event.preventDefault();
 
     if (!password.trim()) {
-      alert('Please enter admin password.');
+      alert("Please enter admin password.");
       return;
     }
 
     if (password !== ADMIN_PASSWORD) {
-      alert('Invalid admin password.');
+      alert("Invalid admin password.");
       return;
     }
 
-    localStorage.setItem('wearRightAdminLoggedIn', 'true');
+    localStorage.setItem("wearRightAdminLoggedIn", "true");
     setIsAdminLoggedIn(true);
-    setPassword('');
+    setPassword("");
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('wearRightAdminLoggedIn');
+    localStorage.removeItem("wearRightAdminLoggedIn");
     setIsAdminLoggedIn(false);
   };
 
   if (isAdminLoggedIn) {
-    return (
-      <AdminView onLogout={handleLogout} />
-    );
+    return <AdminView onLogout={handleLogout} />;
   }
 
   return (
@@ -59,7 +57,7 @@ export default function ProtectedAdminView() {
                 alt="Wear Right"
                 className="w-14 h-14 object-contain"
                 onError={(event) => {
-                  event.currentTarget.src = '/brand/wr-monogram.png';
+                  event.currentTarget.src = "/brand/wr-monogram.png";
                 }}
               />
             </div>
@@ -68,12 +66,11 @@ export default function ProtectedAdminView() {
               Secure Admin Access
             </p>
 
-            <h1 className="text-3xl font-black mt-2">
-              Wear Right Admin
-            </h1>
+            <h1 className="text-3xl font-black mt-2">Wear Right Admin</h1>
 
             <p className="text-sm text-slate-300 font-semibold mt-3">
-              Enter admin password to manage products, orders, bookings and face scan records.
+              Enter admin password to manage products, orders, bookings and face
+              scan records.
             </p>
           </div>
         </div>
@@ -88,7 +85,7 @@ export default function ProtectedAdminView() {
               <Lock className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
 
               <input
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Enter admin password"

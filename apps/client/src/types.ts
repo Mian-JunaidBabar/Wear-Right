@@ -4,7 +4,7 @@ export interface Product {
   price: number;
   image: string;
   match: number;
-  style: 'Eastern' | 'Western' | 'Casual' | 'Formal';
+  style: "Eastern" | "Western" | "Casual" | "Formal";
   colors: string[];
 }
 
@@ -18,19 +18,19 @@ export interface InventoryItem {
 }
 
 export type ViewType =
-  | 'home'
-  | 'auth'
-  | 'profile'
-  | 'facescan'
-  | 'shop'
-  | 'recommended'
-  | 'complete-outfit'
-  | 'order-confirmation'
-  | 'my-orders'
-  | 'wishlist'
-  | 'about'
-  | 'contact'
-  | 'admin';
+  | "home"
+  | "auth"
+  | "profile"
+  | "facescan"
+  | "shop"
+  | "recommended"
+  | "complete-outfit"
+  | "order-confirmation"
+  | "my-orders"
+  | "wishlist"
+  | "about"
+  | "contact"
+  | "admin";
 
 export interface UserState {
   name: string;

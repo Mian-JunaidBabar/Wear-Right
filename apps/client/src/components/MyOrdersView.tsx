@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Clock,
@@ -9,9 +9,10 @@ import {
   RefreshCw,
   Search,
   ShoppingBag,
-} from 'lucide-react';
+} from "lucide-react";
 // @ts-ignore
-import html2pdf from 'html2pdf.js';
+import html2pdf from "html2pdf.js";
+import { API_ENDPOINTS } from "../config/api";
 
 type ApiOrder = {
   id: number;
@@ -34,14 +35,14 @@ type ApiOrder = {
 
 function formatPKR(value: string | number | undefined) {
   const num = Number(value || 0);
-  return `Rs. ${num.toLocaleString('en-PK')}`;
+  return `Rs. ${num.toLocaleString("en-PK")}`;
 }
 
 function formatDate(value: string) {
   try {
-    return new Date(value).toLocaleString('en-PK', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
+    return new Date(value).toLocaleString("en-PK", {
+      dateStyle: "medium",
+      timeStyle: "short",
     });
   } catch {
     return value;
@@ -51,19 +52,19 @@ function formatDate(value: string) {
 function getStatusStyle(status: string) {
   const normalizedStatus = status.toLowerCase();
 
-  if (normalizedStatus.includes('confirmed')) {
-    return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+  if (normalizedStatus.includes("confirmed")) {
+    return "bg-emerald-50 text-emerald-700 border-emerald-100";
   }
 
-  if (normalizedStatus.includes('delivered')) {
-    return 'bg-sage-green/10 text-sage-green border-brand-border/40';
+  if (normalizedStatus.includes("delivered")) {
+    return "bg-sage-green/10 text-sage-green border-brand-border/40";
   }
 
-  if (normalizedStatus.includes('cancel')) {
-    return 'bg-red-50 text-red-700 border-red-100';
+  if (normalizedStatus.includes("cancel")) {
+    return "bg-red-50 text-red-700 border-red-100";
   }
 
-  return 'bg-amber-50 text-amber-700 border-amber-100';
+  return "bg-amber-50 text-amber-700 border-amber-100";
 }
 
 export default function MyOrdersView() {
@@ -71,30 +72,31 @@ export default function MyOrdersView() {
 
   const [orders, setOrders] = useState<ApiOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [searchText, setSearchText] = useState('');
+  const [errorMessage, setErrorMessage] = useState("");
+  const [searchText, setSearchText] = useState("");
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      setErrorMessage('');
+      setErrorMessage("");
 
-      const response = await fetch('http://127.0.0.1:8000/api/orders/');
+      const response = await fetch("http://127.0.0.1:8000/api/orders/");
+      const response = await fetch(API_ENDPOINTS.orders);
 
       if (!response.ok) {
-        throw new Error('Orders API response was not successful.');
+        throw new Error("Orders API response was not successful.");
       }
 
       const data = await response.json();
 
-      if (data.status === 'success') {
+      if (data.status === "success") {
         setOrders(data.orders || []);
       } else {
-        throw new Error(data.message || 'Unable to load orders.');
+        throw new Error(data.message || "Unable to load orders.");
       }
     } catch (error) {
-      console.error('Orders API Error:', error);
-      setErrorMessage('Unable to load orders from backend API.');
+      console.error("Orders API Error:", error);
+      setErrorMessage("Unable to load orders from backend API.");
     } finally {
       setLoading(false);
     }
@@ -109,9 +111,11 @@ export default function MyOrdersView() {
 
     orders.forEach((order) => {
       // If order_code is missing, group by customer, date, and status
-      const dateStr = new Date(order.order_date).toISOString().split('T')[0];
-      const key = order.order_code || `group-${order.customer_phone}-${dateStr}-${order.order_status}`;
-      
+      const dateStr = new Date(order.order_date).toISOString().split("T")[0];
+      const key =
+        order.order_code ||
+        `group-${order.customer_phone}-${dateStr}-${order.order_status}`;
+
       if (!groups[key]) groups[key] = [];
       groups[key].push(order);
     });
@@ -120,8 +124,14 @@ export default function MyOrdersView() {
       const items = groups[key];
       const firstItem = items[0];
 
-      const totalQty = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-      const totalRev = items.reduce((sum, item) => sum + Number(item.total_amount || 0), 0);
+      const totalQty = items.reduce(
+        (sum, item) => sum + Number(item.quantity || 0),
+        0,
+      );
+      const totalRev = items.reduce(
+        (sum, item) => sum + Number(item.total_amount || 0),
+        0,
+      );
 
       return {
         ...firstItem,
@@ -444,7 +454,7 @@ export default function MyOrdersView() {
 
           <div class="line">
             <span>Email</span>
-            <strong>${order.customer_email || 'Not provided'}</strong>
+            <strong>${order.customer_email || "Not provided"}</strong>
           </div>
 
           <div class="line">
@@ -488,10 +498,12 @@ export default function MyOrdersView() {
           Product Details
         </div>
 
-        ${(order.items && order.items.length > 0 ? order.items : [order]).map(item => `
+        ${(order.items && order.items.length > 0 ? order.items : [order])
+          .map(
+            (item) => `
         <div class="product-content" style="border-bottom: 1px solid #e2e8f0;">
           <img
-            src="${item.product_image_url || 'https://placehold.co/120x160?text=Wear+Right'}"
+            src="${item.product_image_url || "https://placehold.co/120x160?text=Wear+Right"}"
             class="product-image"
           />
 
@@ -502,7 +514,9 @@ export default function MyOrdersView() {
             <p>Amount: ${formatPKR(item.total_amount)}</p>
           </div>
         </div>
-        `).join('')}
+        `,
+          )
+          .join("")}
       </div>
 
       <div class="total-box">
@@ -519,15 +533,15 @@ export default function MyOrdersView() {
 </div>
 `;
 
-    const element = document.createElement('div');
+    const element = document.createElement("div");
     element.innerHTML = invoiceHtml;
 
     const opt = {
       margin: 0,
       filename: `WearRight_Invoice_${order.order_code || `WR-${order.id}`}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
+      image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
     };
 
     html2pdf().set(opt).from(element).save();
@@ -539,7 +553,7 @@ export default function MyOrdersView() {
         <div className="mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
           <div>
             <button
-              onClick={() => navigate('/profile')}
+              onClick={() => navigate("/profile")}
               className="mb-5 bg-white hover:bg-cream-card/60 border border-brand-border/60 text-slate-700 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -555,7 +569,8 @@ export default function MyOrdersView() {
             </h1>
 
             <p className="text-sm text-slate-500 font-semibold mt-3 max-w-2xl">
-              View your placed orders, status, payment method, product details and professional invoice.
+              View your placed orders, status, payment method, product details
+              and professional invoice.
             </p>
           </div>
 
@@ -583,7 +598,7 @@ export default function MyOrdersView() {
 
           <SummaryCard
             title="Latest Status"
-            value={filteredOrders[0]?.order_status || 'No Orders'}
+            value={filteredOrders[0]?.order_status || "No Orders"}
             icon={<Clock className="w-5 h-5 text-sage-green" />}
           />
         </div>
@@ -638,7 +653,7 @@ export default function MyOrdersView() {
             </p>
 
             <button
-              onClick={() => navigate('/shop')}
+              onClick={() => navigate("/shop")}
               className="mt-6 bg-brand-gold hover:opacity-90 text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider"
             >
               Continue Shopping
@@ -685,15 +700,24 @@ export default function MyOrdersView() {
 
                 <div className="p-5 grid grid-cols-1 lg:grid-cols-[55%_45%] gap-5">
                   <div className="flex flex-col gap-4 min-w-0">
-                    {(order.items && order.items.length > 0 ? order.items : [order]).map((item, idx) => (
-                      <div key={idx} className="flex items-center gap-4 min-w-0 pb-4 border-b border-slate-100 last:border-0 last:pb-0">
+                    {(order.items && order.items.length > 0
+                      ? order.items
+                      : [order]
+                    ).map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-4 min-w-0 pb-4 border-b border-slate-100 last:border-0 last:pb-0"
+                      >
                         <img
-                          src={item.product_image_url || 'https://placehold.co/120x160?text=Wear+Right'}
+                          src={
+                            item.product_image_url ||
+                            "https://placehold.co/120x160?text=Wear+Right"
+                          }
                           alt={item.product_name}
                           className="w-20 h-24 rounded-2xl object-cover bg-cream-card/60 border border-brand-border/60 flex-shrink-0"
                           onError={(event) => {
                             event.currentTarget.src =
-                              'https://placehold.co/120x160?text=Wear+Right';
+                              "https://placehold.co/120x160?text=Wear+Right";
                           }}
                         />
 
@@ -726,8 +750,14 @@ export default function MyOrdersView() {
                     <div className="space-y-3">
                       <InfoLine label="Name" value={order.customer_name} />
                       <InfoLine label="Phone" value={order.customer_phone} />
-                      <InfoLine label="Email" value={order.customer_email || 'Not provided'} />
-                      <InfoLine label="Address" value={order.customer_address} />
+                      <InfoLine
+                        label="Email"
+                        value={order.customer_email || "Not provided"}
+                      />
+                      <InfoLine
+                        label="Address"
+                        value={order.customer_address}
+                      />
                     </div>
                   </div>
                 </div>
@@ -757,9 +787,7 @@ function SummaryCard({
             {title}
           </p>
 
-          <p className="text-2xl font-black text-brand-dark mt-2">
-            {value}
-          </p>
+          <p className="text-2xl font-black text-brand-dark mt-2">{value}</p>
         </div>
 
         <div className="w-12 h-12 rounded-2xl bg-sage-green/10 flex items-center justify-center">

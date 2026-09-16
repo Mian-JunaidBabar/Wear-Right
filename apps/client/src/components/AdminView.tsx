@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from "react";
 import {
   LayoutDashboard,
   Package,
@@ -28,8 +29,11 @@ import {
   ArrowLeft,
   LogOut,
 } from 'lucide-react';
+} from "lucide-react";
+import { API_BASE_URL } from "../config/api";
 
 const API_BASE = 'http://127.0.0.1:8000/api';
+const API_BASE = `${API_BASE_URL}/api`;
 
 type DashboardData = {
   total_products: number;
@@ -127,6 +131,16 @@ type ActiveTab =
   | 'faceScans'
   | 'team'
   | 'settings';
+  | "dashboard"
+  | "products"
+  | "styles"
+  | "skinTone"
+  | "outfitRules"
+  | "orders"
+  | "bookings"
+  | "faceScans"
+  | "team"
+  | "settings";
 
 const categories = [
   'Men Shirt',
@@ -140,11 +154,25 @@ const categories = [
   'Women Footwear',
   'Women Pant',
   'Women Shirt',
+  "Men Shirt",
+  "Men Pant",
+  "Men Shoes",
+  "Men Cap",
+  "Men Shalwar Kameez",
+  "Men Sandals",
+  "Women Kurta",
+  "Women Shalwar Kameez",
+  "Women Footwear",
+  "Women Pant",
+  "Women Shirt",
 ];
 
 const styles = ['Eastern', 'Western', 'Formal', 'Casual'];
 const skinTones = ['Fair', 'Medium', 'Dark'];
 const statuses = ['Active', 'Inactive', 'Out of Stock'];
+const styles = ["Eastern", "Western", "Formal", "Casual"];
+const skinTones = ["Fair", "Medium", "Dark"];
+const statuses = ["Active", "Inactive", "Out of Stock"];
 
 const colors = [
   'White', 'Black', 'Navy Blue', 'Beige', 'Grey', 'Charcoal Grey', 'Tan',
@@ -155,9 +183,55 @@ const colors = [
   'Khaki', 'Light Olive', 'Deep Teal', 'Bright Yellow', 'Fuchsia Pink',
   'Orange', 'Bright Red', 'Cobalt Blue', 'Yellow', 'Fuchsia', 'Bright Orange',
   'Hot Pink', 'Lemon Yellow', 'Cream', 'Charcoal',
+  "White",
+  "Black",
+  "Navy Blue",
+  "Beige",
+  "Grey",
+  "Charcoal Grey",
+  "Tan",
+  "Brown",
+  "Dark Brown",
+  "Sky Blue",
+  "Royal Blue",
+  "Maroon",
+  "Wine Red",
+  "Emerald Green",
+  "Deep Purple",
+  "Bottle Green",
+  "Burgundy",
+  "Pastel Pink",
+  "Soft Lavender",
+  "Light Grey",
+  "Denim Blue",
+  "Mustard Yellow",
+  "Olive Green",
+  "Rust Orange",
+  "Teal",
+  "Coral",
+  "Camel",
+  "Off-White",
+  "Peach",
+  "Turquoise",
+  "Khaki",
+  "Light Olive",
+  "Deep Teal",
+  "Bright Yellow",
+  "Fuchsia Pink",
+  "Orange",
+  "Bright Red",
+  "Cobalt Blue",
+  "Yellow",
+  "Fuchsia",
+  "Bright Orange",
+  "Hot Pink",
+  "Lemon Yellow",
+  "Cream",
+  "Charcoal",
 ];
 
 const garmentTypes = ['Top', 'Bottom', 'Footwear', 'Accessory'];
+const garmentTypes = ["Top", "Bottom", "Footwear", "Accessory"];
 
 const emptyProductForm = {
   name: '',
@@ -175,15 +249,32 @@ const emptyProductForm = {
   size_xl_stock: '0',
   size_xxl_stock: '0',
   status: 'Active',
+  name: "",
+  category: "Men Shirt",
+  cultural_tag: "Formal",
+  compatible_skin_tone: "Medium",
+  color: "White",
+  garment_type: "Top",
+  cost_price: "0",
+  price: "",
+  stock_quantity: "0",
+  size_s_stock: "0",
+  size_m_stock: "0",
+  size_l_stock: "0",
+  size_xl_stock: "0",
+  size_xxl_stock: "0",
+  status: "Active",
 };
 
 function formatPKR(value: string | number | undefined) {
   const num = Number(value || 0);
   return `Rs. ${num.toLocaleString('en-PK')}`;
+  return `Rs. ${num.toLocaleString("en-PK")}`;
 }
 
 function getImage(product: Product) {
   return product.image_url || 'https://placehold.co/300x400?text=Wear+Right';
+  return product.image_url || "https://placehold.co/300x400?text=Wear+Right";
 }
 
 interface AdminViewProps {
@@ -192,6 +283,7 @@ interface AdminViewProps {
 
 export default function AdminView({ onLogout }: AdminViewProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
+  const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
 
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -205,6 +297,11 @@ export default function AdminView({ onLogout }: AdminViewProps) {
       const dateStr = new Date(order.order_date).toISOString().split('T')[0];
       const key = order.order_code || `group-${order.customer_phone}-${dateStr}-${order.order_status}`;
       
+      const dateStr = new Date(order.order_date).toISOString().split("T")[0];
+      const key =
+        order.order_code ||
+        `group-${order.customer_phone}-${dateStr}-${order.order_status}`;
+
       if (!groups[key]) {
         groups[key] = [];
       }
@@ -218,6 +315,18 @@ export default function AdminView({ onLogout }: AdminViewProps) {
       const totalQty = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
       const totalRev = items.reduce((sum, item) => sum + Number(item.total_amount || 0), 0);
       const totalProf = items.reduce((sum, item) => sum + Number(item.profit_amount || 0), 0);
+      const totalQty = items.reduce(
+        (sum, item) => sum + Number(item.quantity || 0),
+        0,
+      );
+      const totalRev = items.reduce(
+        (sum, item) => sum + Number(item.total_amount || 0),
+        0,
+      );
+      const totalProf = items.reduce(
+        (sum, item) => sum + Number(item.profit_amount || 0),
+        0,
+      );
 
       return {
         ...firstItem,
@@ -236,6 +345,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
   const [faceScans, setFaceScans] = useState<FaceScanRecord[]>([]);
 
   const [searchVal, setSearchVal] = useState('');
+  const [searchVal, setSearchVal] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -270,6 +380,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
     } catch (error) {
       console.error(error);
       alert('Admin data load nahi hua. Django server check karo.');
+      alert("Admin data load nahi hua. Django server check karo.");
     } finally {
       setLoading(false);
     }
@@ -310,6 +421,8 @@ export default function AdminView({ onLogout }: AdminViewProps) {
       compatible_skin_tone: product.compatible_skin_tone,
       color: product.color || 'White',
       garment_type: product.garment_type || 'Top',
+      color: product.color || "White",
+      garment_type: product.garment_type || "Top",
       cost_price: String(product.cost_price),
       price: String(product.price),
       stock_quantity: String(product.stock_quantity),
@@ -336,6 +449,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
 
     if (!productForm.name || !productForm.price) {
       alert('Product name aur selling price required hain.');
+      alert("Product name aur selling price required hain.");
       return;
     }
 
@@ -353,6 +467,20 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                        Number(productForm.size_l_stock || 0) +
                        Number(productForm.size_xl_stock || 0) +
                        Number(productForm.size_xxl_stock || 0);
+    formData.append("name", productForm.name);
+    formData.append("category", productForm.category);
+    formData.append("cultural_tag", productForm.cultural_tag);
+    formData.append("compatible_skin_tone", productForm.compatible_skin_tone);
+    formData.append("color", productForm.color);
+    formData.append("garment_type", productForm.garment_type);
+    formData.append("cost_price", productForm.cost_price || "0");
+    formData.append("price", productForm.price);
+    const totalStock =
+      Number(productForm.size_s_stock || 0) +
+      Number(productForm.size_m_stock || 0) +
+      Number(productForm.size_l_stock || 0) +
+      Number(productForm.size_xl_stock || 0) +
+      Number(productForm.size_xxl_stock || 0);
 
     formData.append('stock_quantity', String(totalStock));
     formData.append('size_s_stock', productForm.size_s_stock || '0');
@@ -361,9 +489,17 @@ export default function AdminView({ onLogout }: AdminViewProps) {
     formData.append('size_xl_stock', productForm.size_xl_stock || '0');
     formData.append('size_xxl_stock', productForm.size_xxl_stock || '0');
     formData.append('status', productForm.status);
+    formData.append("stock_quantity", String(totalStock));
+    formData.append("size_s_stock", productForm.size_s_stock || "0");
+    formData.append("size_m_stock", productForm.size_m_stock || "0");
+    formData.append("size_l_stock", productForm.size_l_stock || "0");
+    formData.append("size_xl_stock", productForm.size_xl_stock || "0");
+    formData.append("size_xxl_stock", productForm.size_xxl_stock || "0");
+    formData.append("status", productForm.status);
 
     if (productImage) {
       formData.append('image', productImage);
+      formData.append("image", productImage);
     }
 
     const url = editingProduct
@@ -371,6 +507,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
       : `${API_BASE}/products/`;
 
     const method = editingProduct ? 'PUT' : 'POST';
+    const method = editingProduct ? "PUT" : "POST";
 
     try {
       const response = await fetch(url, {
@@ -381,8 +518,10 @@ export default function AdminView({ onLogout }: AdminViewProps) {
       const data = await response.json();
 
       if (!response.ok || data.status === 'error') {
+      if (!response.ok || data.status === "error") {
         console.log(data);
         alert('Product save nahi hua. Fields check karo.');
+        alert("Product save nahi hua. Fields check karo.");
         return;
       }
 
@@ -391,21 +530,25 @@ export default function AdminView({ onLogout }: AdminViewProps) {
     } catch (error) {
       console.error(error);
       alert('Product save karte waqt error aaya.');
+      alert("Product save karte waqt error aaya.");
     }
   };
 
   const deleteProduct = async (productId: number) => {
     const confirmDelete = confirm('Kya tum ye product delete karna chahte ho?');
+    const confirmDelete = confirm("Kya tum ye product delete karna chahte ho?");
 
     if (!confirmDelete) return;
 
     try {
       const response = await fetch(`${API_BASE}/products/${productId}/`, {
         method: 'DELETE',
+        method: "DELETE",
       });
 
       if (!response.ok) {
         alert('Product delete nahi hua.');
+        alert("Product delete nahi hua.");
         return;
       }
 
@@ -413,6 +556,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
     } catch (error) {
       console.error(error);
       alert('Delete karte waqt error aaya.');
+      alert("Delete karte waqt error aaya.");
     }
   };
 
@@ -420,8 +564,10 @@ export default function AdminView({ onLogout }: AdminViewProps) {
     try {
       const response = await fetch(`${API_BASE}/bookings/${bookingId}/`, {
         method: 'PUT',
+        method: "PUT",
         headers: {
           'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           status: newStatus,
@@ -431,8 +577,10 @@ export default function AdminView({ onLogout }: AdminViewProps) {
       const data = await response.json();
 
       if (!response.ok || data.status === 'error') {
+      if (!response.ok || data.status === "error") {
         console.log(data);
         alert('Booking status update nahi hua.');
+        alert("Booking status update nahi hua.");
         return;
       }
 
@@ -440,21 +588,25 @@ export default function AdminView({ onLogout }: AdminViewProps) {
     } catch (error) {
       console.error(error);
       alert('Booking status update karte waqt error aaya.');
+      alert("Booking status update karte waqt error aaya.");
     }
   };
 
   const deleteBooking = async (bookingId: number) => {
     const confirmDelete = confirm('Kya tum ye booking delete karna chahte ho?');
+    const confirmDelete = confirm("Kya tum ye booking delete karna chahte ho?");
 
     if (!confirmDelete) return;
 
     try {
       const response = await fetch(`${API_BASE}/bookings/${bookingId}/`, {
         method: 'DELETE',
+        method: "DELETE",
       });
 
       if (!response.ok) {
         alert('Booking delete nahi hui.');
+        alert("Booking delete nahi hui.");
         return;
       }
 
@@ -462,19 +614,34 @@ export default function AdminView({ onLogout }: AdminViewProps) {
     } catch (error) {
       console.error(error);
       alert('Booking delete karte waqt error aaya.');
+      alert("Booking delete karte waqt error aaya.");
     }
   };
 
   const updateOrderStatus = async (orderId: number, newStatus: string, itemsToUpdate?: Order[]) => {
+  const updateOrderStatus = async (
+    orderId: number,
+    newStatus: string,
+    itemsToUpdate?: Order[],
+  ) => {
     try {
       const list = itemsToUpdate || (selectedOrder && selectedOrder.id === orderId && selectedOrder.items) || [];
       
+      const list =
+        itemsToUpdate ||
+        (selectedOrder &&
+          selectedOrder.id === orderId &&
+          selectedOrder.items) ||
+        [];
+
       if (list.length > 0) {
         for (const item of list) {
           await fetch(`${API_BASE}/orders/${item.id}/`, {
             method: 'PUT',
+            method: "PUT",
             headers: {
               'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               order_status: newStatus,
@@ -484,8 +651,10 @@ export default function AdminView({ onLogout }: AdminViewProps) {
       } else {
         await fetch(`${API_BASE}/orders/${orderId}/`, {
           method: 'PUT',
+          method: "PUT",
           headers: {
             'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             order_status: newStatus,
@@ -498,6 +667,12 @@ export default function AdminView({ onLogout }: AdminViewProps) {
           ...selectedOrder,
           order_status: newStatus,
           items: selectedOrder.items ? selectedOrder.items.map(item => ({ ...item, order_status: newStatus })) : undefined
+          items: selectedOrder.items
+            ? selectedOrder.items.map((item) => ({
+                ...item,
+                order_status: newStatus,
+              }))
+            : undefined,
         });
       }
 
@@ -505,26 +680,36 @@ export default function AdminView({ onLogout }: AdminViewProps) {
     } catch (error) {
       console.error(error);
       alert('Order status update karte waqt error aaya.');
+      alert("Order status update karte waqt error aaya.");
     }
   };
 
   const deleteOrder = async (orderId: number, itemsToDelete?: Order[]) => {
     const confirmDelete = confirm('Kya tum ye order delete karna chahte ho?');
+    const confirmDelete = confirm("Kya tum ye order delete karna chahte ho?");
 
     if (!confirmDelete) return;
 
     try {
       const list = itemsToDelete || (selectedOrder && selectedOrder.id === orderId && selectedOrder.items) || [];
+      const list =
+        itemsToDelete ||
+        (selectedOrder &&
+          selectedOrder.id === orderId &&
+          selectedOrder.items) ||
+        [];
 
       if (list.length > 0) {
         for (const item of list) {
           await fetch(`${API_BASE}/orders/${item.id}/`, {
             method: 'DELETE',
+            method: "DELETE",
           });
         }
       } else {
         await fetch(`${API_BASE}/orders/${orderId}/`, {
           method: 'DELETE',
+          method: "DELETE",
         });
       }
 
@@ -536,6 +721,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
     } catch (error) {
       console.error(error);
       alert('Order delete karte waqt error aaya.');
+      alert("Order delete karte waqt error aaya.");
     }
   };
 
@@ -550,6 +736,16 @@ export default function AdminView({ onLogout }: AdminViewProps) {
     { id: 'faceScans' as ActiveTab, label: 'Face Scans', icon: ScanFace },
     { id: 'team' as ActiveTab, label: 'Team Members', icon: Users },
     { id: 'settings' as ActiveTab, label: 'Settings', icon: Settings },
+    { id: "dashboard" as ActiveTab, label: "Dashboard", icon: LayoutDashboard },
+    { id: "products" as ActiveTab, label: "Products", icon: Package },
+    { id: "styles" as ActiveTab, label: "Styles", icon: Tags },
+    { id: "skinTone" as ActiveTab, label: "Skin Tone Matrix", icon: Palette },
+    { id: "outfitRules" as ActiveTab, label: "Outfit Rules", icon: Sparkles },
+    { id: "orders" as ActiveTab, label: "Orders", icon: ShoppingCart },
+    { id: "bookings" as ActiveTab, label: "Bookings", icon: CalendarCheck },
+    { id: "faceScans" as ActiveTab, label: "Face Scans", icon: ScanFace },
+    { id: "team" as ActiveTab, label: "Team Members", icon: Users },
+    { id: "settings" as ActiveTab, label: "Settings", icon: Settings },
   ];
 
   return (
@@ -565,6 +761,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                   className="w-11 h-11 object-contain"
                   onError={(event) => {
                     event.currentTarget.src = '/brand/wr-monogram.png';
+                    event.currentTarget.src = "/brand/wr-monogram.png";
                   }}
                 />
               </div>
@@ -596,6 +793,8 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                     isActive
                       ? 'bg-sage-green/10 text-sage-green'
                       : 'text-slate-500 hover:bg-cream-base hover:text-brand-dark'
+                      ? "bg-sage-green/10 text-sage-green"
+                      : "text-slate-500 hover:bg-cream-base hover:text-brand-dark"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -612,6 +811,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
             >
               <RefreshCcw
                 className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
               />
               Refresh Data
             </button>
@@ -627,10 +827,15 @@ export default function AdminView({ onLogout }: AdminViewProps) {
 
               <h2 className="text-3xl font-black text-brand-dark mt-1">
                 {selectedOrder ? `Order #${selectedOrder.id}` : navItems.find((item) => item.id === activeTab)?.label}
+                {selectedOrder
+                  ? `Order #${selectedOrder.id}`
+                  : navItems.find((item) => item.id === activeTab)?.label}
               </h2>
 
               <p className="text-sm text-slate-500 mt-2">
                 Products, orders, bookings, skin tone records aur outfit recommendation data manage karo.
+                Products, orders, bookings, skin tone records aur outfit
+                recommendation data manage karo.
               </p>
             </div>
 
@@ -640,12 +845,14 @@ export default function AdminView({ onLogout }: AdminViewProps) {
             >
               <RefreshCcw
                 className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
               />
               Refresh
             </button>
           </header>
 
           {activeTab === 'dashboard' && (
+          {activeTab === "dashboard" && (
             <section className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
                 <MetricCard
@@ -711,6 +918,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                         value={
                           dashboard?.style_counts?.[
                             style as keyof DashboardData['style_counts']
+                            style as keyof DashboardData["style_counts"]
                           ] || 0
                         }
                         total={dashboard?.total_products || 1}
@@ -728,6 +936,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                         value={
                           dashboard?.skin_tone_counts?.[
                             tone as keyof DashboardData['skin_tone_counts']
+                            tone as keyof DashboardData["skin_tone_counts"]
                           ] || 0
                         }
                         total={dashboard?.total_products || 1}
@@ -740,6 +949,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
           )}
 
           {activeTab === 'products' && (
+          {activeTab === "products" && (
             <section className="bg-white rounded-2xl border border-brand-border/60 shadow-sm overflow-hidden">
               <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="relative w-full md:w-96">
@@ -815,6 +1025,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
 
                         <td className="p-4 font-bold text-slate-600">
                           {product.color || 'N/A'}
+                          {product.color || "N/A"}
                         </td>
 
                         <td className="p-4 font-bold text-slate-600">
@@ -832,6 +1043,8 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                                 product.stock_quantity <= 5
                                   ? 'text-red-600'
                                   : 'text-emerald-600'
+                                  ? "text-red-600"
+                                  : "text-emerald-600"
                               }
                             >
                               {product.stock_quantity}
@@ -842,6 +1055,21 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                               <span className="bg-slate-100 px-1 rounded">L:{product.size_l_stock || 0}</span>
                               <span className="bg-slate-100 px-1 rounded">XL:{product.size_xl_stock || 0}</span>
                               <span className="bg-slate-100 px-1 rounded">XXL:{product.size_xxl_stock || 0}</span>
+                              <span className="bg-slate-100 px-1 rounded">
+                                S:{product.size_s_stock || 0}
+                              </span>
+                              <span className="bg-slate-100 px-1 rounded">
+                                M:{product.size_m_stock || 0}
+                              </span>
+                              <span className="bg-slate-100 px-1 rounded">
+                                L:{product.size_l_stock || 0}
+                              </span>
+                              <span className="bg-slate-100 px-1 rounded">
+                                XL:{product.size_xl_stock || 0}
+                              </span>
+                              <span className="bg-slate-100 px-1 rounded">
+                                XXL:{product.size_xxl_stock || 0}
+                              </span>
                             </div>
                           </div>
                         </td>
@@ -882,6 +1110,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
           )}
 
           {activeTab === 'styles' && (
+          {activeTab === "styles" && (
             <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
               {styles.map((style) => (
                 <MetricCard
@@ -899,6 +1128,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
           )}
 
           {activeTab === 'skinTone' && (
+          {activeTab === "skinTone" && (
             <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {skinTones.map((tone) => (
                 <Panel key={tone} title={`${tone} Skin Tone`}>
@@ -906,6 +1136,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                     {
                       products.filter(
                         (item) => item.compatible_skin_tone === tone
+                        (item) => item.compatible_skin_tone === tone,
                       ).length
                     }
                   </p>
@@ -919,6 +1150,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
           )}
 
           {activeTab === 'outfitRules' && (
+          {activeTab === "outfitRules" && (
             <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <Panel title="Smart Outfit Completion Engine">
                 <div className="space-y-4 text-sm text-slate-600 font-semibold">
@@ -961,6 +1193,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
           )}
 
           {activeTab === 'orders' && (
+          {activeTab === "orders" && (
             <>
               {!selectedOrder ? (
                 <DataPanel title="Customer Orders">
@@ -989,14 +1222,17 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                           <td className="p-4">
                             <p className="font-black text-brand-dark">
                               {order.customer_name || 'N/A'}
+                              {order.customer_name || "N/A"}
                             </p>
                             <p className="text-xs text-slate-400">
                               {order.customer_phone || 'No phone'}
+                              {order.customer_phone || "No phone"}
                             </p>
                           </td>
 
                           <td className="p-4 font-bold text-slate-700">
                             {order.items && order.items.length > 1 
+                            {order.items && order.items.length > 1
                               ? `${order.items[0].product_name} + ${order.items.length - 1} more`
                               : order.product_name}
                           </td>
@@ -1004,6 +1240,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                           <td className="p-4 font-bold">
                             {order.quantity}
                           </td>
+                          <td className="p-4 font-bold">{order.quantity}</td>
 
                           <td className="p-4 font-black">
                             {formatPKR(order.total_amount)}
@@ -1014,6 +1251,8 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                               Number(order.profit_amount) < 0
                                 ? 'text-red-600'
                                 : 'text-emerald-600'
+                                ? "text-red-600"
+                                : "text-emerald-600"
                             }`}
                           >
                             {formatPKR(order.profit_amount)}
@@ -1087,6 +1326,14 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                       <div className="space-y-4">
                         {(selectedOrder.items && selectedOrder.items.length > 0 ? selectedOrder.items : [selectedOrder]).map((item, index) => (
                           <div key={item.id || index} className="bg-cream-base rounded-2xl border border-slate-100 p-5 flex items-center justify-between gap-4">
+                        {(selectedOrder.items && selectedOrder.items.length > 0
+                          ? selectedOrder.items
+                          : [selectedOrder]
+                        ).map((item, index) => (
+                          <div
+                            key={item.id || index}
+                            className="bg-cream-base rounded-2xl border border-slate-100 p-5 flex items-center justify-between gap-4"
+                          >
                             <div>
                               <p className="font-black text-brand-dark">
                                 {item.product_name}
@@ -1126,6 +1373,8 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                               Number(selectedOrder.profit_amount) < 0
                                 ? 'text-red-600'
                                 : 'text-emerald-600'
+                                ? "text-red-600"
+                                : "text-emerald-600"
                             }
                           >
                             {formatPKR(selectedOrder.profit_amount)}
@@ -1147,6 +1396,10 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                             value={selectedOrder.order_status}
                             onChange={(event) =>
                               updateOrderStatus(selectedOrder.id, event.target.value)
+                              updateOrderStatus(
+                                selectedOrder.id,
+                                event.target.value,
+                              )
                             }
                             className="w-full bg-cream-base border border-brand-border/60 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-sage-green/20 focus:border-sage-green"
                           >
@@ -1170,6 +1423,26 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                           <InfoRow label="Email" value={selectedOrder.customer_email || 'N/A'} />
                           <InfoRow label="Address" value={selectedOrder.customer_address || 'N/A'} />
                           <InfoRow label="Payment" value={selectedOrder.payment_status || 'N/A'} />
+                          <InfoRow
+                            label="Name"
+                            value={selectedOrder.customer_name || "N/A"}
+                          />
+                          <InfoRow
+                            label="Phone"
+                            value={selectedOrder.customer_phone || "N/A"}
+                          />
+                          <InfoRow
+                            label="Email"
+                            value={selectedOrder.customer_email || "N/A"}
+                          />
+                          <InfoRow
+                            label="Address"
+                            value={selectedOrder.customer_address || "N/A"}
+                          />
+                          <InfoRow
+                            label="Payment"
+                            value={selectedOrder.payment_status || "N/A"}
+                          />
                         </div>
                       </div>
                     </div>
@@ -1180,6 +1453,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
           )}
 
           {activeTab === 'bookings' && (
+          {activeTab === "bookings" && (
             <DataPanel title="Bookings">
               <table className="w-full min-w-[1100px] text-sm">
                 <thead className="bg-cream-base border-b border-slate-100">
@@ -1212,6 +1486,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
 
                       <td className="p-4 font-bold text-slate-700">
                         {booking.product_name || 'N/A'}
+                        {booking.product_name || "N/A"}
                       </td>
 
                       <td className="p-4 font-bold text-slate-600">
@@ -1234,6 +1509,15 @@ export default function AdminView({ onLogout }: AdminViewProps) {
     >
       Confirm
     </button>
+                        <div className="flex justify-end items-center gap-2 flex-nowrap whitespace-nowrap">
+                          <button
+                            onClick={() =>
+                              updateBookingStatus(booking.id, "Confirmed")
+                            }
+                            className="px-3 py-2 rounded-lg bg-sage-green/10 text-sage-green text-xs font-black hover:bg-sage-green/20 whitespace-nowrap"
+                          >
+                            Confirm
+                          </button>
 
     <button
       onClick={() => updateBookingStatus(booking.id, 'Completed')}
@@ -1241,6 +1525,14 @@ export default function AdminView({ onLogout }: AdminViewProps) {
     >
       Complete
     </button>
+                          <button
+                            onClick={() =>
+                              updateBookingStatus(booking.id, "Completed")
+                            }
+                            className="px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-black hover:bg-emerald-100 whitespace-nowrap"
+                          >
+                            Complete
+                          </button>
 
     <button
       onClick={() => updateBookingStatus(booking.id, 'Cancelled')}
@@ -1248,6 +1540,14 @@ export default function AdminView({ onLogout }: AdminViewProps) {
     >
       Cancel
     </button>
+                          <button
+                            onClick={() =>
+                              updateBookingStatus(booking.id, "Cancelled")
+                            }
+                            className="px-3 py-2 rounded-lg bg-amber-50 text-amber-700 text-xs font-black hover:bg-amber-100 whitespace-nowrap"
+                          >
+                            Cancel
+                          </button>
 
     <button
       onClick={() => deleteBooking(booking.id)}
@@ -1258,6 +1558,14 @@ export default function AdminView({ onLogout }: AdminViewProps) {
   </div>
 </td>
                           
+                          <button
+                            onClick={() => deleteBooking(booking.id)}
+                            className="px-3 py-2 rounded-lg bg-red-50 text-red-700 text-xs font-black hover:bg-red-100 whitespace-nowrap"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1272,6 +1580,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
           )}
 
           {activeTab === 'faceScans' && (
+          {activeTab === "faceScans" && (
             <DataPanel title="Face Scan Records">
               <table className="w-full min-w-[850px] text-sm">
                 <thead className="bg-cream-base border-b border-slate-100">
@@ -1295,6 +1604,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
 
                       <td className="p-4 font-bold text-slate-700">
                         {record.username || record.visitor_name || 'Guest User'}
+                        {record.username || record.visitor_name || "Guest User"}
                       </td>
 
                       <td className="p-4">
@@ -1307,6 +1617,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
 
                       <td className="p-4 font-bold text-slate-600">
                         {record.lighting_quality || 'N/A'}
+                        {record.lighting_quality || "N/A"}
                       </td>
 
                       <td className="p-4 font-bold text-slate-600">
@@ -1324,6 +1635,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
           )}
 
           {activeTab === 'team' && (
+          {activeTab === "team" && (
             <section className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
                 <MetricCard
@@ -1377,6 +1689,12 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                         access: 'Full Access',
                         status: 'Active',
                         last: 'Today',
+                        name: "Hammad Ahmad",
+                        email: "hammadahmadch17@gmail.com",
+                        role: "Admin",
+                        access: "Full Access",
+                        status: "Active",
+                        last: "Today",
                       },
                       {
                         name: 'Ali Tariq',
@@ -1385,6 +1703,12 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                         access: 'Products + Orders',
                         status: 'Active',
                         last: '1 day ago',
+                        name: "Ali Tariq",
+                        email: "ali@example.com",
+                        role: "Manager",
+                        access: "Products + Orders",
+                        status: "Active",
+                        last: "1 day ago",
                       },
                       {
                         name: 'Sameer Ahmad',
@@ -1393,6 +1717,12 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                         access: 'Products Only',
                         status: 'Active',
                         last: '2 days ago',
+                        name: "Sameer Ahmad",
+                        email: "sameer@example.com",
+                        role: "Inventory Staff",
+                        access: "Products Only",
+                        status: "Active",
+                        last: "2 days ago",
                       },
                       {
                         name: 'Order Handler',
@@ -1401,6 +1731,12 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                         access: 'Orders + Bookings',
                         status: 'Inactive',
                         last: '1 week ago',
+                        name: "Order Handler",
+                        email: "staff@example.com",
+                        role: "Order Handler",
+                        access: "Orders + Bookings",
+                        status: "Inactive",
+                        last: "1 week ago",
                       },
                     ].map((member) => (
                       <tr key={member.email}>
@@ -1444,6 +1780,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
           )}
 
           {activeTab === 'settings' && (
+          {activeTab === "settings" && (
             <section className="space-y-6">
               <Panel title="Admin Profile">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-5 items-center">
@@ -1502,6 +1839,10 @@ export default function AdminView({ onLogout }: AdminViewProps) {
               <Panel title="Booking Configuration">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <BookingBox title="Virtual Mannequin Preview" status="Active" />
+                  <BookingBox
+                    title="Virtual Mannequin Preview"
+                    status="Active"
+                  />
                   <BookingBox title="Styling Consultation" status="Active" />
                   <BookingBox title="Outfit Trial Request" status="Active" />
                 </div>
@@ -1518,6 +1859,14 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                     'Casual',
                     'Eastern',
                     'Western',
+                    "Best Seller",
+                    "New Arrival",
+                    "Highly Recommended",
+                    "Low Stock",
+                    "Formal",
+                    "Casual",
+                    "Eastern",
+                    "Western",
                   ].map((badge) => (
                     <span
                       key={badge}
@@ -1535,6 +1884,12 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                   <div>
                     <h4 className="text-sm font-bold text-red-600">Sign Out of Admin Panel</h4>
                     <p className="text-xs text-slate-400 font-sans mt-0.5">End your administrative session on this device.</p>
+                    <h4 className="text-sm font-bold text-red-600">
+                      Sign Out of Admin Panel
+                    </h4>
+                    <p className="text-xs text-slate-400 font-sans mt-0.5">
+                      End your administrative session on this device.
+                    </p>
                   </div>
                   <button
                     onClick={onLogout}
@@ -1557,6 +1912,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
               <div>
                 <h3 className="text-2xl font-black text-brand-dark">
                   {editingProduct ? 'Edit Product' : 'Add New Product'}
+                  {editingProduct ? "Edit Product" : "Add New Product"}
                 </h3>
 
                 <p className="text-sm text-slate-500 font-semibold mt-1">
@@ -1700,6 +2056,10 @@ export default function AdminView({ onLogout }: AdminViewProps) {
                       value={productForm.size_xxl_stock}
                       onChange={(value) =>
                         setProductForm({ ...productForm, size_xxl_stock: value })
+                        setProductForm({
+                          ...productForm,
+                          size_xxl_stock: value,
+                        })
                       }
                       placeholder="0"
                     />
@@ -1707,12 +2067,20 @@ export default function AdminView({ onLogout }: AdminViewProps) {
 
                   <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                     <span className="text-xs font-black uppercase text-slate-500">Calculated Total Stock</span>
+                    <span className="text-xs font-black uppercase text-slate-500">
+                      Calculated Total Stock
+                    </span>
                     <span className="text-sm font-black text-brand-dark bg-cream-card px-3 py-1 rounded-xl">
                       {Number(productForm.size_s_stock || 0) +
                        Number(productForm.size_m_stock || 0) +
                        Number(productForm.size_l_stock || 0) +
                        Number(productForm.size_xl_stock || 0) +
                        Number(productForm.size_xxl_stock || 0)} items
+                        Number(productForm.size_m_stock || 0) +
+                        Number(productForm.size_l_stock || 0) +
+                        Number(productForm.size_xl_stock || 0) +
+                        Number(productForm.size_xxl_stock || 0)}{" "}
+                      items
                     </span>
                   </div>
                 </div>
@@ -1754,6 +2122,7 @@ export default function AdminView({ onLogout }: AdminViewProps) {
               >
                 <Save className="w-4 h-4" />
                 {editingProduct ? 'Save Product' : 'Create Product'}
+                {editingProduct ? "Save Product" : "Create Product"}
               </button>
             </form>
           </div>
@@ -1787,6 +2156,7 @@ function MetricCard({
           <p
             className={`text-3xl font-black mt-3 ${
               warning ? 'text-red-600' : 'text-brand-dark'
+              warning ? "text-red-600" : "text-brand-dark"
             }`}
           >
             {value}
@@ -1798,6 +2168,8 @@ function MetricCard({
             warning
               ? 'bg-red-50 text-red-600'
               : 'bg-sage-green/10 text-sage-green'
+              ? "bg-red-50 text-red-600"
+              : "bg-sage-green/10 text-sage-green"
           }`}
         >
           {icon}
@@ -1883,15 +2255,26 @@ function StatusBadge({ status }: { status: string }) {
     status
   );
   const isBad = ['Out of Stock', 'Cancelled', 'Inactive'].includes(status);
+  const isGood = [
+    "Active",
+    "Delivered",
+    "Completed",
+    "Confirmed",
+    "Paid",
+  ].includes(status);
+  const isBad = ["Out of Stock", "Cancelled", "Inactive"].includes(status);
 
   return (
     <span
       className={`inline-flex px-3 py-1 rounded-full text-xs font-black ${
         isGood
           ? 'bg-emerald-50 text-emerald-700'
+          ? "bg-emerald-50 text-emerald-700"
           : isBad
             ? 'bg-red-50 text-red-700'
             : 'bg-amber-50 text-amber-700'
+            ? "bg-red-50 text-red-700"
+            : "bg-amber-50 text-amber-700"
       }`}
     >
       {status}
@@ -1929,6 +2312,7 @@ function Input({
   onChange,
   placeholder,
   type = 'text',
+  type = "text",
 }: {
   label: string;
   value: string;
@@ -2012,11 +2396,13 @@ function SettingToggle({
       <div
         className={`w-12 h-6 rounded-full p-1 ${
           enabled ? 'bg-blue-600' : 'bg-slate-300'
+          enabled ? "bg-blue-600" : "bg-slate-300"
         }`}
       >
         <div
           className={`w-4 h-4 bg-white rounded-full transition-all ${
             enabled ? 'ml-6' : 'ml-0'
+            enabled ? "ml-6" : "ml-0"
           }`}
         />
       </div>
@@ -2031,6 +2417,7 @@ function BookingBox({
   title: string;
   status: string;
 }) {
+function BookingBox({ title, status }: { title: string; status: string }) {
   return (
     <div className="p-5 rounded-xl bg-cream-base border border-slate-100">
       <p className="font-black text-brand-dark">{title}</p>
@@ -2053,6 +2440,7 @@ function ReadOnlyBox({
   label: string;
   value: string;
 }) {
+function ReadOnlyBox({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
@@ -2075,6 +2463,7 @@ function InfoRow({
   label: string;
   value: string;
 }) {
+function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-[11px] uppercase tracking-widest text-slate-400 font-black">
