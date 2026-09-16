@@ -44,6 +44,7 @@ MIDDLEWARE = [
     
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -76,6 +77,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
+
 # Database Configuration
 # Priority:
 # 1. DATABASE_URL (Neon, Supabase, Railway, Render Postgres URL)
@@ -155,6 +157,7 @@ default_cors_origins = [
     "http://127.0.0.1:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
+    "https://wear-right-olive.vercel.app",
 ]
 
 cors_env = os.environ.get('CORS_ALLOWED_ORIGINS', '').strip()
