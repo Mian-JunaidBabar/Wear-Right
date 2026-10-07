@@ -29,7 +29,9 @@ Run everything:
 npm run dev       # or: make dev
 ```
 
-Open http://localhost:3000. Demo admin (created by `make seed`): `admin@wearright.local` / `admin12345` (the username `admin` also works).
+Open http://localhost:3000. Create an account at `/register`, or use the demo admin created by `make seed`: `admin@wearright.local` / `admin12345` (the username `admin` also works). Only admins see the Admin page.
+
+The browser never talks to Django directly: sign-in is two httpOnly cookies set by `/api/auth/login/` through the Next.js rewrite.
 
 ## Tests
 
@@ -45,7 +47,8 @@ First-time e2e setup: `cd apps/web && npx playwright install chromium`.
 
 ```
 apps/server   Django project (core, accounts, catalog, scanner, recommender, orders)
-apps/web      Next.js storefront
+apps/web      Next.js storefront (src/app routes, src/components, src/features, src/lib)
+docs/STATUS.md  current phase, decisions, deviations, open issues
 ```
 
 See `CLAUDE.md` for the architecture rules.

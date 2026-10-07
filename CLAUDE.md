@@ -41,16 +41,21 @@ Domain apps in `apps/server`:
 | `recommender` | ToneColorRule, ranker, look generation                                                     |
 | `orders`      | Cart, Order, OrderItem, Booking                                                            |
 
-Frontend (`apps/web`), same idea:
+Frontend (`apps/web`, sources under `src/`), same idea:
 
 ```
 app/<route>/page.tsx     View: route entry, composes components
 components/              Presentational UI, no fetch calls
-features/<domain>/       Controller: hooks + state for one domain (useCart, useScan), calls lib/api
+features/<domain>/       Controller: hooks + state for one domain (useAuth, useCart, useWishlist, ...), calls lib/api
+proxy.ts                 Next.js 16 middleware: sends visitors without a session cookie from private pages to /login
 lib/api.ts               Data access: the only place that calls fetch
 ```
 
 The browser only talks to port 3000. `next.config.ts` rewrites `/api/*` and `/media/*` to Django on 8000. Always call Django URLs with a trailing slash.
+
+## Auth and permissions (Phase 1)
+
+Login is dj-rest-auth + simplejwt with httpOnly cookies `wr-access` / `wr-refresh`; endpoints live under `/api/auth/` (`login/`, `logout/`, `token/refresh/`, `register/`, `me/`). Unsafe requests also need Django's CSRF token in `X-CSRFToken` (done by `apps/web/src/lib/api.ts`). Default permission is `IsAuthenticatedOrReadOnly`; every view sets its own (`core/permissions.py` has `IsStaff` and `IsStaffOrReadOnly`). Customer data (orders, bookings, profiles, face scans) is always filtered by `request.user` in `selectors.py`; staff see all. Errors are `{"error": {"code", "message", "details"}}`. Full list and reasons: `docs/STATUS.md` (Decisions).
 
 ## Commands
 
@@ -59,7 +64,7 @@ make db-up        # start Postgres
 make db-reset     # wipe and recreate the database (destroys data)
 make migrate
 make seed         # demo catalog
-make test         # backend pytest + web vitest + tsc + eslint
+make test         # backend pytest + web vitest + tsc + eslint (needs Postgres, starts it)
 make e2e          # Playwright against the real stack (starts it if needed)
 make check        # test + build + e2e
 npm run dev       # Next.js + Django together (root package.json)
