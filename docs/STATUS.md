@@ -15,6 +15,9 @@ Phase 1 (Next.js UI port, real auth, permissions): **done**. Next: Phase 2 (cata
 - Routes renamed in the port: `/auth` is now `/login` and `/register`; `/facescan` is now `/scanner`. The old URLs redirect.
 - Legacy client source was corrupted by accidental duplicated lines/blocks (introduced in commits `248fe9e` and `5e423ef`: duplicated object keys, repeated `alert()` calls, doubled JSX blocks, ten star icons, copy pasted twice, nested ternaries that always took the red branch). Removed during the port with scripts, then reviewed. Last clean version of the client is `cc8e613`.
 
+## Phase 0 verification (done at the start of Phase 1)
+As found, before any fix: check 1 FAIL (no Makefile), 2 FAIL (no Makefile, zero tests), 3 FAIL (Django 404 on `/api/products/` because the routes had moved to `/api/catalog/...`; Next answered `/api/products/` with a 308 loop; `/` was the create-next-app page), 4 PASS, 5 PASS, 6 not applicable (the Vite client had already been deleted in `9cc269e`; the port reads it from git history). After `fix: phase 0 gaps`: checks 1 to 5 pass.
+
 ## Decisions
 - Django ORM only, layered MVC modular monolith (see CLAUDE.md). Local only, no deployment.
 - **Auth**: dj-rest-auth + simplejwt. Cookies `wr-access` (30 min) and `wr-refresh` (7 days, rotated, old one blacklisted), both `HttpOnly`, `SameSite=Lax`, `Secure` off (plain http locally). Tokens are never in response bodies. `login/`, `register/` and `me/` return `{user, profile}`.
