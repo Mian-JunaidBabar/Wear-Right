@@ -176,3 +176,19 @@ def test_invalid_access_cookie_is_treated_as_anonymous(api_client):
     api_client.cookies["wr-access"] = "not-a-real-token"
     assert api_client.get("/api/products/").status_code == 200  # public stays public
     assert_error_shape(api_client.get("/api/auth/me/"), 401)  # protected stays protected
+
+
+def test_session_hint_cookie_follows_login_refresh_and_logout(api_client):
+    user = UserFactory()
+    login = api_client.post("/api/auth/login/", {"email": user.email, "password": DEFAULT_PASSWORD}, format="json")
+    assert cookie(login, "wr-session").value == "1"
+    assert not cookie(login, "wr-session")["httponly"]  # readable by the web app on purpose
+    assert "wr-session" in api_client.post("/api/auth/token/refresh/", {}, format="json").cookies
+    out = api_client.post("/api/auth/logout/", {}, format="json")
+    assert cookie(out, "wr-session").value == ""
+    assert cookie(out, "wr-session")["max-age"] == 0
+
+
+def test_register_sets_the_session_hint(api_client):
+    r = api_client.post("/api/auth/register/", REGISTER, format="json")
+    assert cookie(r, "wr-session").value == "1"

@@ -9,6 +9,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from core.csrf import ensure_csrf_cookie
 
+from .cookies import clear_session_hint, set_session_hint
 from .selectors import get_or_create_profile, get_profiles
 from .serializers import (
     MeUpdateSerializer,
@@ -25,12 +26,18 @@ class LoginView(BaseLoginView):
     def get_response(self):
         response = super().get_response()
         response.data = session_payload(self.user)
+        set_session_hint(response)
         ensure_csrf_cookie(self.request)
         return response
 
 
 class LogoutView(BaseLogoutView):
     """POST /api/auth/logout/ : blacklists the refresh token and clears both cookies."""
+
+    def logout(self, request):
+        response = super().logout(request)
+        clear_session_hint(response)
+        return response
 
 
 class RefreshView(get_refresh_view()):
@@ -40,6 +47,7 @@ class RefreshView(get_refresh_view()):
         response = super().finalize_response(request, response, *args, **kwargs)
         if response.status_code == status.HTTP_200_OK:
             response.data = {'detail': 'Token refreshed.'}
+            set_session_hint(response)
             ensure_csrf_cookie(request)
         return response
 
@@ -57,6 +65,7 @@ class RegisterView(APIView):
         refresh = RefreshToken.for_user(user)
         response = Response(session_payload(user), status=status.HTTP_201_CREATED)
         set_jwt_cookies(response, str(refresh.access_token), str(refresh))
+        set_session_hint(response)
         ensure_csrf_cookie(request)
         return response
 
