@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
+const BACKEND = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Django URLs end with a slash; keep it when proxying instead of 308-redirecting it away.
+  skipTrailingSlashRedirect: true,
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
@@ -13,15 +16,11 @@ const nextConfig: NextConfig = {
     },
   },
   async rewrites() {
+    // The slash variants come first so a trailing slash survives the proxy hop.
     return [
-      {
-        source: "/api/:path*",
-        destination: "http://127.0.0.1:8000/api/:path*",
-      },
-      {
-        source: "/media/:path*",
-        destination: "http://127.0.0.1:8000/media/:path*",
-      },
+      { source: "/api/:path*/", destination: `${BACKEND}/api/:path*/` },
+      { source: "/api/:path*", destination: `${BACKEND}/api/:path*` },
+      { source: "/media/:path*", destination: `${BACKEND}/media/:path*` },
     ];
   },
 };

@@ -49,7 +49,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -78,7 +77,7 @@ TEMPLATES = [
 
 DATABASES = {
     'default': dj_database_url.config(
-        default="postgres://wearright:wearright@localhost:5432/wearright",
+        default="postgres://wearright:wearright@localhost:5433/wearright",
         conn_max_age=600
     )
 }

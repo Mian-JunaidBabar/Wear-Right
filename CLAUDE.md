@@ -10,12 +10,12 @@ The full PRD and phase playbook live in the team's Claude Doc "Wear Right — PR
 | -------- | -------------------------------------------------------------------------------------- | ---- |
 | Frontend | Next.js 16 (App Router, TypeScript, Tailwind v4) in `apps/web`                         | 3000 |
 | Backend  | Django 5 + Django REST Framework in `apps/server`                                      | 8000 |
-| Database | PostgreSQL 17 + pgvector, in Docker (`docker-compose.yml`)                             | 5432 |
+| Database | PostgreSQL 17 + pgvector, in Docker (`docker-compose.yml`)                             | 5433 |
 | ORM      | Django ORM only. No SQLAlchemy, no Prisma/Drizzle. Next.js never touches the database. |      |
 | AI       | OpenCV, MediaPipe, rembg, FashionCLIP (later phases), all run inside Django            |      |
 
 Python 3.12 (venv at `apps/server/venv`). Node 20.9+.
-The legacy Vite client in `apps/client` stays untouched until Phase 1 deletes it.
+The legacy Vite client (`apps/client`) was removed. Its source only exists in git history (commit `771e736`).
 
 ## Architecture: layered MVC in a modular monolith
 
@@ -59,7 +59,9 @@ make db-up        # start Postgres
 make db-reset     # wipe and recreate the database (destroys data)
 make migrate
 make seed         # demo catalog
-make test         # pytest for the server
+make test         # backend pytest + web vitest + tsc + eslint
+make e2e          # Playwright against the real stack (starts it if needed)
+make check        # test + build + e2e
 npm run dev       # Next.js + Django together (root package.json)
 ```
 
@@ -86,3 +88,5 @@ npm run dev       # Next.js + Django together (root package.json)
 | 5     | `docs/agent/phase-5.md` | Layered mannequin                                                                      |
 | 6     | `docs/agent/phase-6.md` | Cart + multi-item orders, FashionCLIP auto-tagging                                     |
 | 7     | `docs/agent/phase-7.md` | Evaluation scripts, demo hardening                                                     |
+
+- Every phase ends with test gates. make test must be green (backend + frontend), the app must build, and make e2e must pass once it exists. Report real command output, never a summary of it. Never skip, delete or weaken a test to make it pass. New code ships with tests in the same commit.
