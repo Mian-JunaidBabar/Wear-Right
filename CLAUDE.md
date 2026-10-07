@@ -86,3 +86,5 @@ npm run dev       # Next.js + Django together (root package.json)
 | 5     | `docs/agent/phase-5.md` | Layered mannequin                                                                      |
 | 6     | `docs/agent/phase-6.md` | Cart + multi-item orders, FashionCLIP auto-tagging                                     |
 | 7     | `docs/agent/phase-7.md` | Evaluation scripts, demo hardening                                                     |
+
+- Every phase ends with test gates. make test must be green (backend + frontend), the app must build, and make e2e must pass once it exists. Report real command output, never a summary of it. Never skip, delete or weaken a test to make it pass. New code ships with tests in the same commit.
