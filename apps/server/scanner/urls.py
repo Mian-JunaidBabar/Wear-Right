@@ -2,6 +2,6 @@ from django.urls import path
 from .views import FaceScannerAPIView, FaceScanRecordListAPIView
 
 urlpatterns = [
-    path('analyze/', FaceScannerAPIView.as_view(), name='analyze-skin-tone'),
-    path('history/', FaceScanRecordListAPIView.as_view(), name='scan-history'),
+    path('scanner/analyze/', FaceScannerAPIView.as_view(), name='api-face-scan'),
+    path('face-scans/', FaceScanRecordListAPIView.as_view(), name='api-face-scan-records'),
 ]

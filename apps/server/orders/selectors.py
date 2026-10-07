@@ -4,21 +4,25 @@ from .models import Order, Booking
 from catalog.models import Product
 from scanner.models import FaceScanRecord
 
-def get_orders():
-    return Order.objects.all().order_by('-order_date')
+def _scoped(queryset, user):
+    """Owners see their own rows; staff see everything."""
+    return queryset if user.is_staff else queryset.filter(user=user)
 
-def get_order(order_id):
+def get_orders(user):
+    return _scoped(Order.objects.all(), user).order_by('-order_date')
+
+def get_order(order_id, user):
     try:
-        return Order.objects.get(id=order_id)
+        return _scoped(Order.objects.all(), user).get(id=order_id)
     except Order.DoesNotExist:
         return None
 
-def get_bookings():
-    return Booking.objects.all().order_by('-created_at')
+def get_bookings(user):
+    return _scoped(Booking.objects.all(), user).order_by('-created_at')
 
-def get_booking(booking_id):
+def get_booking(booking_id, user):
     try:
-        return Booking.objects.get(id=booking_id)
+        return _scoped(Booking.objects.all(), user).get(id=booking_id)
     except Booking.DoesNotExist:
         return None
 

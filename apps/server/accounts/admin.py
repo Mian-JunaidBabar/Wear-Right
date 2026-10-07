@@ -3,6 +3,6 @@ from .models import UserProfile
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'skin_tone', 'cultural_preference')
+    list_display = ('user', 'skin_tone', 'cultural_preference', 'gender', 'preferred_style')
     search_fields = ('user__username', 'user__email', 'skin_tone', 'cultural_preference')
-    list_filter = ('skin_tone', 'cultural_preference')
+    list_filter = ('skin_tone', 'cultural_preference', 'gender', 'preferred_style')

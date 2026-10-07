@@ -1,7 +1,18 @@
 from .engine.skin_tone import classify_skin_tone
 from .models import FaceScanRecord
 
-def analyze_face_images(uploaded_images):
+def _record_scan(user, **fields):
+    """Store a scan only for signed-in users; guests may scan but nothing is saved."""
+    if user is None or not user.is_authenticated:
+        return None
+    return FaceScanRecord.objects.create(
+        user=user,
+        visitor_name=user.get_full_name() or user.email or user.username,
+        **fields,
+    )
+
+
+def analyze_face_images(uploaded_images, user=None):
     analysis_results = []
     for uploaded_image in uploaded_images:
         result = classify_skin_tone(uploaded_image)
@@ -15,8 +26,8 @@ def analyze_face_images(uploaded_images):
 
     if not reliable_results:
         best_failed_result = analysis_results[0]
-        FaceScanRecord.objects.create(
-            visitor_name="Guest User",
+        _record_scan(
+            user,
             detected_skin_tone="Rescan Required",
             confidence_score=0,
             lighting_quality=best_failed_result.get("lighting_quality", "Unknown"),
@@ -40,8 +51,8 @@ def analyze_face_images(uploaded_images):
 
     best_result = max(reliable_results, key=result_score)
 
-    FaceScanRecord.objects.create(
-        visitor_name="Guest User",
+    _record_scan(
+        user,
         detected_skin_tone=best_result["tone"],
         confidence_score=best_result["confidence"],
         lighting_quality=best_result["lighting_quality"],

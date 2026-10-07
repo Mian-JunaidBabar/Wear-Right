@@ -1,26 +1,24 @@
 #!/bin/bash
-echo "Starting Wear-Right Development Environment..."
+# Starts Postgres, Django (8000) and Next.js (3000). Same as `make dev`.
+set -e
+cd "$(dirname "$0")"
 
-echo "1. Starting PostgreSQL database..."
-docker compose up -d
+echo "Starting Wear Right..."
 
-echo "2. Starting Django Backend (apps/server)..."
-cd apps/server
-source venv/bin/activate
-python manage.py runserver &
+echo "1. PostgreSQL (docker)"
+docker compose up -d --wait
+
+echo "2. Django backend (apps/server) on :8000"
+apps/server/venv/bin/python apps/server/manage.py runserver 8000 &
 BACKEND_PID=$!
-cd ../..
 
-echo "3. Starting Next.js Frontend (apps/web)..."
-cd apps/web
-npm run dev &
+echo "3. Next.js frontend (apps/web) on :3000"
+npm --prefix apps/web run dev &
 FRONTEND_PID=$!
-cd ../..
 
-echo "All services started!"
-echo "- Backend: http://127.0.0.1:8000"
 echo "- Frontend: http://localhost:3000"
+echo "- Backend:  http://127.0.0.1:8000 (the browser reaches it through the :3000 rewrite)"
 echo "Press Ctrl+C to stop."
 
-trap "echo 'Stopping all services...'; kill $BACKEND_PID $FRONTEND_PID; docker compose stop; exit" SIGINT SIGTERM
+trap "echo 'Stopping...'; kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; docker compose stop; exit" SIGINT SIGTERM
 wait

@@ -1,3 +1,5 @@
+# Host port is 5433 because 5432 is commonly taken by a local Postgres install.
+name: wear-right
 services:
   db:
     image: pgvector/pgvector:pg17

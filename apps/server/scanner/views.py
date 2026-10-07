@@ -1,4 +1,5 @@
 from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from .selectors import get_face_scan_records
@@ -6,6 +7,8 @@ from .services import analyze_face_images
 from .serializers import FaceScanRecordSerializer
 
 class FaceScannerAPIView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request, *args, **kwargs):
         uploaded_images = request.FILES.getlist('images')
         if not uploaded_images and 'image' in request.FILES:
@@ -13,7 +16,7 @@ class FaceScannerAPIView(APIView):
         if not uploaded_images:
             return Response({"error": "No image frame provided"}, status=status.HTTP_400_BAD_REQUEST)
 
-        result = analyze_face_images(uploaded_images)
+        result = analyze_face_images(uploaded_images, user=request.user)
         # return same shape as original
         if not result["success"]:
             return Response({
@@ -39,7 +42,9 @@ class FaceScannerAPIView(APIView):
         }, status=status.HTTP_200_OK)
 
 class FaceScanRecordListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
-        records = get_face_scan_records()
+        records = get_face_scan_records(request.user)
         serializer = FaceScanRecordSerializer(records, many=True)
         return Response({"status": "success", "total_records": records.count(), "face_scan_records": serializer.data}, status=status.HTTP_200_OK)

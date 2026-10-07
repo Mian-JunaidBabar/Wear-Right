@@ -4,8 +4,11 @@ from rest_framework import status
 from .selectors import get_products, get_product
 from .services import create_product, update_product, delete_product
 from .serializers import ProductSerializer
+from core.permissions import IsStaffOrReadOnly
 
 class ProductListCreateAPIView(APIView):
+    permission_classes = [IsStaffOrReadOnly]
+
     def get(self, request):
         products = get_products()
         serializer = ProductSerializer(products, many=True, context={'request': request})
@@ -19,6 +22,8 @@ class ProductListCreateAPIView(APIView):
         return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 class ProductDetailAPIView(APIView):
+    permission_classes = [IsStaffOrReadOnly]
+
     def get(self, request, product_id):
         product = get_product(product_id)
         if product is None:

@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.db import models
 from core.models import TimeStampedModel
 from catalog.models import Product
@@ -10,6 +11,7 @@ class Order(TimeStampedModel):
     PAYMENT_STATUS_CHOICES = [
         ('Unpaid', 'Unpaid'), ('Paid', 'Paid'), ('Cash on Delivery', 'Cash on Delivery'),
     ]
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
     order_code = models.CharField(max_length=100, blank=True, null=True)
     customer_name = models.CharField(max_length=255)
     customer_email = models.EmailField(blank=True, null=True)
@@ -40,6 +42,7 @@ class Booking(TimeStampedModel):
     BOOKING_STATUS_CHOICES = [
         ('Pending', 'Pending'), ('Confirmed', 'Confirmed'), ('Completed', 'Completed'), ('Cancelled', 'Cancelled'),
     ]
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='bookings')
     customer_name = models.CharField(max_length=255)
     customer_email = models.EmailField(blank=True, null=True)
     customer_phone = models.CharField(max_length=30, blank=True, null=True)

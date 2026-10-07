@@ -6,6 +6,13 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   // Override default ignores of eslint-config-next.
+  {
+    rules: {
+      // Product and brand images come from the Django media rewrite (/media) and /public;
+      // next/image optimisation is not configured for them, plain <img> is intended.
+      "@next/next/no-img-element": "off",
+    },
+  },
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
