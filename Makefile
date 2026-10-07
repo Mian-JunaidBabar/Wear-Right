@@ -5,7 +5,7 @@ VENV   := $(SERVER)/venv
 PY     := $(VENV)/bin/python
 PIP    := $(VENV)/bin/pip
 
-.PHONY: help db-up db-down db-reset venv env install migrate seed test test-api test-web e2e check build dev
+.PHONY: help demo demo-reset db-up db-down db-reset venv env install migrate seed test test-api test-web e2e check build dev
 
 help:
 	@grep -E '^[a-z-]+:' Makefile | cut -d: -f1 | tr '\n' ' '; echo
@@ -62,3 +62,10 @@ check: test build e2e
 
 dev: db-up
 	npm run dev
+
+# Production build of the web app: faster, and no Next.js dev badge on screen.
+demo: db-up migrate build
+	npm run demo
+
+# Fresh database with the seeded catalog and logins, ready for a walkthrough.
+demo-reset: db-reset migrate seed

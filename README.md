@@ -29,7 +29,9 @@ Run everything:
 npm run dev       # or: make dev
 ```
 
-Open http://localhost:3000. Create an account at `/register`, or use the demo admin created by `make seed`: `admin@wearright.local` / `admin12345` (the username `admin` also works). Only admins see the Admin page.
+Open http://localhost:3000. Create an account at `/register`, or use the logins created by `make seed`: customer `demo@wearright.local` / `demo12345`, admin `admin@wearright.local` / `admin12345` (the username `admin` also works). Only admins see the Admin page.
+
+For a presentation use `make demo-reset && make demo` (fresh data, production build). The walkthrough is in `docs/DEMO.md`.
 
 The browser never talks to Django directly: sign-in is two httpOnly cookies set by `/api/auth/login/` through the Next.js rewrite.
 

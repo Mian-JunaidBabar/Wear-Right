@@ -46,6 +46,29 @@ class Command(BaseCommand):
                 )
                 self.stdout.write(self.style.SUCCESS(f"Created admin user (admin / {password})"))
 
+        # Demo customer for walkthroughs (same rule as the admin: only with a password).
+        demo_password = os.environ.get('DEMO_USER_PASSWORD')
+        if not demo_password and settings.DEBUG:
+            demo_password = 'demo12345'
+
+        if demo_password:
+            demo_user, created = User.objects.get_or_create(
+                username='demo@wearright.local',
+                defaults={
+                    'email': 'demo@wearright.local',
+                    'first_name': 'Demo',
+                    'last_name': 'Customer',
+                },
+            )
+            if created:
+                demo_user.set_password(demo_password)
+                demo_user.save()
+                self.stdout.write(self.style.SUCCESS("Created demo customer (demo@wearright.local / %s)" % demo_password))
+            UserProfile.objects.get_or_create(
+                user=demo_user,
+                defaults={'cultural_preference': 'Western', 'gender': 'male', 'preferred_style': 'casual'},
+            )
+
         sample_products = [
             { "name": "Black Formal Trouser", "category": "Men Pant", "cultural_tag": "Formal", "compatible_skin_tone": "All", "color": "Black", "garment_type": "Bottom", "image": "products/Black_Formal_Pant.jpeg", "cost_price": 2500, "price": 4200, "stock_quantity": 25, "size_s_stock": 5, "size_m_stock": 10, "size_l_stock": 7, "size_xl_stock": 3, "status": "Active" },
             { "name": "Classic Blue Silk Tie", "category": "Men Cap", "cultural_tag": "Formal", "compatible_skin_tone": "All", "color": "Navy Blue", "garment_type": "Accessory", "image": "products/Blue_Tie.jpeg", "cost_price": 900, "price": 1800, "stock_quantity": 40, "size_m_stock": 40, "status": "Active" },
