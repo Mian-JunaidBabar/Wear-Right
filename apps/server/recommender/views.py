@@ -1,4 +1,5 @@
 from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from catalog.models import Product
@@ -7,6 +8,8 @@ from .selectors import get_curated_recommendations
 from .services import generate_outfit_for_product
 
 class CuratedRecommendationAPIView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
         target_tone = request.query_params.get('tone', 'Medium')
         target_culture = request.query_params.get('style', 'Western')
@@ -21,6 +24,8 @@ class CuratedRecommendationAPIView(APIView):
         }, status=status.HTTP_200_OK)
 
 class OutfitGenerationAPIView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
         product_id = request.query_params.get('product_id')
         if not product_id:

@@ -1,4 +1,8 @@
-def create_order(serializer):
+# Customers cannot mark their own order paid or shipped; staff can set anything.
+CUSTOMER_PAYMENT_STATUSES = ('Unpaid', 'Cash on Delivery')
+
+
+def create_order(serializer, user):
     product = serializer.validated_data.get('product')
     quantity = serializer.validated_data.get('quantity', 1)
 
@@ -9,7 +13,13 @@ def create_order(serializer):
     if product.stock_quantity < quantity:
         return None, f"Only {product.stock_quantity} item(s) available in stock"
 
-    order = serializer.save()
+    extra = {'user': user}
+    if not user.is_staff:
+        extra['order_status'] = 'Pending'
+        if serializer.validated_data.get('payment_status') not in CUSTOMER_PAYMENT_STATUSES:
+            extra['payment_status'] = 'Cash on Delivery'
+
+    order = serializer.save(**extra)
     product.stock_quantity -= quantity
     if product.stock_quantity == 0:
         product.status = 'Out of Stock'
@@ -23,8 +33,8 @@ def update_order(serializer):
 def delete_order(order):
     order.delete()
 
-def create_booking(serializer):
-    return serializer.save()
+def create_booking(serializer, user):
+    return serializer.save(user=user)
 
 def update_booking(serializer):
     return serializer.save()

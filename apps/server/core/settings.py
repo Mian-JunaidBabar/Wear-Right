@@ -1,6 +1,7 @@
 import os
 import secrets
 import warnings
+from datetime import timedelta
 from pathlib import Path
 import dj_database_url
 
@@ -36,7 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'corsheaders',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'dj_rest_auth',
     # Domain apps
     'core',
     'accounts',
@@ -47,7 +50,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -82,16 +84,54 @@ DATABASES = {
     )
 }
 
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'core.authentication.JWTCookieAuthentication',
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
     'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+# JWT lives in httpOnly cookies, never in JS-readable storage.
+# JWT_AUTH_SECURE is False because local development runs on plain http.
+REST_AUTH = {
+    'USE_JWT': True,
+    'TOKEN_MODEL': None,
+    'SESSION_LOGIN': False,
+    'JWT_AUTH_COOKIE': 'wr-access',
+    'JWT_AUTH_REFRESH_COOKIE': 'wr-refresh',
+    'JWT_AUTH_HTTPONLY': True,
+    'JWT_AUTH_SAMESITE': 'Lax',
+    'JWT_AUTH_SECURE': False,
+    # Cookie-authenticated requests must carry Django's CSRF token (X-CSRFToken header).
+    'JWT_AUTH_COOKIE_USE_CSRF': True,
+    'LOGIN_SERIALIZER': 'accounts.serializers.LoginSerializer',
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+}
+
+# The browser only talks to the Next.js origin; its rewrite forwards /api/* to Django,
+# so Origin is the Next.js origin while Host is Django's. Trust the Next.js origins for CSRF.
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        'CSRF_TRUSTED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000'
+    ).split(',')
+    if origin.strip()
 ]
 
 LANGUAGE_CODE = 'en-us'
