@@ -1,26 +1,70 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --font-sans: var(--nf-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--nf-jakarta), var(--nf-inter), sans-serif;
+  --font-serif: var(--nf-playfair), Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-poppins: var(--nf-poppins), sans-serif;
+  --font-mono: var(--nf-jetbrains), monospace;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Theme Forest Green Palette (mapped to blue & emerald for complete compatibility) */
+  --color-blue-50: #EBF1EC;
+  --color-blue-100: #D3E0D6;
+  --color-blue-200: #B7CCBD;
+  --color-blue-300: #97B69E;
+  --color-blue-400: #6D9877;
+  --color-blue-500: #4B7A56;
+  --color-blue-600: #36533D;
+  --color-blue-700: #2C4231;
+  --color-blue-800: #203125;
+  --color-blue-900: #152018;
+  --color-blue-950: #0B100C;
+
+  --color-emerald-50: #EBF1EC;
+  --color-emerald-100: #D3E0D6;
+  --color-emerald-200: #B7CCBD;
+  --color-emerald-300: #97B69E;
+  --color-emerald-400: #6D9877;
+  --color-emerald-500: #4B7A56;
+  --color-emerald-600: #36533D;
+  --color-emerald-700: #2C4231;
+  --color-emerald-800: #203125;
+  --color-emerald-900: #152018;
+  --color-emerald-950: #0B100C;
+
+  /* Theme Warm Beige Palette (mapped to slate for complete compatibility) */
+  --color-slate-50: #F8F2EC;
+  --color-slate-100: #F1ECE2;
+  --color-slate-200: #E6E1D5;
+  --color-slate-300: #D4CEBF;
+  --color-slate-400: #AB9E8E;
+  --color-slate-500: #8C8274;
+  --color-slate-600: #6E665B;
+  --color-slate-700: #524B43;
+  --color-slate-800: #39352F;
+  --color-slate-900: #23211D;
+  --color-slate-950: #141311;
+
+  /* Accent Gold/Camel colors from the screenshot */
+  --color-brand-gold: #C08E3E;
+  --color-brand-dark: #23211D;
+
+  /* Custom theme vars */
+  --color-cream-base: #F8F2EC;
+  --color-cream-card: #F1ECE2;
+  --color-brand-border: #E6E1D5;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-cream-base);
+  color: var(--color-brand-dark);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-serif);
 }
