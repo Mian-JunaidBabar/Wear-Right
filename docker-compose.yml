@@ -1,0 +1,16 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: wearright-db
+    environment:
+      POSTGRES_DB: wearright
+      POSTGRES_USER: wearright
+      POSTGRES_PASSWORD: wearright
+    ports:
+      - "5432:5432"
+    volumes:
+      - wearright_pg:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  wearright_pg:
