@@ -6,15 +6,15 @@ The full PRD and phase playbook live in the team's Claude Doc "Wear Right — PR
 
 ## Stack (local only, no deployment)
 
-| Layer | Tech | Port |
-| --- | --- | --- |
-| Frontend | Next.js 16 (App Router, TypeScript, Tailwind v4) in `apps/web` | 3000 |
-| Backend | Django 5 + Django REST Framework in `apps/server` | 8000 |
-| Database | PostgreSQL 17 + pgvector, in Docker (`docker-compose.yml`) | 5432 |
-| ORM | Django ORM only. No SQLAlchemy, no Prisma/Drizzle. Next.js never touches the database. | |
-| AI | OpenCV, MediaPipe, rembg, FashionCLIP (later phases), all run inside Django | |
+| Layer    | Tech                                                                                   | Port |
+| -------- | -------------------------------------------------------------------------------------- | ---- |
+| Frontend | Next.js 16 (App Router, TypeScript, Tailwind v4) in `apps/web`                         | 3000 |
+| Backend  | Django 5 + Django REST Framework in `apps/server`                                      | 8000 |
+| Database | PostgreSQL 17 + pgvector, in Docker (`docker-compose.yml`)                             | 5432 |
+| ORM      | Django ORM only. No SQLAlchemy, no Prisma/Drizzle. Next.js never touches the database. |      |
+| AI       | OpenCV, MediaPipe, rembg, FashionCLIP (later phases), all run inside Django            |      |
 
-Python 3.12 (venv at `apps/server/.venv`). Node 20.9+.
+Python 3.12 (venv at `apps/server/venv`). Node 20.9+.
 The legacy Vite client in `apps/client` stays untouched until Phase 1 deletes it.
 
 ## Architecture: layered MVC in a modular monolith
@@ -32,14 +32,14 @@ Engine       <app>/engine/             Pure Python algorithms (skin tone, recomm
 
 Domain apps in `apps/server`:
 
-| App | Owns |
-| --- | --- |
-| `core` | settings, root urls, shared base model (`TimeStampedModel`), exception handler, pagination |
-| `accounts` | UserProfile, preferences, auth endpoints (Phase 1) |
-| `catalog` | Product, Category, Color, import + image pipeline |
-| `scanner` | FaceScanRecord, skin tone engine |
-| `recommender` | ToneColorRule, ranker, look generation |
-| `orders` | Cart, Order, OrderItem, Booking |
+| App           | Owns                                                                                       |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| `core`        | settings, root urls, shared base model (`TimeStampedModel`), exception handler, pagination |
+| `accounts`    | UserProfile, preferences, auth endpoints (Phase 1)                                         |
+| `catalog`     | Product, Category, Color, import + image pipeline                                          |
+| `scanner`     | FaceScanRecord, skin tone engine                                                           |
+| `recommender` | ToneColorRule, ranker, look generation                                                     |
+| `orders`      | Cart, Order, OrderItem, Booking                                                            |
 
 Frontend (`apps/web`), same idea:
 
@@ -76,13 +76,13 @@ npm run dev       # Next.js + Django together (root package.json)
 
 ## Phase map
 
-| Phase | Prompt | Goal |
-| --- | --- | --- |
-| 0 | `docs/agent/phase-0.md` | Postgres, layered backend skeleton, Next.js scaffold with rewrites, one-command dev |
-| 1 | `docs/agent/phase-1.md` | Port UI to Next.js, real auth with httpOnly JWT cookies, permissions |
-| 2 | `docs/agent/phase-2.md` | Catalog schema, Kaggle import, rembg cutouts, color extraction |
-| 3 | `docs/agent/phase-3.md` | Skin tone v2: MediaPipe regions, white-balance fix, undertone, Monk, evaluation script |
-| 4 | `docs/agent/phase-4.md` | Tone-color rules, ranker, complete-the-look |
-| 5 | `docs/agent/phase-5.md` | Layered mannequin |
-| 6 | `docs/agent/phase-6.md` | Cart + multi-item orders, FashionCLIP auto-tagging |
-| 7 | `docs/agent/phase-7.md` | Evaluation scripts, demo hardening |
+| Phase | Prompt                  | Goal                                                                                   |
+| ----- | ----------------------- | -------------------------------------------------------------------------------------- |
+| 0     | `docs/agent/phase-0.md` | Postgres, layered backend skeleton, Next.js scaffold with rewrites, one-command dev    |
+| 1     | `docs/agent/phase-1.md` | Port UI to Next.js, real auth with httpOnly JWT cookies, permissions                   |
+| 2     | `docs/agent/phase-2.md` | Catalog schema, Kaggle import, rembg cutouts, color extraction                         |
+| 3     | `docs/agent/phase-3.md` | Skin tone v2: MediaPipe regions, white-balance fix, undertone, Monk, evaluation script |
+| 4     | `docs/agent/phase-4.md` | Tone-color rules, ranker, complete-the-look                                            |
+| 5     | `docs/agent/phase-5.md` | Layered mannequin                                                                      |
+| 6     | `docs/agent/phase-6.md` | Cart + multi-item orders, FashionCLIP auto-tagging                                     |
+| 7     | `docs/agent/phase-7.md` | Evaluation scripts, demo hardening                                                     |

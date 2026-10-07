@@ -1,19 +1,16 @@
 from django.contrib import admin
 from django.urls import path, include
-from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
-from django.views.static import serve
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('api.urls')),
+    path('api/accounts/', include('accounts.urls')),
+    path('api/catalog/', include('catalog.urls')),
+    path('api/scanner/', include('scanner.urls')),
+    path('api/recommender/', include('recommender.urls')),
+    path('api/orders/', include('orders.urls')),
 ]
 
-# Serve media files in development via static(), or in demo production via serve()
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-else:
-    urlpatterns += [
-        re_path(r'^products/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
-    ]

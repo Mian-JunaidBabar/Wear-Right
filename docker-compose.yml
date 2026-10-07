@@ -7,10 +7,15 @@ services:
       POSTGRES_USER: wearright
       POSTGRES_PASSWORD: wearright
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - wearright_pg:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wearright -d wearright"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   wearright_pg:
