@@ -3,7 +3,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from .selectors import get_face_scan_records
-from .services import analyze_face_images
+from .services import ScannerUnavailable, analyze_face_images
 from .serializers import FaceScanRecordSerializer
 
 class FaceScannerAPIView(APIView):
@@ -16,7 +16,10 @@ class FaceScannerAPIView(APIView):
         if not uploaded_images:
             return Response({"error": "No image frame provided"}, status=status.HTTP_400_BAD_REQUEST)
 
-        result = analyze_face_images(uploaded_images, user=request.user)
+        try:
+            result = analyze_face_images(uploaded_images, user=request.user)
+        except ScannerUnavailable as exc:
+            return Response({"status": "error", "message": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         # return same shape as original
         if not result["success"]:
             return Response({
@@ -26,6 +29,7 @@ class FaceScannerAPIView(APIView):
                 "lighting_quality": result["lighting_quality"],
                 "brightness": result["brightness"],
                 "message": result["message"],
+                "reason": result["reason"],
                 "all_frame_results": result["all_frame_results"]
             }, status=status.HTTP_200_OK)
         
@@ -36,6 +40,11 @@ class FaceScannerAPIView(APIView):
             "lighting_quality": result["lighting_quality"],
             "brightness": result["brightness"],
             "message": result["message"],
+            "monk": result["monk"],
+            "undertone": result["undertone"],
+            "ita": result["ita"],
+            "hue": result["hue"],
+            "agreement": result["agreement"],
             "selected_frame_debug": result["selected_frame_debug"],
             "total_frames_analyzed": result["total_frames_analyzed"],
             "all_frame_results": result["all_frame_results"]

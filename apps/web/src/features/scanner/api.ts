@@ -9,6 +9,11 @@ export type ScanResponse = {
   brightness?: number | string;
   message?: string;
   total_frames_analyzed?: number;
+  /** Skin tone v2: Monk Skin Tone swatch (1 to 10), undertone, and why a scan failed. */
+  monk?: number;
+  undertone?: "warm" | "cool" | "neutral";
+  agreement?: number;
+  reason?: string;
 };
 
 /** Public endpoint: guests can scan; the server only stores the result for signed-in users. */

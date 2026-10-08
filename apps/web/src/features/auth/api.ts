@@ -15,6 +15,8 @@ export type ApiProfile = {
   id: number;
   user: number;
   skin_tone: string | null;
+  monk_tone: number | null;
+  undertone: "warm" | "cool" | "neutral" | null;
   cultural_preference: string;
   gender: "male" | "female" | "unspecified";
   preferred_style: "casual" | "formal" | "eastern" | "mixed";
@@ -28,7 +30,7 @@ export type Session = { user: ApiUser; profile: ApiProfile };
 export type ProfilePatch = Partial<
   Pick<
     ApiProfile,
-    "skin_tone" | "cultural_preference" | "gender" | "preferred_style" | "top_size" | "bottom_size" | "shoe_size"
+    "skin_tone" | "monk_tone" | "undertone" | "cultural_preference" | "gender" | "preferred_style" | "top_size" | "bottom_size" | "shoe_size"
   >
 > & { name?: string };
 

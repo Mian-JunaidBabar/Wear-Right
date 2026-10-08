@@ -20,7 +20,7 @@ type ScanState = "idle" | "camera" | "scanning" | "complete" | "error";
 
 export default function FaceScanView() {
   const navigate = useNavigate();
-  const { setSkinTone } = useAuth();
+  const { setSkinTone, profile, updateProfile } = useAuth();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -35,7 +35,11 @@ export default function FaceScanView() {
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
   const [lightingQuality, setLightingQuality] = useState("");
   const [, setBrightness] = useState<number | null>(null);
-  const [, setBackendMessage] = useState("");
+  const [backendMessage, setBackendMessage] = useState("");
+  const [undertone, setUndertone] = useState<"warm" | "cool" | "neutral" | null>(null);
+  const [monk, setMonk] = useState<number | null>(null);
+  const [jewelry, setJewelry] = useState<"gold" | "silver" | null>(null);
+  const [sunReaction, setSunReaction] = useState<"tan" | "burn" | null>(null);
   const [previewImage, setPreviewImage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -272,6 +276,10 @@ export default function FaceScanView() {
           : Number(data.brightness || 0),
       );
       setBackendMessage(data.message || "");
+      setUndertone(data.undertone ?? null);
+      setMonk(data.monk ?? null);
+      setJewelry(null);
+      setSunReaction(null);
       setFramesAnalyzed(data.total_frames_analyzed || blobs.length);
 
       if (tone !== "Rescan Required" && tone !== "Unknown") {
@@ -385,6 +393,18 @@ export default function FaceScanView() {
     } else {
       return "Shirt: Terracotta / Cream | Pant: Charcoal | Shoes: Dark Brown";
     }
+  };
+
+  /** Gold or tan point warm, silver or burn point cool; when the two answers disagree the undertone is neutral. */
+  const applyUndertoneAnswers = (nextJewelry: "gold" | "silver" | null, nextSun: "tan" | "burn" | null) => {
+    setJewelry(nextJewelry);
+    setSunReaction(nextSun);
+    if (!nextJewelry || !nextSun) return;
+    const jewelryVote = nextJewelry === "gold" ? "warm" : "cool";
+    const sunVote = nextSun === "tan" ? "warm" : "cool";
+    const chosen = jewelryVote === sunVote ? jewelryVote : "neutral";
+    setUndertone(chosen);
+    if (profile) void updateProfile({ undertone: chosen }).catch(() => undefined);
   };
 
   const isWarningResult =
@@ -525,16 +545,38 @@ export default function FaceScanView() {
               <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-brand-gold to-blue-500" />
 
               <div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-100 text-[10px] uppercase tracking-widest text-blue-700 font-extrabold font-sans">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
-                  Scan Successful
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] uppercase tracking-widest font-extrabold font-sans ${
+                    isWarningResult
+                      ? "bg-amber-50 border-amber-200 text-amber-700"
+                      : "bg-blue-50 border-blue-100 text-blue-700"
+                  }`}
+                >
+                  <CheckCircle2 className={`w-3.5 h-3.5 ${isWarningResult ? "text-amber-600" : "text-blue-600"}`} />
+                  {isWarningResult ? "Rescan Needed" : "Scan Successful"}
                 </span>
-                <h3 className="text-2xl sm:text-3xl font-serif font-normal text-brand-dark mt-3.5 capitalize">
-                  Your Skin Tone:{" "}
-                  <span className="font-bold text-blue-600">
-                    {detectedTone}
-                  </span>
-                </h3>
+                {isWarningResult ? (
+                  <p data-testid="scan-rescan-message" className="text-base text-brand-dark mt-3.5">
+                    {backendMessage || "We could not read your skin tone. Please scan again."}
+                  </p>
+                ) : (
+                  <>
+                    <h3 className="text-2xl sm:text-3xl font-serif font-normal text-brand-dark mt-3.5 capitalize">
+                      Your Skin Tone:{" "}
+                      <span className="font-bold text-blue-600">{detectedTone}</span>
+                    </h3>
+                    {(undertone || monk) && (
+                      <p data-testid="scan-detail" className="text-sm text-slate-600 mt-1.5">
+                        {[
+                          undertone ? `${undertone.charAt(0).toUpperCase()}${undertone.slice(1)} undertone` : null,
+                          monk ? `Monk ${monk}` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    )}
+                  </>
+                )}
 
                 {confidenceScore !== null && (
                   <div className="mt-4 bg-slate-50 border border-slate-100 rounded-2xl p-4.5">
@@ -562,6 +604,44 @@ export default function FaceScanView() {
                   </div>
                 )}
               </div>
+
+              {!isWarningResult && undertone && (
+                <div data-testid="undertone-override" className="bg-slate-50 border border-slate-100 rounded-2xl p-4.5">
+                  <h4 className="font-sans font-bold text-xs uppercase tracking-widest text-slate-800 mb-3">
+                    Not quite right? Two quick questions
+                  </h4>
+                  <p className="text-xs text-slate-500 mb-1.5">Which jewelry looks better on you?</p>
+                  <div className="flex gap-2 mb-3">
+                    {(["gold", "silver"] as const).map((choice) => (
+                      <button
+                        key={choice}
+                        type="button"
+                        onClick={() => applyUndertoneAnswers(choice, sunReaction)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold border capitalize ${
+                          jewelry === choice ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200"
+                        }`}
+                      >
+                        {choice}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-500 mb-1.5">In the sun, do you usually burn or tan?</p>
+                  <div className="flex gap-2">
+                    {(["burn", "tan"] as const).map((choice) => (
+                      <button
+                        key={choice}
+                        type="button"
+                        onClick={() => applyUndertoneAnswers(jewelry, choice)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold border capitalize ${
+                          sunReaction === choice ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200"
+                        }`}
+                      >
+                        {choice}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Color Palette Section */}
               <div>

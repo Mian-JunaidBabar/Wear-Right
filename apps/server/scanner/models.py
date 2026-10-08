@@ -13,6 +13,11 @@ class FaceScanRecord(TimeStampedModel):
     confidence_score = models.FloatField(default=0)
     lighting_quality = models.CharField(max_length=100, blank=True, null=True)
     brightness = models.FloatField(default=0)
+    # Skin tone v2 (phase 3). detected_skin_tone stays the depth bucket. The photo itself is never stored.
+    monk = models.PositiveSmallIntegerField(null=True, blank=True)
+    undertone = models.CharField(max_length=10, blank=True, default='')
+    ita = models.FloatField(null=True, blank=True)
+    hue = models.FloatField(null=True, blank=True)
     scan_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

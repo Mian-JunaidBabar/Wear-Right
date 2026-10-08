@@ -1,8 +1,32 @@
-from .engine.skin_tone import classify_skin_tone
+from django.conf import settings
+
+from accounts.services import save_scan_result
+
+from .engine.landmarks import FaceDetector
+from .engine.pipeline import consensus
+from .engine.skin_tone import analyze_upload, legacy_view
 from .models import FaceScanRecord
 
+_detector = None
+
+
+class ScannerUnavailable(Exception):
+    """The face model file is missing. Run `make models`."""
+
+
+def get_detector():
+    """One shared MediaPipe detector per process (loading the model per request would be slow)."""
+    global _detector
+    if _detector is None:
+        model_path = settings.ML_MODELS_DIR / "face_landmarker.task"
+        if not model_path.exists():
+            raise ScannerUnavailable(f"Face model not found at {model_path}. Run `make models`.")
+        _detector = FaceDetector(model_path)
+    return _detector
+
+
 def _record_scan(user, **fields):
-    """Store a scan only for signed-in users; guests may scan but nothing is saved."""
+    """Store a scan only for signed-in users; guests may scan but nothing is saved. The photo is never stored."""
     if user is None or not user.is_authenticated:
         return None
     return FaceScanRecord.objects.create(
@@ -12,61 +36,64 @@ def _record_scan(user, **fields):
     )
 
 
-def analyze_face_images(uploaded_images, user=None):
-    analysis_results = []
-    for uploaded_image in uploaded_images:
-        result = classify_skin_tone(uploaded_image)
-        analysis_results.append(result)
+def analyze_face_images(uploaded_images, user=None, detector=None):
+    detector = detector or get_detector()
+    frames = [analyze_upload(image, detector) for image in uploaded_images]
+    all_frame_results = [legacy_view(frame) for frame in frames]
+    final = consensus(frames)
 
-    reliable_results = [
-        result for result in analysis_results
-        if result.get("tone") not in ["Rescan Required", "Unknown"]
-        and result.get("confidence", 0) > 0
-    ]
-
-    if not reliable_results:
-        best_failed_result = analysis_results[0]
+    if final is None:
+        failure = frames[0]
         _record_scan(
             user,
             detected_skin_tone="Rescan Required",
             confidence_score=0,
-            lighting_quality=best_failed_result.get("lighting_quality", "Unknown"),
-            brightness=best_failed_result.get("brightness", 0),
+            lighting_quality=failure["lighting"],
+            brightness=failure["brightness"],
         )
         return {
             "success": False,
             "detected_skin_tone": "Rescan Required",
             "confidence_score": 0,
-            "lighting_quality": best_failed_result.get("lighting_quality", "Unknown"),
-            "brightness": best_failed_result.get("brightness", 0),
-            "message": "All captured frames had unsuitable lighting. Please scan again in better light and keep your face centered.",
-            "all_frame_results": analysis_results
+            "lighting_quality": failure["lighting"],
+            "brightness": failure["brightness"],
+            "message": failure["message"],
+            "reason": failure["reason"],
+            "all_frame_results": all_frame_results,
         }
-
-    def result_score(result):
-        confidence = result.get("confidence", 0)
-        lighting = result.get("lighting_quality", "")
-        lighting_bonus = {"Good": 20, "Normal": 12, "Low": 2}.get(lighting, 0)
-        return confidence + lighting_bonus
-
-    best_result = max(reliable_results, key=result_score)
 
     _record_scan(
         user,
-        detected_skin_tone=best_result["tone"],
-        confidence_score=best_result["confidence"],
-        lighting_quality=best_result["lighting_quality"],
-        brightness=best_result["brightness"],
+        detected_skin_tone=final["depth"],
+        confidence_score=final["confidence"],
+        lighting_quality=final["lighting"],
+        brightness=final["brightness"],
+        monk=final["monk"],
+        undertone=final["undertone"],
+        ita=final["ita"],
+        hue=final["hue"],
     )
+    if user is not None and user.is_authenticated:
+        save_scan_result(user, depth=final["depth"], monk=final["monk"], undertone=final["undertone"])
 
     return {
         "success": True,
-        "detected_skin_tone": best_result["tone"],
-        "confidence_score": best_result["confidence"],
-        "lighting_quality": best_result["lighting_quality"],
-        "brightness": best_result["brightness"],
-        "message": best_result["message"],
-        "selected_frame_debug": best_result.get("debug", {}),
-        "total_frames_analyzed": len(analysis_results),
-        "all_frame_results": analysis_results
+        "detected_skin_tone": final["depth"],
+        "confidence_score": final["confidence"],
+        "lighting_quality": final["lighting"],
+        "brightness": final["brightness"],
+        "message": f"{final['depth']} depth, {final['undertone']} undertone (Monk {final['monk']}).",
+        "monk": final["monk"],
+        "undertone": final["undertone"],
+        "ita": final["ita"],
+        "hue": final["hue"],
+        "agreement": final["agreement"],
+        "selected_frame_debug": {
+            "frames_used": final["frames_used"],
+            "frames_agreeing": final["frames_agreeing"],
+            "lab": final["lab"],
+            "monk_distance": final["monk_distance"],
+        },
+        "total_frames_analyzed": len(frames),
+        "all_frame_results": all_frame_results,
     }

@@ -6,7 +6,7 @@ from .models import UserProfile
 from .selectors import get_user_by_email
 
 PROFILE_FIELDS = (
-    'skin_tone', 'cultural_preference', 'gender', 'preferred_style',
+    'skin_tone', 'monk_tone', 'undertone', 'cultural_preference', 'gender', 'preferred_style',
     'top_size', 'bottom_size', 'shoe_size',
 )
 
@@ -57,3 +57,10 @@ def save_own_profile(user, **fields):
     """Create or update the signed-in user's profile (POST /api/profiles/)."""
     profile, created = UserProfile.objects.update_or_create(user=user, defaults=fields)
     return profile, created
+
+
+def save_scan_result(user, *, depth, monk, undertone):
+    """Remember a successful scan on the user's profile so they never have to scan again."""
+    UserProfile.objects.update_or_create(
+        user=user, defaults={'skin_tone': depth, 'monk_tone': monk, 'undertone': undertone},
+    )
