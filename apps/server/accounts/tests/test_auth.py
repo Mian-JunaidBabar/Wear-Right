@@ -213,3 +213,17 @@ def test_register_works_with_a_matching_confirmation_and_without_one(api_client)
     assert ok.status_code == 201
     other = api_client.post("/api/auth/register/", {**REGISTER, "email": "second@example.com"}, format="json")
     assert other.status_code == 201
+
+
+def test_a_cookie_for_a_deleted_user_leaves_public_pages_working_and_protected_ones_401(api_client):
+    """After a database reset the browser still holds the old cookie. Public endpoints must keep answering."""
+    from django.contrib.auth.models import User
+    user = UserFactory()
+    api_client.post("/api/auth/login/", {"email": user.email, "password": DEFAULT_PASSWORD}, format="json")
+    assert api_client.get("/api/auth/me/").status_code == 200
+    User.objects.filter(pk=user.pk).delete()
+
+    assert api_client.get("/api/products/").status_code == 200
+    assert api_client.get("/api/categories/").status_code == 200
+    assert api_client.get("/api/auth/me/").status_code == 401
+    assert api_client.get("/api/orders/").status_code == 401
