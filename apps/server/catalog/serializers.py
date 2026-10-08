@@ -7,6 +7,10 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = '__all__'
 
+    def validate_external_id(self, value):
+        # external_id is unique, so a blank string must be stored as NULL or two blanks would collide.
+        return value or None
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         # Relative URL (/media/...) so the browser loads images through the

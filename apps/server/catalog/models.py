@@ -1,3 +1,4 @@
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from core.models import TimeStampedModel
 
@@ -7,10 +8,21 @@ class Product(TimeStampedModel):
         ('Men Shalwar Kameez', 'Men Shalwar Kameez'), ('Men Sandals', 'Men Sandals'), ('Women Kurta', 'Women Kurta'),
         ('Women Shalwar Kameez', 'Women Shalwar Kameez'), ('Women Footwear', 'Women Footwear'),
         ('Women Pant', 'Women Pant'), ('Women Shirt', 'Women Shirt'),
+        # Added in phase 2 for imported catalog items (mapping in catalog/engine/kaggle.py).
+        ('Men Outerwear', 'Men Outerwear'), ('Women Outerwear', 'Women Outerwear'), ('Unisex Outerwear', 'Unisex Outerwear'),
+        ('Men Accessory', 'Men Accessory'), ('Women Accessory', 'Women Accessory'), ('Unisex Accessory', 'Unisex Accessory'),
+        ('Unisex Shirt', 'Unisex Shirt'), ('Unisex Pant', 'Unisex Pant'), ('Unisex Shoes', 'Unisex Shoes'),
+        ('Women Dupatta', 'Women Dupatta'),
     ]
     STYLE_CHOICES = [('Eastern', 'Eastern'), ('Western', 'Western'), ('Casual', 'Casual'), ('Formal', 'Formal')]
     SKIN_TONE_CHOICES = [('Fair', 'Fair'), ('Medium', 'Medium'), ('Dark', 'Dark'), ('All', 'All')]
-    STATUS_CHOICES = [('Active', 'Active'), ('Inactive', 'Inactive'), ('Out of Stock', 'Out of Stock')]
+    # Draft: imported and not yet priced by an admin. Hidden from shoppers, visible to staff.
+    STATUS_CHOICES = [('Active', 'Active'), ('Inactive', 'Inactive'), ('Out of Stock', 'Out of Stock'), ('Draft', 'Draft')]
+    SLOT_CHOICES = [
+        ('top', 'Top'), ('bottom', 'Bottom'), ('kurta', 'Kurta / kameez'), ('outerwear', 'Outerwear'),
+        ('footwear', 'Footwear'), ('accessory', 'Accessory'), ('dupatta', 'Dupatta'),
+    ]
+    GENDER_CHOICES = [('men', 'Men'), ('women', 'Women'), ('unisex', 'Unisex')]
     COLOR_CHOICES = [
         ('White', 'White'), ('Black', 'Black'), ('Navy Blue', 'Navy Blue'), ('Beige', 'Beige'), ('Grey', 'Grey'),
         ('Charcoal Grey', 'Charcoal Grey'), ('Tan', 'Tan'), ('Brown', 'Brown'), ('Dark Brown', 'Dark Brown'),
@@ -43,6 +55,22 @@ class Product(TimeStampedModel):
     size_xl_stock = models.PositiveIntegerField(default=0)
     size_xxl_stock = models.PositiveIntegerField(default=0)
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Active')
+
+    # Catalog fields (phase 2). Used by the look rules in phase 4; blank for hand-made products until tagged.
+    external_id = models.CharField(max_length=32, unique=True, null=True, blank=True)  # Kaggle image id for imports
+    slot = models.CharField(max_length=20, choices=SLOT_CHOICES, blank=True, null=True)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
+    formality = models.PositiveSmallIntegerField(
+        blank=True, null=True, validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    style_tags = models.JSONField(default=list, blank=True)
+    color_name = models.CharField(max_length=60, blank=True, null=True)
+    color_hex = models.CharField(
+        max_length=7, blank=True, null=True,
+        validators=[RegexValidator(r'^#[0-9A-Fa-f]{6}$', 'Use a hex colour such as #1a2b3c.')],
+    )
+    # Dominant colours from k-means on the cut-out pixels: [{"hex", "name", "share"}], largest first.
+    color_palette = models.JSONField(default=list, blank=True)
 
     def profit_per_item(self):
         return self.price - self.cost_price

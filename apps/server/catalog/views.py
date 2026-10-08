@@ -10,7 +10,7 @@ class ProductListCreateAPIView(APIView):
     permission_classes = [IsStaffOrReadOnly]
 
     def get(self, request):
-        products = get_products()
+        products = get_products(include_drafts=request.user.is_staff)
         serializer = ProductSerializer(products, many=True, context={'request': request})
         return Response({"status": "success", "total_products": products.count(), "products": serializer.data}, status=status.HTTP_200_OK)
 
@@ -25,14 +25,14 @@ class ProductDetailAPIView(APIView):
     permission_classes = [IsStaffOrReadOnly]
 
     def get(self, request, product_id):
-        product = get_product(product_id)
+        product = get_product(product_id, include_drafts=request.user.is_staff)
         if product is None:
             return Response({"status": "error", "message": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = ProductSerializer(product, context={'request': request})
         return Response({"status": "success", "product": serializer.data}, status=status.HTTP_200_OK)
 
     def put(self, request, product_id):
-        product = get_product(product_id)
+        product = get_product(product_id, include_drafts=True)
         if product is None:
             return Response({"status": "error", "message": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = ProductSerializer(product, data=request.data, partial=True, context={'request': request})
@@ -42,7 +42,7 @@ class ProductDetailAPIView(APIView):
         return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, product_id):
-        product = get_product(product_id)
+        product = get_product(product_id, include_drafts=True)
         if product is None:
             return Response({"status": "error", "message": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
         delete_product(product)

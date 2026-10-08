@@ -145,4 +145,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Local AI model weights (rembg, MediaPipe). Filled by `make models`; never committed.
+ML_MODELS_DIR = Path(os.environ.get('ML_MODELS_DIR', BASE_DIR / 'ml_models'))
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

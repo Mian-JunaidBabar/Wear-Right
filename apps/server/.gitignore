@@ -22,3 +22,6 @@ env/
 # Media storage and asset tracking uploads
 media/
 static/
+
+# Downloaded AI model weights and test assets (make models)
+ml_models/

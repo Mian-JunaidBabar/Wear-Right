@@ -5,7 +5,7 @@ VENV   := $(SERVER)/venv
 PY     := $(VENV)/bin/python
 PIP    := $(VENV)/bin/pip
 
-.PHONY: help demo demo-reset db-up db-down db-reset venv env install migrate seed test test-api test-web e2e check build dev
+.PHONY: help demo demo-reset db-up db-down db-reset venv env install migrate seed models test-models import-catalog process-images test test-api test-web e2e check build dev
 
 help:
 	@grep -E '^[a-z-]+:' Makefile | cut -d: -f1 | tr '\n' ' '; echo
@@ -40,6 +40,24 @@ migrate:
 
 seed:
 	$(PY) $(SERVER)/manage.py seed_products
+
+# Downloads AI model weights into apps/server/ml_models (rembg, MediaPipe) once; they are gitignored.
+models:
+	$(PY) $(SERVER)/manage.py download_models
+
+# Imports Kaggle products as drafts (no price, hidden from shoppers until an admin activates them).
+# SOURCE is the unzipped Kaggle folder that holds styles.csv and images/.
+import-catalog:
+	@test -n "$(SOURCE)" || { echo 'usage: make import-catalog SOURCE=/path/to/kaggle-folder [LIMIT=150]'; exit 1; }
+	$(PY) $(SERVER)/manage.py import_fashion_catalog --source "$(SOURCE)" --limit $(or $(LIMIT),150)
+
+# Removes backgrounds and extracts colours for existing products that have a photo but no colour.
+process-images:
+	$(PY) $(SERVER)/manage.py process_product_images
+
+# Runs only the tests that load the real downloaded models (needs `make models`).
+test-models: db-up
+	cd $(SERVER) && ../../$(PY) -m pytest -m models -v
 
 test-api: db-up
 	cd $(SERVER) && ../../$(PY) -m pytest

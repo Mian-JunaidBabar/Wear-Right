@@ -180,3 +180,15 @@ def test_booking_and_order_factories_load():
     # keeps the factories honest: they must stay valid for the permission matrix
     assert OrderFactory().total_amount == 2000
     assert BookingFactory().pk
+
+
+def test_blank_external_id_is_stored_as_null_so_products_do_not_collide(staff_client):
+    payload = {"name": "Blank id", "category": "Men Shirt", "cultural_tag": "Casual",
+               "compatible_skin_tone": "All", "price": "1500", "external_id": ""}
+
+    first = staff_client.post("/api/products/", payload, format="json")
+    second = staff_client.post("/api/products/", {**payload, "name": "Blank id 2"}, format="json")
+
+    assert first.status_code == 201 and second.status_code == 201
+    assert first.json()["product"]["external_id"] is None
+    assert second.json()["product"]["external_id"] is None
