@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { scannerApi } from "@/features/scanner/api";
+import { recommenderApi, type Palette as TonePalette } from "@/features/recommender/api";
 
 type ScanState = "idle" | "camera" | "scanning" | "complete" | "error";
 
@@ -38,6 +39,7 @@ export default function FaceScanView() {
   const [backendMessage, setBackendMessage] = useState("");
   const [undertone, setUndertone] = useState<"warm" | "cool" | "neutral" | null>(null);
   const [monk, setMonk] = useState<number | null>(null);
+  const [palette, setPalette] = useState<TonePalette>({ best: [], avoid: [] });
   const [jewelry, setJewelry] = useState<"gold" | "silver" | null>(null);
   const [sunReaction, setSunReaction] = useState<"tan" | "burn" | null>(null);
   const [previewImage, setPreviewImage] = useState("");
@@ -53,30 +55,6 @@ export default function FaceScanView() {
     "APPLYING ILLUMINATION NORMALIZATION...",
     "CLASSIFYING SKIN TONE WITH LAB / ITA...",
   ];
-
-  const getColorName = (colorHex: string) => {
-    const names: Record<string, string> = {
-      // Fair
-      "#FCD5C8": "Soft Peach",
-      "#D4E6F1": "Powder Blue",
-      "#E6DCD2": "Desert Sand",
-      "#FADBD8": "Pastel Rose",
-      "#E8F8F5": "Mint Ice",
-      // Dark
-      "#004B23": "Forest Green",
-      "#0A1128": "Midnight Navy",
-      "#5F0F40": "Deep Plum",
-      "#E3A857": "Warm Gold",
-      "#78281F": "Oxblood Red",
-      // Medium
-      "#C87A53": "Terracotta",
-      "#6E8B3D": "Olive Green",
-      "#D4AF37": "Antique Gold",
-      "#7D6608": "Rich Ochre",
-      "#2E4053": "Slate Blue",
-    };
-    return names[colorHex.toUpperCase()] || colorHex;
-  };
 
   // Smooth scroll to result section on completion
   useEffect(() => {
@@ -373,27 +351,20 @@ export default function FaceScanView() {
     setFramesAnalyzed(null);
   };
 
-  const getPaletteSwatches = (tone: string) => {
-    const lowerTone = String(tone || "").toLowerCase();
-    if (lowerTone.includes("fair")) {
-      return ["#FCD5C8", "#D4E6F1", "#E6DCD2", "#FADBD8", "#E8F8F5"];
-    } else if (lowerTone.includes("dark")) {
-      return ["#004B23", "#0A1128", "#5F0F40", "#E3A857", "#78281F"];
-    } else {
-      return ["#C87A53", "#6E8B3D", "#D4AF37", "#7D6608", "#2E4053"];
-    }
-  };
-
-  const getSuggestedOutfit = (tone: string) => {
-    const lowerTone = String(tone || "").toLowerCase();
-    if (lowerTone.includes("fair")) {
-      return "Shirt: White | Pant: Navy Blue | Shoes: Black";
-    } else if (lowerTone.includes("dark")) {
-      return "Shirt: Peach / Gold | Pant: Olive Green | Shoes: Brown";
-    } else {
-      return "Shirt: Terracotta / Cream | Pant: Charcoal | Shoes: Dark Brown";
-    }
-  };
+  // The palette comes from the server's tone rules, so it follows depth and undertone (including the override).
+  useEffect(() => {
+    if (scanState !== "complete" || !undertone || (detectedTone !== "Fair" && detectedTone !== "Medium" && detectedTone !== "Dark")) return;
+    let cancelled = false;
+    recommenderApi
+      .palette({ depth: detectedTone, undertone })
+      .then((data) => {
+        if (!cancelled) setPalette({ best: data.best, avoid: data.avoid });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [scanState, detectedTone, undertone]);
 
   /** Gold or tan point warm, silver or burn point cool; when the two answers disagree the undertone is neutral. */
   const applyUndertoneAnswers = (nextJewelry: "gold" | "silver" | null, nextSun: "tan" | "burn" | null) => {
@@ -643,34 +614,29 @@ export default function FaceScanView() {
                 </div>
               )}
 
-              {/* Color Palette Section */}
-              <div>
-                <h4 className="font-sans font-bold text-xs uppercase tracking-widest text-slate-800 mb-3">
-                  Recommended Palette
-                </h4>
-                <div className="flex flex-wrap gap-2.5">
-                  {getPaletteSwatches(detectedTone).map((color, idx) => (
-                    <div
-                      key={idx}
-                      className="w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-transform duration-300 hover:scale-115 cursor-pointer"
-                      style={{ backgroundColor: color }}
-                      title={`${getColorName(color)} (${color})`}
-                    />
-                  ))}
+              {/* Colour palette from the server's tone rules */}
+              {!isWarningResult && (
+                <div data-testid="scan-palette">
+                  <h4 className="font-sans font-bold text-xs uppercase tracking-widest text-slate-800 mb-3">
+                    Your Best Colours
+                  </h4>
+                  <div className="flex flex-wrap gap-2.5">
+                    {palette.best.map((color) => (
+                      <div
+                        key={color.name}
+                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+                        style={{ backgroundColor: color.hex ?? "#ccc" }}
+                        title={`${color.name} (${color.hex})`}
+                      />
+                    ))}
+                  </div>
+                  {palette.avoid.length > 0 && (
+                    <p className="text-xs text-slate-500 font-semibold mt-3">
+                      Skip: {palette.avoid.map((color) => color.name).join(", ")}
+                    </p>
+                  )}
                 </div>
-              </div>
-
-              {/* Suggested Outfit Summary Card */}
-              <div className="bg-[#FBF9F4] rounded-2xl p-5 border border-brand-gold/15 shadow-sm relative overflow-hidden">
-                {/* Visual subtle left gold highlight bar */}
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-gold" />
-                <h4 className="font-sans font-bold text-[10px] uppercase tracking-widest text-brand-gold mb-2.5 pl-2">
-                  Suggested Outfit
-                </h4>
-                <p className="text-xs sm:text-sm text-slate-700 font-sans font-semibold leading-relaxed pl-2">
-                  {getSuggestedOutfit(detectedTone)}
-                </p>
-              </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex flex-col gap-3 mt-2">
@@ -686,7 +652,7 @@ export default function FaceScanView() {
                         ? "dark"
                         : "medium";
                     navigate(
-                      `/recommended?skinTone=${finalTone}&confidence=${confidenceScore || ""}`,
+                      `/recommended?skinTone=${finalTone}&undertone=${undertone ?? ""}&confidence=${confidenceScore || ""}`,
                     );
                   }}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase py-4.5 tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-blue-900/10 cursor-pointer border-none flex items-center justify-center gap-2.5 hover:scale-[1.02] active:scale-[0.98]"

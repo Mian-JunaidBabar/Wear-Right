@@ -1,3 +1,4 @@
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from catalog.models import Product
@@ -91,5 +92,25 @@ class Command(BaseCommand):
             )
             if created:
                 count += 1
+
+        # Tags the recommender needs. Applied to existing rows too, but never over values an admin already set.
+        tags = {
+            "Black Formal Trouser": ("bottom", "men", 4, ["Formal"]),
+            "Classic Blue Silk Tie": ("accessory", "men", 4, ["Formal"]),
+            "Brown Casual Loafers": ("footwear", "men", 2, ["Casual"]),
+            "Oxford Brown Formal Shoes": ("footwear", "men", 4, ["Formal"]),
+            "Khaki Casual Chinos": ("bottom", "men", 2, ["Casual"]),
+            "Off-White Casual Linen Shirt": ("top", "men", 2, ["Casual"]),
+            "Silver Chrono Watch": ("accessory", "men", 4, ["Formal"]),
+            "Women Formal Embroidered Kurta": ("kurta", "women", 4, ["Eastern"]),
+            "Women Western Tunic Kurta": ("kurta", "women", 2, ["Western", "Casual"]),
+            "Beige Structured Blazer": ("outerwear", "men", 4, ["Formal"]),
+            "Olive Green Tailored Blazer": ("outerwear", "men", 3, ["Casual"]),
+        }
+        for name, (slot, gender, formality, style_tags) in tags.items():
+            Product.objects.filter(name=name, slot__isnull=True).update(
+                slot=slot, gender=gender, formality=formality, style_tags=style_tags,
+            )
+        call_command("seed_tone_rules")
 
         self.stdout.write(self.style.SUCCESS(f"Successfully seeded {count} products!"))

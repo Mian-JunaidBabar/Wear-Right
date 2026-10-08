@@ -5,7 +5,7 @@ VENV   := $(SERVER)/venv
 PY     := $(VENV)/bin/python
 PIP    := $(VENV)/bin/pip
 
-.PHONY: help demo demo-reset db-up db-down db-reset venv env install migrate seed models test-models import-catalog process-images test test-api test-web e2e check build dev
+.PHONY: help demo demo-reset db-up db-down db-reset venv env install migrate seed models test-models demo-catalog import-catalog process-images test test-api test-web e2e check build dev
 
 help:
 	@grep -E '^[a-z-]+:' Makefile | cut -d: -f1 | tr '\n' ' '; echo
@@ -50,6 +50,10 @@ models:
 import-catalog:
 	@test -n "$(SOURCE)" || { echo 'usage: make import-catalog SOURCE=/path/to/kaggle-folder [LIMIT=150]'; exit 1; }
 	$(PY) $(SERVER)/manage.py import_fashion_catalog --source "$(SOURCE)" --limit $(or $(LIMIT),150)
+
+# DEMO ONLY: activates imported drafts with placeholder prices and stock so the recommender has items to rank.
+demo-catalog:
+	$(PY) $(SERVER)/manage.py activate_demo_catalog
 
 # Removes backgrounds and extracts colours for existing products that have a photo but no colour.
 process-images:

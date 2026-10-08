@@ -40,7 +40,7 @@ Domain apps in `apps/server`:
 | `accounts`    | UserProfile, preferences, auth endpoints (Phase 1)                                         |
 | `catalog`     | Product, Category, Color, import + image pipeline                                          |
 | `scanner`     | FaceScanRecord, skin tone engine                                                           |
-| `recommender` | ToneColorRule, ranker, look generation                                                     |
+| `recommender` | ToneColorRule (editable colour rules), ranker, look generation (engine in `recommender/engine/`) |
 | `orders`      | Cart, Order, OrderItem, Booking                                                            |
 
 Frontend (`apps/web`, sources under `src/`), same idea:
@@ -69,6 +69,7 @@ make seed         # demo catalog
 make models       # download AI model weights + test portrait into apps/server/ml_models (once)
 make import-catalog SOURCE=/path/to/kaggle-folder   # Kaggle products as drafts (phase 2)
 make process-images                                  # cut-outs + colours for existing photos
+make demo-catalog                                    # DEMO ONLY: placeholder prices so the recommender has items
 cd apps/server && venv/bin/python manage.py evaluate_skin_tone --dir DIR   # accuracy report (phase 3)
 make test         # backend pytest + web vitest + tsc + eslint (needs Postgres, starts it)
 make e2e          # Playwright against the real stack (starts it if needed)

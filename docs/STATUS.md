@@ -1,9 +1,9 @@
 # Status
 
 ## Current phase
-Phase 3 (skin tone v2) is **done with open items**; Phase 2 is **done with open items**. Next: Phase 4 (tone-colour rules, ranker, complete-the-look). Per-phase summaries are in `docs/phases/` (see the protocol in `CLAUDE.md`).
+Phases 2, 3 and 4 are **done with open items** (summaries in `docs/phases/`, protocol in `CLAUDE.md`). Next: Phase 5 (layered mannequin).
 
-Gates at the end of Phase 3, full app: `make test` 297 backend passed (7 of them real-model) and 58 web passed with `tsc` and `eslint` clean; `make build` passes; `make e2e` 23 passed; `make test-models` 7 passed.
+Gates for the full app at the end of Phase 4: `make test` 370 backend passed and 66 web passed with `tsc` and `eslint` clean; `make build` passes; `make test-models` 7 passed; `make e2e` 28 passed.
 
 ## Deviations from plan
 - Postgres is published on host port **5433**, not 5432 (5432 is taken by a local Postgres on the dev machine). `docker-compose.yml`, `.env.example` and the settings default all use 5433. The compose project name is pinned to `wear-right` so every checkout/worktree manages the same container.
@@ -20,6 +20,9 @@ Gates at the end of Phase 3, full app: `make test` 297 backend passed (7 of them
 
 ## Phase 0 verification (done at the start of Phase 1)
 As found, before any fix: check 1 FAIL (no Makefile), 2 FAIL (no Makefile, zero tests), 3 FAIL (Django 404 on `/api/products/` because the routes had moved to `/api/catalog/...`; Next answered `/api/products/` with a 308 loop; `/` was the create-next-app page), 4 PASS, 5 PASS, 6 not applicable (the Vite client had already been deleted in `9cc269e`; the port reads it from git history). After `fix: phase 0 gaps`: checks 1 to 5 pass.
+
+## Phase 4 decisions
+See `docs/phases/phase-4.md`. In short: tone-to-colour rules are a database table (`ToneColorRule`, 244 seeded rows, editable by staff); top picks score 0.5 palette + 0.3 style + 0.2 preference, 3 per category, 15 total, each with a reason; looks are filled from four templates (casual, formal, eastern men, eastern women) by colour harmony, palette and formality, with two swaps per slot; the client colour tables are gone. Profiles can store favourite and avoided colours. `make demo-catalog` activates imported drafts with **placeholder** prices (demo only).
 
 ## Phase 3 decisions
 See `docs/phases/phase-3.md`. In short: MediaPipe landmarks pick cheek and forehead pixels; the v1 face-crop gray-world and the gamma/CLAHE-before-measuring steps are gone; background white balance exists but is off by default; depth by ITA, undertone by hue angle, Monk by nearest swatch; confidence is agreement x skin pixels x lighting; the photo is never stored; a successful signed-in scan is saved on the profile and as a `FaceScanRecord`.
@@ -83,6 +86,13 @@ Shared state:
 | `wearRightAdminLoggedIn` + password `admin123` | removed; real staff check |
 
 Components (all in `apps/web/src/components/`): `Navbar`, `Footer`, `HomeView`, `FeaturedCarousel` (unused by any route, as in the legacy app), `AuthView`, `ProfileView`, `FaceScanView`, `RecommendedProductsView`, `CompleteOutfitView`, `ShopView`, `ProductDetailView`, `WishlistView`, `AboutView`, `ContactView`, `OrderConfirmationView`, `MyOrdersView`, `AdminView`. `ProtectedAdminView` is replaced by `features/auth/RequireAuth`. `utils/recommendationRules.ts` moved verbatim to `features/recommender/recommendationRules.ts`.
+
+## Phase 4 open issues
+- Tone rule values are starting points from colour theory, not validated; a user study is the only honest check of the picks and looks.
+- Formal looks complete only 19 of 29 times on the demo catalog (no formal tops); Fair + warm shoppers find few best-colour items.
+- Favourite and avoided colours have an API but no screen.
+- The demo catalog prices are placeholders, and the 150 on-model Kaggle photos will not suit the mannequin (phase 5).
+- The shared dev database also has `accounts 0004` and `recommender 0001`.
 
 ## Phase 3 open issues
 - No labelled photo set exists, so skin tone accuracy is **unmeasured**. ITA and hue thresholds are the PRD's starting values; the Medium band is narrow on the Monk swatches. Run `evaluate_skin_tone` once the 80 to 100 photos are labelled.

@@ -77,6 +77,6 @@ class MeUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = (
-            'name', 'skin_tone', 'monk_tone', 'undertone', 'cultural_preference', 'gender', 'preferred_style',
+            'name', 'skin_tone', 'monk_tone', 'undertone', 'favorite_colors', 'avoided_colors', 'cultural_preference', 'gender', 'preferred_style',
             'top_size', 'bottom_size', 'shoe_size',
         )

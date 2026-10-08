@@ -16,11 +16,8 @@ import {
 import { CartProduct } from "@/features/cart/types";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useCart } from "@/features/cart/useCart";
-import { catalogApi } from "@/features/catalog/api";
+import { recommenderApi, type Palette as TonePalette, type PickedItem } from "@/features/recommender/api";
 import {
-  getAllowedColorsForProduct,
-  isColorAllowed,
-  normalizeGarmentType,
   normalizeSkinTone,
   normalizeStyle,
   prettyLabel,
@@ -29,36 +26,22 @@ import {
 } from "@/features/recommender/recommendationRules";
 import { PLACEHOLDER_IMAGE } from "@/lib/config";
 
-type ApiProduct = {
-  id: number | string;
-  name: string;
-  category?: string;
-  style?: string;
-  cultural_tag?: string;
-  color?: string;
-  garment_type?: string;
-  compatible_skin_tone?: string;
-  price: string | number;
-  image?: string | null;
-  image_url?: string | null;
-  stock_quantity?: number;
-  status?: string;
-};
-
 type RecommendationProduct = CartProduct & {
   style: string;
   color: string;
+  color_hex: string;
   garment_type: string;
   stock_quantity: number;
   status: string;
   match: number;
+  reason: string;
 };
 
 const styleOptions: StyleKey[] = ["eastern", "western", "casual", "formal"];
 
 export default function RecommendedProductsView() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { addToCart } = useCart();
   const [searchParams] = useSearchParams();
 
@@ -68,11 +51,15 @@ export default function RecommendedProductsView() {
   const detectedSkinTone: SkinToneKey = normalizeSkinTone(
     skinToneFromUrl || skinToneFromUser || "medium",
   );
+  const undertone = searchParams.get("undertone") || profile?.undertone || "";
 
-  const [selectedStyle, setSelectedStyle] = useState<StyleKey>("casual");
+  const [selectedStyle, setSelectedStyle] = useState<StyleKey | "">("");
   const [searchText, setSearchText] = useState("");
   const [products, setProducts] = useState<RecommendationProduct[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [palette, setPalette] = useState<TonePalette>({ best: [], avoid: [] });
+  const requestKey = `${detectedSkinTone}|${undertone}|${selectedStyle}`;
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const loading = loadedKey !== requestKey;
   const [errorMessage, setErrorMessage] = useState("");
 
   const placeholderImage = PLACEHOLDER_IMAGE;
@@ -89,119 +76,65 @@ export default function RecommendedProductsView() {
     );
   };
 
-  const fetchProducts = async () => {
-    try {
-      const data = await catalogApi.products<ApiProduct>();
-
-      const mappedProducts: RecommendationProduct[] = (data.products || []).map(
-        (item) => {
-          const normalizedStyle = normalizeStyle(
-            item.style || item.cultural_tag || "casual",
-          );
-          const normalizedGarment = normalizeGarmentType(
-            item.garment_type,
-            item.category,
-          );
-
-          return {
-            id: item.id,
-            name: item.name,
-            category: item.category || "Product",
-            style: normalizedStyle,
-            color: item.color || "",
-            garment_type: normalizedGarment,
-            cultural_tag: item.cultural_tag || item.style || normalizedStyle,
-            compatible_skin_tone: item.compatible_skin_tone || "",
-            image_url: item.image_url || null,
-            image: item.image_url
-              ? `${item.image_url}?v=${Date.now()}`
-              : item.image
-                ? `${item.image}?v=${Date.now()}`
-                : placeholderImage,
-            price: Number(item.price || 0),
-            stock_quantity: Number(item.stock_quantity || 0),
-            status: item.status || "Active",
-            match: 95,
-          };
-        },
-      );
-
-      setProducts(mappedProducts);
-    } catch (error) {
-      console.error("Recommended Products API Error:", error);
-      setErrorMessage("Unable to load recommended products from backend API.");
-    } finally {
-      setLoading(false);
-    }
+  const toProduct = (item: PickedItem): RecommendationProduct => {
+    const style = normalizeStyle(item.style_tags?.[0] || item.cultural_tag || "casual");
+    return {
+      id: item.id,
+      name: item.name,
+      category: item.category || "Product",
+      style,
+      color: item.matched_colour || item.color_name || "",
+      color_hex: item.color_hex || "",
+      garment_type: item.slot || "",
+      cultural_tag: item.cultural_tag || style,
+      compatible_skin_tone: "",
+      image_url: null,
+      image: item.image || placeholderImage,
+      price: Number(item.price || 0),
+      stock_quantity: Number(item.stock_quantity || 0),
+      status: item.status || "Active",
+      match: item.match,
+      reason: item.reason,
+    };
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on mount: state is set after the request resolves
-    void fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
-  }, []);
-
-  const allowedTopColors = useMemo(() => {
-    return getAllowedColorsForProduct(detectedSkinTone, selectedStyle, "shirt");
-  }, [detectedSkinTone, selectedStyle]);
-
-  const allowedPantColors = useMemo(() => {
-    return getAllowedColorsForProduct(detectedSkinTone, selectedStyle, "pant");
-  }, [detectedSkinTone, selectedStyle]);
-
-  const allowedShoesColors = useMemo(() => {
-    return getAllowedColorsForProduct(detectedSkinTone, selectedStyle, "shoes");
-  }, [detectedSkinTone, selectedStyle]);
-
-  const allAllowedColors = useMemo(() => {
-    return Array.from(
-      new Set([
-        ...allowedTopColors,
-        ...allowedPantColors,
-        ...allowedShoesColors,
-      ]),
-    );
-  }, [allowedTopColors, allowedPantColors, allowedShoesColors]);
+    let cancelled = false;
+    recommenderApi
+      .topPicks({ depth: detectedSkinTone, undertone, style: selectedStyle })
+      .then((data) => {
+        if (cancelled) return;
+        setProducts(data.items.map(toProduct));
+        setPalette(data.palette);
+        setErrorMessage("");
+        setLoadedKey(requestKey);
+      })
+      .catch((error) => {
+        console.error("Recommended Products API Error:", error);
+        if (!cancelled) {
+          setErrorMessage("Unable to load recommended products from the server.");
+          setLoadedKey(requestKey);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- toProduct only reads constants
+  }, [detectedSkinTone, undertone, selectedStyle, requestKey]);
 
   const recommendedProducts = useMemo(() => {
     const search = searchText.trim().toLowerCase();
-
-    return products
-      .filter((product) => {
-        const productStyle = normalizeStyle(product.style);
-        const garmentType = normalizeGarmentType(
-          product.garment_type,
-          product.category,
-        );
-
-        if (productStyle !== selectedStyle) {
-          return false;
-        }
-
-        const allowedColors = getAllowedColorsForProduct(
-          detectedSkinTone,
-          selectedStyle,
-          garmentType,
-        );
-
-        if (!isColorAllowed(product.color, allowedColors)) {
-          return false;
-        }
-
-        if (search) {
-          const combinedText =
-            `${product.name} ${product.category} ${product.style} ${product.color} ${product.garment_type}`.toLowerCase();
-          return combinedText.includes(search);
-        }
-
-        return true;
-      })
-      .sort((a, b) => Number(b.id) - Number(a.id));
-  }, [products, selectedStyle, detectedSkinTone, searchText]);
+    if (!search) return products;
+    return products.filter((product) =>
+      `${product.name} ${product.category} ${product.style} ${product.color} ${product.garment_type}`
+        .toLowerCase()
+        .includes(search),
+    );
+  }, [products, searchText]);
 
   const openCompleteOutfit = (product: RecommendationProduct) => {
     navigate(
-      `/complete-outfit?skinTone=${detectedSkinTone}&style=${selectedStyle}&productId=${product.id}`,
+      `/complete-outfit?skinTone=${detectedSkinTone}&undertone=${undertone}&style=${selectedStyle || "casual"}&productId=${product.id}`,
     );
   };
 
@@ -229,8 +162,8 @@ export default function RecommendedProductsView() {
               )}
 
               <p className="text-sm text-slate-300 font-semibold mt-3 max-w-2xl leading-relaxed">
-                Products are filtered using your detected skin tone, selected
-                style category and allowed color palette.
+                Ranked for your skin tone{undertone ? ` and ${undertone} undertone` : ""}: colour match,
+                your style and your size. Each pick says why it was chosen.
               </p>
             </div>
 
@@ -248,11 +181,10 @@ export default function RecommendedProductsView() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
             <div>
               <h2 className="text-xl font-black text-brand-dark">
-                Select Style Category
+                Prefer a style?
               </h2>
               <p className="text-sm text-slate-500 font-semibold mt-1">
-                Same style category will be used for Complete Outfit
-                suggestions.
+                Optional. Picks in your chosen style rank higher; tap it again to clear.
               </p>
             </div>
 
@@ -260,7 +192,7 @@ export default function RecommendedProductsView() {
               {styleOptions.map((style) => (
                 <button
                   key={style}
-                  onClick={() => setSelectedStyle(style)}
+                  onClick={() => setSelectedStyle(selectedStyle === style ? "" : style)}
                   className={`px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                     selectedStyle === style
                       ? "bg-emerald-600 text-white shadow-lg shadow-brand-gold/10"
@@ -273,19 +205,9 @@ export default function RecommendedProductsView() {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <ColorBox
-              title="Top / Shirt / Kurta Colors"
-              colors={allowedTopColors}
-            />
-            <ColorBox
-              title="Pant / Shalwar Colors"
-              colors={allowedPantColors}
-            />
-            <ColorBox
-              title="Shoes / Sandals Colors"
-              colors={allowedShoesColors}
-            />
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <ColorBox title="Your best colours" colors={palette.best} />
+            <ColorBox title="Colours to avoid" colors={palette.avoid} />
           </div>
         </div>
 
@@ -296,8 +218,7 @@ export default function RecommendedProductsView() {
                 Matching Products
               </h2>
               <p className="text-sm text-slate-500 font-semibold mt-1">
-                Showing products whose colors match:{" "}
-                {allAllowedColors.map(prettyLabel).join(", ")}
+                {recommendedProducts.length} picks, best match first
               </p>
             </div>
 
@@ -333,9 +254,8 @@ export default function RecommendedProductsView() {
               No recommended products found
             </h3>
             <p className="text-sm text-slate-500 font-semibold mt-2 max-w-xl mx-auto">
-              Admin panel me selected skin tone, style aur allowed colors ke
-              products add karo. Product color field exact allowed color list se
-              match honi chahiye.
+              Nothing in stock matches this skin tone yet. Try clearing the style
+              preference, or ask the store to add more colours.
             </p>
           </div>
         ) : (
@@ -359,7 +279,7 @@ export default function RecommendedProductsView() {
 
                   <div className="absolute top-3 left-3 bg-emerald-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3" />
-                    Recommended
+                    {product.match}% match
                   </div>
 
                   <div
@@ -391,6 +311,10 @@ export default function RecommendedProductsView() {
 
                   <p className="text-xs text-slate-500 font-bold mt-1">
                     {product.category}
+                  </p>
+
+                  <p data-testid="pick-reason" className="text-xs text-emerald-700 font-semibold mt-2 leading-snug">
+                    {product.reason}
                   </p>
 
                   <div className="mt-3 flex items-center justify-between gap-3">
@@ -444,7 +368,7 @@ export default function RecommendedProductsView() {
   );
 }
 
-function ColorBox({ title, colors }: { title: string; colors: string[] }) {
+function ColorBox({ title, colors }: { title: string; colors: { name: string; hex: string | null }[] }) {
   return (
     <div className="bg-cream-base border border-slate-100 rounded-2xl p-4">
       <div className="flex items-center gap-2 mb-3">
@@ -455,12 +379,16 @@ function ColorBox({ title, colors }: { title: string; colors: string[] }) {
       </div>
 
       <div className="flex flex-wrap gap-2">
+        {colors.length === 0 && (
+          <span className="text-xs text-slate-400 font-semibold">Scan your face to see your colours.</span>
+        )}
         {colors.map((color) => (
           <span
-            key={`${title}-${color}`}
-            className="bg-white border border-brand-border/60 text-slate-700 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider"
+            key={`${title}-${color.name}`}
+            className="bg-white border border-brand-border/60 text-slate-700 pl-2 pr-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1.5"
           >
-            {prettyLabel(color)}
+            <span className="w-3.5 h-3.5 rounded-full border border-slate-200" style={{ background: color.hex ?? "#ccc" }} />
+            {color.name}
           </span>
         ))}
       </div>

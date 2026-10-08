@@ -18,6 +18,8 @@ class UserProfile(TimeStampedModel):
     cultural_preference = models.CharField(max_length=50, choices=STYLE_CHOICES, default='Western')
     gender = models.CharField(max_length=20, choices=GENDER_CHOICES, default='unspecified')
     preferred_style = models.CharField(max_length=20, choices=PREFERRED_STYLE_CHOICES, default='mixed')
+    favorite_colors = models.JSONField(default=list, blank=True)  # colour names, from catalog.engine.color
+    avoided_colors = models.JSONField(default=list, blank=True)
     top_size = models.CharField(max_length=10, blank=True, default='')
     bottom_size = models.CharField(max_length=10, blank=True, default='')
     shoe_size = models.CharField(max_length=10, blank=True, default='')
