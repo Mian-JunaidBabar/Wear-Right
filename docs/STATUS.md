@@ -10,6 +10,7 @@ Phase 1 (Next.js UI port, real auth, permissions): **done**. Next: Phase 2 (cata
 - Phase 0 was not actually complete when Phase 1 started (Makefile, root package.json, README, `lib/api.ts`, rewrites, tests were missing and `/api/...` URLs had been moved under `/api/<app>/`). Fixed in commit `fix: phase 0 gaps`. Acceptance results are in the Phase 1 report.
 - `next lint` no longer exists in Next 16; `npm run lint` runs ESLint directly (`make test` uses it). `npm run typecheck` runs `next typegen && tsc --noEmit`.
 - `@types/node` is `^22` (vitest 5 needs it); the runtime requirement is still Node 20.9+.
+- A demo customer `demo@wearright.local` / `demo12345` is seeded too (same rule: only when `DEBUG` or `DEMO_USER_PASSWORD` is set). `make demo` runs the production build; `make demo-reset` is db-reset + migrate + seed. Walkthrough: `docs/DEMO.md`.
 - Demo admin is username `admin`, email `admin@wearright.local`, password `admin12345` (when `DEBUG`). Login accepts either the email or the username.
 - `docs/` is tracked except `docs/agent/` (phase prompts stay local, see `.gitignore`).
 - Routes renamed in the port: `/auth` is now `/login` and `/register`; `/facescan` is now `/scanner`. The old URLs redirect.
