@@ -1,7 +1,9 @@
 # Status
 
 ## Current phase
-Phase 1 (Next.js UI port, real auth, permissions): **done**. Next: Phase 2 (catalog schema, Kaggle import, rembg cutouts, color extraction).
+Phase 3 (skin tone v2) is **done with open items**; Phase 2 is **done with open items**. Next: Phase 4 (tone-colour rules, ranker, complete-the-look). Per-phase summaries are in `docs/phases/` (see the protocol in `CLAUDE.md`).
+
+Gates at the end of Phase 3, full app: `make test` 297 backend passed (7 of them real-model) and 58 web passed with `tsc` and `eslint` clean; `make build` passes; `make e2e` 23 passed; `make test-models` 7 passed.
 
 ## Deviations from plan
 - Postgres is published on host port **5433**, not 5432 (5432 is taken by a local Postgres on the dev machine). `docker-compose.yml`, `.env.example` and the settings default all use 5433. The compose project name is pinned to `wear-right` so every checkout/worktree manages the same container.
@@ -18,6 +20,19 @@ Phase 1 (Next.js UI port, real auth, permissions): **done**. Next: Phase 2 (cata
 
 ## Phase 0 verification (done at the start of Phase 1)
 As found, before any fix: check 1 FAIL (no Makefile), 2 FAIL (no Makefile, zero tests), 3 FAIL (Django 404 on `/api/products/` because the routes had moved to `/api/catalog/...`; Next answered `/api/products/` with a 308 loop; `/` was the create-next-app page), 4 PASS, 5 PASS, 6 not applicable (the Vite client had already been deleted in `9cc269e`; the port reads it from git history). After `fix: phase 0 gaps`: checks 1 to 5 pass.
+
+## Phase 3 decisions
+See `docs/phases/phase-3.md`. In short: MediaPipe landmarks pick cheek and forehead pixels; the v1 face-crop gray-world and the gamma/CLAHE-before-measuring steps are gone; background white balance exists but is off by default; depth by ITA, undertone by hue angle, Monk by nearest swatch; confidence is agreement x skin pixels x lighting; the photo is never stored; a successful signed-in scan is saved on the profile and as a `FaceScanRecord`.
+
+## Phase 2 decisions
+- **Draft products.** Imported items are created with status `Draft`, price 0, stock 0 and no sizes. Nothing is invented: the Kaggle dataset has no prices or stock, so an admin sets both. Shoppers never see drafts (the public list leaves them out, the detail returns 404), and `create_order` already refuses any product that is not `Active`. Staff see drafts in the API and admin.
+- **New catalog fields** (`catalog/models.py`, migration `0002_product_catalog_fields`): `external_id` (unique Kaggle image id; makes imports idempotent), `slot` (top, bottom, kurta, outerwear, footwear, accessory, dupatta), `gender` (men, women, unisex), `formality` (1 to 5), `style_tags` (list), `color_name`, `color_hex`, `color_palette` (up to 3 clusters: hex, name, share). The legacy fields (`category`, `garment_type`, `cultural_tag`, `compatible_skin_tone`) are still filled so the existing pages keep working. Imports leave the legacy `color` choice field empty; `color_name` is the colour from now on.
+- **Mapping rules** (`catalog/engine/kaggle.py`): Kaggle `articleType` to slot, `gender` to gender, `usage` to formality and primary style, and (gender, slot) to the legacy category label. These are initial rules, not measurements. Rows that match no rule are counted in the import report, never guessed. Run `--list-article-types` on the real `styles.csv` before a real import.
+- **Selection.** Round-robin across (gender, slot) groups with a fixed seed (default 42). The same seed picks the same products, and a larger `LIMIT` extends a smaller run.
+- **Cut-outs.** rembg with `isnet-general-use` (from the PRD). Only the transparent PNG is stored (`products/<kaggle id>.png`). The full-size original is not kept; the Kaggle id links back to it.
+- **Colour extraction** (`catalog/engine/color.py`). k-means (k=3, OpenCV) over visible pixels (alpha at least 128) in CIELAB D65, sampled to at most 20,000 pixels. Each cluster is named by the nearest reference colour by CIEDE2000 (coloraide). The reference colours are common web colour anchors, not measurements; tune them in phase 3 if naming drifts. `color_name` keeps the dataset's base colour when there is one.
+- **Placeholders until phase 4.** Imported `compatible_skin_tone` is `All`, and `style_tags` come straight from `usage`.
+- **Engine layout.** `catalog/engine/` has no Django imports, so it unit-tests without a database. The rembg model is loaded only when a command needs it; tests use a stand-in remover, so no test downloads weights.
 
 ## Decisions
 - Django ORM only, layered MVC modular monolith (see CLAUDE.md). Local only, no deployment.
@@ -69,6 +84,20 @@ Shared state:
 
 Components (all in `apps/web/src/components/`): `Navbar`, `Footer`, `HomeView`, `FeaturedCarousel` (unused by any route, as in the legacy app), `AuthView`, `ProfileView`, `FaceScanView`, `RecommendedProductsView`, `CompleteOutfitView`, `ShopView`, `ProductDetailView`, `WishlistView`, `AboutView`, `ContactView`, `OrderConfirmationView`, `MyOrdersView`, `AdminView`. `ProtectedAdminView` is replaced by `features/auth/RequireAuth`. `utils/recommendationRules.ts` moved verbatim to `features/recommender/recommendationRules.ts`.
 
+## Phase 3 open issues
+- No labelled photo set exists, so skin tone accuracy is **unmeasured**. ITA and hue thresholds are the PRD's starting values; the Medium band is narrow on the Monk swatches. Run `evaluate_skin_tone` once the 80 to 100 photos are labelled.
+- `mediapipe` brings `opencv-contrib-python` next to `opencv-python-headless`; both provide `cv2`.
+- Models live in `apps/server/ml_models/` (`make models`); without them the scan endpoint answers 503 and the `models` tests skip.
+- The shared dev database now also has `accounts 0003` and `scanner 0002` applied; older checkouts cannot insert scans or profiles until this branch is merged.
+- Browser-side face guidance (PRD FR-04) is not built.
+
+## Phase 2 open issues
+- **Real data status:** 150 Kaggle products are imported as drafts; colour family agreement with the dataset labels is 57.3% (see `docs/phases/phase-2.md`). Many photos are on-model, so cut-outs include the person.
+- **Admin upload does not cut out or tag yet** (FR-13). The building blocks exist: `apply_image_pipeline` in `catalog/services.py` and `make process-images` for existing products. Wiring them into the product API is a small follow-up.
+- **Shared dev database.** The Postgres on 5433 is shared by every checkout, and migration `catalog 0002` is now applied to it. The `style_tags` and `color_palette` columns are NOT NULL with no database default. Code from `Junaid/initials` (before this branch is merged) therefore cannot create products on this database (`make seed` and admin create will fail). Merging this branch fixes it.
+- **Legacy names remain.** `color`, `garment_type` and the older category labels (for example "Men Cap" used for watches) are still in use. Consolidating them into tables is FR-14, planned for phase 4.
+- `docs/agent/phase-2.md` was not in the repo (it is gitignored), so this phase followed the PRD and the phase map in `CLAUDE.md`.
+
 ## Open issues
 - Password reset is not implemented (the old UI faked it). The "Forgot password" panel now says so and links to WhatsApp support.
 - Profile phone and delivery address inputs are still local to the page (no backend field). Checkout asks for them again.
@@ -84,6 +113,7 @@ Components (all in `apps/web/src/components/`): `Navbar`, `Footer`, `HomeView`, 
 See README.md. In short: `make install && make db-reset && make migrate && make seed`, then `npm run dev` and open http://localhost:3000.
 
 ## Test commands
+- Catalog import (after `make seed`): `make import-catalog SOURCE=/path/to/kaggle-folder LIMIT=150`; cut-outs and colours for existing photos: `make process-images`.
 - `make test`: backend pytest, web vitest, `tsc --noEmit`, eslint.
 - `make e2e`: Postgres up, migrate, seed, then Playwright (starts Django and Next if they are not already running). First time: `cd apps/web && npx playwright install chromium`.
 - `make check`: test + `next build` + e2e.

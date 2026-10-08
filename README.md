@@ -23,6 +23,8 @@ make migrate
 make seed         # demo catalog + demo admin
 ```
 
+Optional, real catalog: `make import-catalog SOURCE=/path/to/kaggle-folder` imports products from the Kaggle "Fashion Product Images" dataset as drafts (hidden from shoppers until priced). Details and open items are in `docs/STATUS.md`.
+
 Run everything:
 
 ```bash

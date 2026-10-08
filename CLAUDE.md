@@ -14,6 +14,8 @@ The full PRD and phase playbook live in the team's Claude Doc "Wear Right — PR
 | ORM      | Django ORM only. No SQLAlchemy, no Prisma/Drizzle. Next.js never touches the database. |      |
 | AI       | OpenCV, MediaPipe, rembg, FashionCLIP (later phases), all run inside Django            |      |
 
+AI model weights are downloaded once with `make models` into `apps/server/ml_models/` (gitignored) and used from there. Nothing downloads at request time.
+
 Python 3.12 (venv at `apps/server/venv`). Node 20.9+.
 The legacy Vite client (`apps/client`) was removed. Its source only exists in git history (commit `771e736`).
 
@@ -64,6 +66,10 @@ make db-up        # start Postgres
 make db-reset     # wipe and recreate the database (destroys data)
 make migrate
 make seed         # demo catalog
+make models       # download AI model weights + test portrait into apps/server/ml_models (once)
+make import-catalog SOURCE=/path/to/kaggle-folder   # Kaggle products as drafts (phase 2)
+make process-images                                  # cut-outs + colours for existing photos
+cd apps/server && venv/bin/python manage.py evaluate_skin_tone --dir DIR   # accuracy report (phase 3)
 make test         # backend pytest + web vitest + tsc + eslint (needs Postgres, starts it)
 make e2e          # Playwright against the real stack (starts it if needed)
 make check        # test + build + e2e
@@ -80,6 +86,15 @@ npm run dev       # Next.js + Django together (root package.json)
 - Do not add deployment config (Vercel, Docker images for the app, CI deploy). The project runs locally.
 - Do not invent product data, test results or accuracy numbers. Anything that will go in the thesis must come from a script output.
 - When a phase is done, run its acceptance checks yourself and finish with a short report: what changed, what was checked, anything left open.
+
+## Phase completion protocol (every phase, no exceptions)
+
+1. **Use the real models.** Every AI model a phase uses must be downloaded locally (`make models`, extend `core/management/commands/download_models.py` for a new one) and used from `apps/server/ml_models/`. Unit tests may use stand-ins for speed, but each model also needs tests marked `@pytest.mark.models` that run the real weights (they skip only when the weights are missing). A phase is not done on stand-in results alone.
+2. **Test the finished phases again.** Before reporting, run `make test`, `make build` and `make e2e` for the whole app (earlier phases included), and the `models` tests. Fix regressions before adding to them. Report the real command output.
+3. **Write the phase summary** in `docs/phases/phase-N.md` using `docs/phases/TEMPLATE.md`: goal, what changed, decisions and why, real gate output, real-model checks, known limitations, how to run. Add one line to the table in `docs/phases/README.md`.
+4. **Update `docs/STATUS.md`** (current phase, decisions, open issues) and the Phase map below.
+5. Do not invent numbers. Accuracy, timings and counts in docs come from a script run or command output; if it was not run, say so.
+6. `docs/agent/` is local and gitignored; `docs/phases/` is the tracked record of what each phase delivered.
 
 ## Phase map
 
