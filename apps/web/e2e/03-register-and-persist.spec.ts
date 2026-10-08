@@ -31,7 +31,8 @@ test("3b. a duplicate email is rejected with a readable message", async ({ page,
   await other.goto("/register");
   await other.getByPlaceholder("Full name").fill("Someone Else");
   await other.getByPlaceholder("customer@gmail.com").fill(email);
-  await other.getByPlaceholder("Enter password").fill("Str0ng-Passw0rd!x");
+  await other.getByPlaceholder(/choose a password/i).fill("Str0ng-Passw0rd!x");
+  await other.getByLabel(/confirm password/i).fill("Str0ng-Passw0rd!x");
   await other.getByRole("button", { name: /create account/i }).click();
   await expect(alertBox(other)).toContainText(/already exists/i);
   await other.close();

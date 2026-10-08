@@ -11,6 +11,7 @@ import { normalizeSkinTone } from "@/features/recommender/recommendationRules";
 import { layoutLook, type Angle, type BodyGender, type Preset } from "@/features/mannequin/layout";
 import Mannequin from "@/components/Mannequin";
 import { PLACEHOLDER_IMAGE } from "@/lib/config";
+import { notify } from "@/lib/notify";
 
 const LOOK_TITLES: Record<CompleteLookResponse["look_type"], string> = {
   casual: "Casual look",
@@ -110,7 +111,7 @@ export default function CompleteOutfitView() {
   const addWholeLook = () => {
     if (!look) return;
     [look.anchor, ...picked].forEach((item) => addToCart(toCartProduct(item)));
-    alert("The whole look was added to your cart.");
+    notify("The whole look was added to your cart.");
   };
 
   return (

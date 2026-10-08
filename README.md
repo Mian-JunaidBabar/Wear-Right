@@ -45,7 +45,7 @@ make e2e          # Playwright against the real stack (starts Postgres, migrates
 make check        # test + build + e2e
 ```
 
-First-time e2e setup: `cd apps/web && npx playwright install chromium`.
+First-time e2e setup: `cd apps/web && npx playwright install chromium`. If your own dev servers are running on 3000 and 8000, run the suite on other ports: `E2E_WEB_PORT=3100 E2E_API_PORT=8100 make e2e`.
 
 ## Layout
 

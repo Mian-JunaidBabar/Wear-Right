@@ -2,19 +2,39 @@ from django.core.validators import MaxValueValidator, MinValueValidator, RegexVa
 from django.db import models
 from core.models import TimeStampedModel
 
+class Category(TimeStampedModel):
+    """A shop category. Staff add, rename, reorder or switch these off; the shop and admin read them from the API."""
+    GENDER_CHOICES = [('men', 'Men'), ('women', 'Women'), ('unisex', 'Unisex')]
+    name = models.CharField(max_length=100, unique=True)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='unisex')  # which shop tab(s) it appears under
+    group = models.CharField(max_length=40, blank=True, default='')  # "Regional" for eastern and regional wear
+    image = models.CharField(max_length=255, blank=True, default='')  # tile image path; blank uses a product photo
+    sort_order = models.PositiveSmallIntegerField(default=100)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['sort_order', 'name']
+        verbose_name_plural = 'categories'
+
+    def __str__(self):
+        return self.name
+
+
+class Style(TimeStampedModel):
+    """A style a product can have and a shopper can prefer (Casual, Formal, Eastern, ...)."""
+    name = models.CharField(max_length=50, unique=True)
+    slug = models.SlugField(max_length=50, unique=True)
+    sort_order = models.PositiveSmallIntegerField(default=100)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['sort_order', 'name']
+
+    def __str__(self):
+        return self.name
+
+
 class Product(TimeStampedModel):
-    CATEGORY_CHOICES = [
-        ('Men Shirt', 'Men Shirt'), ('Men Pant', 'Men Pant'), ('Men Shoes', 'Men Shoes'), ('Men Cap', 'Men Cap'),
-        ('Men Shalwar Kameez', 'Men Shalwar Kameez'), ('Men Sandals', 'Men Sandals'), ('Women Kurta', 'Women Kurta'),
-        ('Women Shalwar Kameez', 'Women Shalwar Kameez'), ('Women Footwear', 'Women Footwear'),
-        ('Women Pant', 'Women Pant'), ('Women Shirt', 'Women Shirt'),
-        # Added in phase 2 for imported catalog items (mapping in catalog/engine/kaggle.py).
-        ('Men Outerwear', 'Men Outerwear'), ('Women Outerwear', 'Women Outerwear'), ('Unisex Outerwear', 'Unisex Outerwear'),
-        ('Men Accessory', 'Men Accessory'), ('Women Accessory', 'Women Accessory'), ('Unisex Accessory', 'Unisex Accessory'),
-        ('Unisex Shirt', 'Unisex Shirt'), ('Unisex Pant', 'Unisex Pant'), ('Unisex Shoes', 'Unisex Shoes'),
-        ('Women Dupatta', 'Women Dupatta'),
-    ]
-    STYLE_CHOICES = [('Eastern', 'Eastern'), ('Western', 'Western'), ('Casual', 'Casual'), ('Formal', 'Formal')]
     SKIN_TONE_CHOICES = [('Fair', 'Fair'), ('Medium', 'Medium'), ('Dark', 'Dark'), ('All', 'All')]
     # Draft: imported and not yet priced by an admin. Hidden from shoppers, visible to staff.
     STATUS_CHOICES = [('Active', 'Active'), ('Inactive', 'Inactive'), ('Out of Stock', 'Out of Stock'), ('Draft', 'Draft')]
@@ -40,8 +60,8 @@ class Product(TimeStampedModel):
     GARMENT_TYPE_CHOICES = [('Top', 'Top'), ('Bottom', 'Bottom'), ('Footwear', 'Footwear'), ('Accessory', 'Accessory')]
 
     name = models.CharField(max_length=255)
-    category = models.CharField(max_length=100, choices=CATEGORY_CHOICES)
-    cultural_tag = models.CharField(max_length=100, choices=STYLE_CHOICES)
+    category = models.CharField(max_length=100)    # a Category name; checked against the table by the serializer
+    cultural_tag = models.CharField(max_length=100)  # a Style name
     compatible_skin_tone = models.CharField(max_length=50, choices=SKIN_TONE_CHOICES)
     color = models.CharField(max_length=50, choices=COLOR_CHOICES, blank=True, null=True)
     garment_type = models.CharField(max_length=50, choices=GARMENT_TYPE_CHOICES, blank=True, null=True)

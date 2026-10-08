@@ -111,6 +111,7 @@ class Command(BaseCommand):
             Product.objects.filter(name=name, slot__isnull=True).update(
                 slot=slot, gender=gender, formality=formality, style_tags=style_tags,
             )
+        call_command("seed_taxonomy")
         call_command("seed_tone_rules")
 
         self.stdout.write(self.style.SUCCESS(f"Successfully seeded {count} products!"))

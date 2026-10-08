@@ -98,7 +98,7 @@ def test_mapped_items_are_imported_as_drafts_with_their_tags(dataset):
     assert kurta.formality == 3 and kurta.style_tags == ["Eastern"]
 
     watch = Product.objects.get(external_id="103")
-    assert watch.gender == "unisex" and watch.category == "Unisex Accessory"
+    assert watch.gender == "unisex" and watch.category == "Watches"
 
 
 def test_each_cut_out_is_saved_as_a_transparent_png(dataset):

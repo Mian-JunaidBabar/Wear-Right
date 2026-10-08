@@ -11,6 +11,7 @@ import {
   User,
 } from "lucide-react";
 import { ADMIN_WHATSAPP_NUMBER } from "@/lib/config";
+import { notify } from "@/lib/notify";
 
 export default function ContactView() {
   const [form, setForm] = useState({
@@ -35,7 +36,7 @@ export default function ContactView() {
     event.preventDefault();
 
     if (!form.name.trim() || !form.phone.trim() || !form.message.trim()) {
-      alert("Please enter your name, phone and message.");
+      notify("Please enter your name, phone and message.");
       return;
     }
 

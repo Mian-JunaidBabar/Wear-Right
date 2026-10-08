@@ -38,7 +38,7 @@ def test_a_mapped_row_becomes_a_record():
     record, reason = classify(_row(productDisplayName="  Slim Shirt "))
 
     assert reason is None
-    assert record == StyleRecord(image_id="1", name="Slim Shirt", gender="men", slot="top", usage="Formal", base_colour="Navy Blue")
+    assert record == StyleRecord(image_id="1", name="Slim Shirt", gender="men", slot="top", usage="Formal", base_colour="Navy Blue", article="Shirts")
 
 
 @pytest.mark.parametrize(
@@ -166,12 +166,16 @@ def test_a_photo_without_colour_leaves_colour_fields_empty():
 
 
 def test_every_mapped_category_is_a_valid_product_category():
-    assert set(CATEGORY_FOR.values()) <= {value for value, _ in Product.CATEGORY_CHOICES}
+    from catalog.engine.kaggle import ARTICLE_CATEGORY
+    from catalog.taxonomy import DEFAULT_CATEGORIES
+    known = {name for name, *_ in DEFAULT_CATEGORIES}
+    assert set(CATEGORY_FOR.values()) | set(ARTICLE_CATEGORY.values()) <= known
 
 
 def test_every_mapped_slot_style_and_formality_is_valid():
     slots = {value for value, _ in Product.SLOT_CHOICES}
-    styles = {value for value, _ in Product.STYLE_CHOICES}
+    from catalog.taxonomy import DEFAULT_STYLES
+    styles = {name for name, _ in DEFAULT_STYLES}
 
     assert set(ARTICLE_SLOT.values()) <= slots
     assert {slot for _, slot in CATEGORY_FOR} <= slots
@@ -179,3 +183,22 @@ def test_every_mapped_slot_style_and_formality_is_valid():
     assert {value for value, _ in Product.GARMENT_TYPE_CHOICES} >= set(GARMENT_TYPE.values())
     assert {style for _, style in USAGE.values()} <= styles
     assert all(1 <= formality <= 5 for formality, _ in USAGE.values())
+
+
+def test_regional_and_accessory_articles_get_their_own_category():
+    from catalog.engine.kaggle import category_for
+    assert category_for("women", "bottom", "Salwar") == "Women Shalwar"
+    assert category_for("women", "bottom", "Patiala") == "Women Shalwar"
+    assert category_for("men", "outerwear", "Nehru Jackets") == "Men Waistcoat"
+    assert category_for("unisex", "accessory", "Watches") == "Watches"
+    assert category_for("men", "accessory", "Belts") == "Belts"
+    assert category_for("men", "bottom", "Salwar") == "Men Pant"              # a women's category does not apply to men
+    assert category_for("women", "bottom", "Jeans") == "Women Pant"           # no article category: gender and slot decide
+
+
+def test_women_and_regional_article_types_are_importable():
+    for article, gender, slot in [("Kurtis", "Women", "kurta"), ("Stoles", "Women", "dupatta"), ("Nehru Jackets", "Men", "outerwear"),
+                                  ("Patiala", "Women", "bottom"), ("Skirts", "Women", "bottom"), ("Tunics", "Women", "top")]:
+        record, reason = classify(_row(articleType=article, gender=gender, usage="Ethnic"))
+        assert reason is None and record.slot == slot, (article, reason)
+    assert classify(_row(articleType="Stoles", gender="Men"))[1] == REASON_CATEGORY  # no men's dupatta category

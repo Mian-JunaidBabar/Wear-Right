@@ -120,7 +120,7 @@ export default function Navbar() {
 
   const openCheckout = () => {
     if (cartItems.length === 0) {
-      alert("Your cart is empty.");
+      notify("Your cart is empty.");
       return;
     }
 
@@ -145,22 +145,22 @@ export default function Navbar() {
     event.preventDefault();
 
     if (!checkoutForm.customer_name.trim()) {
-      alert("Please enter your full name.");
+      notify("Please enter your full name.");
       return;
     }
 
     if (!checkoutForm.customer_phone.trim()) {
-      alert("Please enter your phone number.");
+      notify("Please enter your phone number.");
       return;
     }
 
     if (!checkoutForm.customer_address.trim()) {
-      alert("Please enter your delivery address.");
+      notify("Please enter your delivery address.");
       return;
     }
 
     if (cartItems.length === 0) {
-      alert("Your cart is empty.");
+      notify("Your cart is empty.");
       return;
     }
 
@@ -218,7 +218,7 @@ export default function Navbar() {
       navigate("/order-confirmation");
     } catch (error) {
       console.error("Checkout Error:", error);
-      alert(orderErrorMessage(error));
+      notify(orderErrorMessage(error));
     } finally {
       setCheckoutSubmitting(false);
     }

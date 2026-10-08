@@ -1,9 +1,11 @@
 # Status
 
 ## Current phase
-Phases 2, 3 and 4 are **done with open items** (summaries in `docs/phases/`, protocol in `CLAUDE.md`). Next: Phase 5 (layered mannequin).
+Phases 2 to 5 are **done with open items** (summaries in `docs/phases/`, protocol in `CLAUDE.md`). Next: Phase 6 (server cart, multi-item orders, FashionCLIP tagging).
 
-Gates for the full app at the end of Phase 4: `make test` 370 backend passed and 66 web passed with `tsc` and `eslint` clean; `make build` passes; `make test-models` 7 passed; `make e2e` 28 passed.
+Gates for the full app at the end of Phase 5: `make test` 427 backend and 99 web passed with `tsc` and `eslint` clean; `make build` passes; `make test-models` 10 passed; `make e2e` 41 scenarios (see the Phase 5 summary).
+
+**Running more than one checkout:** `media/` and `ml_models/` are gitignored, so each checkout needs its own copy (`make models`, `make seed`, `make demo-catalog`), and the Postgres on 5433 is shared, so a migration applied by one checkout affects the others. Merge the branch before running the app from another checkout. End-to-end tests take `E2E_WEB_PORT` and `E2E_API_PORT` so they do not reuse another checkout's dev servers.
 
 ## Deviations from plan
 - Postgres is published on host port **5433**, not 5432 (5432 is taken by a local Postgres on the dev machine). `docker-compose.yml`, `.env.example` and the settings default all use 5433. The compose project name is pinned to `wear-right` so every checkout/worktree manages the same container.
@@ -20,6 +22,9 @@ Gates for the full app at the end of Phase 4: `make test` 370 backend passed and
 
 ## Phase 0 verification (done at the start of Phase 1)
 As found, before any fix: check 1 FAIL (no Makefile), 2 FAIL (no Makefile, zero tests), 3 FAIL (Django 404 on `/api/products/` because the routes had moved to `/api/catalog/...`; Next answered `/api/products/` with a 308 loop; `/` was the create-next-app page), 4 PASS, 5 PASS, 6 not applicable (the Vite client had already been deleted in `9cc269e`; the port reads it from git history). After `fix: phase 0 gaps`: checks 1 to 5 pass.
+
+## Phase 5 decisions
+See `docs/phases/phase-5.md`. In short: 12 procedural bodies and an anchor map (not MPFB renders); a layout engine that places `mannequin_image` cut-outs in slot boxes in a fixed layer order; garments cut out of model photos with rembg's cloth model on a white background; photos of people are detected by face, skin (apparel only) or clothing in the other body layer. Also from the review: 6-character password minimum with a confirm field, toasts instead of alerts, and categories and styles as editable tables (FR-14).
 
 ## Phase 4 decisions
 See `docs/phases/phase-4.md`. In short: tone-to-colour rules are a database table (`ToneColorRule`, 244 seeded rows, editable by staff); top picks score 0.5 palette + 0.3 style + 0.2 preference, 3 per category, 15 total, each with a reason; looks are filled from four templates (casual, formal, eastern men, eastern women) by colour harmony, palette and formality, with two swaps per slot; the client colour tables are gone. Profiles can store favourite and avoided colours. `make demo-catalog` activates imported drafts with **placeholder** prices (demo only).
@@ -86,6 +91,12 @@ Shared state:
 | `wearRightAdminLoggedIn` + password `admin123` | removed; real staff check |
 
 Components (all in `apps/web/src/components/`): `Navbar`, `Footer`, `HomeView`, `FeaturedCarousel` (unused by any route, as in the legacy app), `AuthView`, `ProfileView`, `FaceScanView`, `RecommendedProductsView`, `CompleteOutfitView`, `ShopView`, `ProductDetailView`, `WishlistView`, `AboutView`, `ContactView`, `OrderConfirmationView`, `MyOrdersView`, `AdminView`. `ProtectedAdminView` is replaced by `features/auth/RequireAuth`. `utils/recommendationRules.ts` moved verbatim to `features/recommender/recommendationRules.ts`.
+
+## Phase 5 open issues
+- Bodies are placeholders; back photos do not exist, so the back view reuses front photos; about 7% of products cannot be placed (person in photo or a failed extraction).
+- Placement realism is unmeasured (checked by eye and by structure tests only).
+- Admin upload does not run extraction or mannequin preparation yet; there is no way to upload a back photo.
+- The Django admin and the web admin both edit categories and styles (the web screen is the supported one).
 
 ## Phase 4 open issues
 - Tone rule values are starting points from colour theory, not validated; a user study is the only honest check of the picks and looks.

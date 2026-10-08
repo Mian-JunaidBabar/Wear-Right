@@ -20,7 +20,8 @@ export type ApiProfile = {
   body_preset: "slim" | "regular" | "plus";
   cultural_preference: string;
   gender: "male" | "female" | "unspecified";
-  preferred_style: "casual" | "formal" | "eastern" | "mixed";
+  /** A style slug from the Styles table, or "mixed". */
+  preferred_style: string;
   top_size: string;
   bottom_size: string;
   shoe_size: string;
@@ -45,7 +46,7 @@ export const authApi = {
       password,
     }),
 
-  register: (input: { name: string; email: string; password: string }) =>
+  register: (input: { name: string; email: string; password: string; password_confirm?: string }) =>
     apiSend<Session>("POST", "/api/auth/register/", input),
 
   logout: () => apiSend<{ detail: string }>("POST", "/api/auth/logout/", {}),

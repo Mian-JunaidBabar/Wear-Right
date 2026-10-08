@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CartProduct } from "./types";
+import { getToasts, resetToasts } from "@/lib/notify";
 import { CART_STORAGE_KEY, cartStore, useCart } from "./useCart";
 
 const shirt: CartProduct = { id: 1, name: "Linen Shirt", category: "Men Shirt", price: "3500" };
@@ -10,6 +11,7 @@ beforeEach(() => {
   window.localStorage.clear();
   cartStore.set([]);
   vi.spyOn(window, "alert").mockImplementation(() => undefined);
+  resetToasts();
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -24,7 +26,8 @@ describe("useCart", () => {
     expect(result.current.cartItems[0].quantity).toBe(2);
     expect(result.current.cartCount).toBe(3);
     expect(result.current.cartTotal).toBe(2 * 3500 + 1800);
-    expect(window.alert).toHaveBeenCalledWith("Linen Shirt added to cart.");
+    expect(getToasts().map((toast) => toast.message)).toContain("Linen Shirt added to cart.");
+    expect(window.alert).not.toHaveBeenCalled(); // a toast, not a blocking alert
   });
 
   it("removes products, and removes one when its quantity drops to zero", () => {

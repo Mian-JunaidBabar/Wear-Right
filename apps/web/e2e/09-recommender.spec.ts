@@ -44,7 +44,7 @@ test("9c. complete the look: a pick per slot, swaps, a total, and the whole look
   expect(before).toMatch(/Rs\. [\d,]+/);
 
   await page.getByRole("button", { name: /add whole look to cart/i }).click();
-  expect(dialogs.join(" ")).toMatch(/whole look/i);
+  await expect.poll(() => dialogs.join(" ")).toMatch(/whole look/i);
   expect(problems).toEqual([]);
 });
 

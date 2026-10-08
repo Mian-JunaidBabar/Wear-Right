@@ -6,11 +6,10 @@ export const PASSWORD = "Str0ng-Passw0rd!x";
 export type Problems = string[];
 
 /**
- * Every page gets: dialogs auto-accepted (the shop uses window.alert for feedback, and
- * we remember their text), and a list of console errors, uncaught exceptions, failed
+ * Every page gets a list of console errors, uncaught exceptions, failed
  * requests and HTTP >= 400 responses seen during the test.
  */
-export const test = base.extend<{ problems: Problems; dialogs: string[] }>({
+export const test = base.extend<{ problems: Problems; dialogs: string[]; nativeDialogs: string[] }>({
   problems: async ({ page }, run) => {
     const problems: Problems = [];
     page.on("console", (message) => {
@@ -29,7 +28,29 @@ export const test = base.extend<{ problems: Problems; dialogs: string[] }>({
     });
     await run(problems);
   },
+  /**
+   * Toast messages the app showed (the shop used window.alert before; now it uses toasts). Collected
+   * by a MutationObserver in the page that reports each new toast through the console.
+   */
   dialogs: async ({ page }, run) => {
+    const messages: string[] = [];
+    await page.addInitScript(() => {
+      const seen = new WeakSet<Node>();
+      const scan = () =>
+        document.querySelectorAll('[data-testid="toast"]').forEach((node) => {
+          if (seen.has(node)) return;
+          seen.add(node);
+          console.debug("__toast__:" + (node.textContent ?? ""));
+        });
+      new MutationObserver(scan).observe(document, { childList: true, subtree: true, characterData: true });
+    });
+    page.on("console", (message) => {
+      if (message.text().startsWith("__toast__:")) messages.push(message.text().slice("__toast__:".length));
+    });
+    await run(messages);
+  },
+  /** Native browser dialogs. The app should not raise any; they are accepted so a test cannot hang. */
+  nativeDialogs: async ({ page }, run) => {
     const messages: string[] = [];
     page.on("dialog", async (dialog) => {
       messages.push(dialog.message());
@@ -54,7 +75,8 @@ export async function register(page: Page, email = uniqueEmail(), name = "E2E Sh
   await page.goto("/register");
   await page.getByPlaceholder("Full name").fill(name);
   await page.getByPlaceholder("customer@gmail.com").fill(email);
-  await page.getByPlaceholder("Enter password").fill(PASSWORD);
+  await page.getByPlaceholder(/choose a password/i).fill(PASSWORD);
+  await page.getByLabel(/confirm password/i).fill(PASSWORD);
   await page.getByRole("button", { name: /create account/i }).click();
   await page.waitForURL("**/");
   return { email, name };

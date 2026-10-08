@@ -56,6 +56,8 @@ class RegisterSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=150)
     email = serializers.EmailField(max_length=150)
     password = serializers.CharField(write_only=True, trim_whitespace=False)
+    # Optional so older clients keep working; the web form always sends it.
+    password_confirm = serializers.CharField(write_only=True, required=False, allow_blank=True, trim_whitespace=False)
 
     def validate_email(self, value):
         if email_is_taken(value):
@@ -63,6 +65,9 @@ class RegisterSerializer(serializers.Serializer):
         return value.lower()
 
     def validate(self, attrs):
+        confirm = attrs.pop('password_confirm', None)
+        if confirm is not None and confirm != attrs['password']:
+            raise serializers.ValidationError({'password_confirm': ['Passwords do not match.']})
         candidate = User(username=attrs['email'], email=attrs['email'], first_name=attrs['name'])
         try:
             validate_password(attrs['password'], user=candidate)
@@ -73,6 +78,20 @@ class RegisterSerializer(serializers.Serializer):
 
 class MeUpdateSerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=150, required=False)
+
+    def validate_cultural_preference(self, value):
+        from catalog.models import Style
+        names = {n.lower(): n for n in Style.objects.filter(is_active=True).values_list('name', flat=True)}
+        if names and value.lower() not in names:
+            raise serializers.ValidationError(f"Unknown style. Use one of: {', '.join(sorted(names.values()))}.")
+        return names.get(value.lower(), value)
+
+    def validate_preferred_style(self, value):
+        from catalog.models import Style
+        slugs = set(Style.objects.filter(is_active=True).values_list('slug', flat=True)) | {'mixed'}
+        if value.lower() not in slugs:
+            raise serializers.ValidationError(f"Unknown style. Use one of: {', '.join(sorted(slugs))}.")
+        return value.lower()
 
     class Meta:
         model = UserProfile

@@ -32,9 +32,12 @@ import {
 } from "lucide-react";
 import { PLACEHOLDER_IMAGE } from "@/lib/config";
 import { ApiError } from "@/lib/api";
+import { catalogApi, type ApiCategory, type ApiStyle } from "@/features/catalog/api";
+import AdminTaxonomy from "@/components/AdminTaxonomy";
 import { useNavigate } from "@/lib/navigation";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { adminApi } from "@/features/admin/api";
+import { notify } from "@/lib/notify";
 
 type DashboardData = {
   total_products: number;
@@ -133,21 +136,6 @@ type ActiveTab =
   | "team"
   | "settings";
 
-const categories = [
-  "Men Shirt",
-  "Men Pant",
-  "Men Shoes",
-  "Men Cap",
-  "Men Shalwar Kameez",
-  "Men Sandals",
-  "Women Kurta",
-  "Women Shalwar Kameez",
-  "Women Footwear",
-  "Women Pant",
-  "Women Shirt",
-];
-
-const styles = ["Eastern", "Western", "Formal", "Casual"];
 const skinTones = ["Fair", "Medium", "Dark"];
 const statuses = ["Active", "Inactive", "Out of Stock"];
 
@@ -228,6 +216,16 @@ function getImage(product: Product) {
   return product.image_url || product.image || PLACEHOLDER_IMAGE;
 }
 
+/** One readable line from a DRF error body such as {category: ["Unknown category..."]}. */
+function describeApiErrors(details: unknown): string {
+  if (!details || typeof details !== "object") return "check the fields and try again.";
+  const body = (details as { errors?: unknown }).errors ?? details;
+  if (!body || typeof body !== "object") return "check the fields and try again.";
+  return Object.entries(body as Record<string, unknown>)
+    .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(" ") : String(messages)}`)
+    .join(" ");
+}
+
 export default function AdminView() {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -241,6 +239,10 @@ export default function AdminView() {
 
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [categoryRows, setCategoryRows] = useState<ApiCategory[]>([]);
+  const [styleRows, setStyleRows] = useState<ApiStyle[]>([]);
+  const categories = categoryRows.filter((row) => row.is_active).map((row) => row.name);
+  const styles = styleRows.filter((row) => row.is_active).map((row) => row.name);
   const [orders, setOrders] = useState<Order[]>([]);
 
   const groupedOrders = useMemo(() => {
@@ -302,13 +304,15 @@ export default function AdminView() {
 
   const fetchAllData = async () => {
     try {
-      const [dashboardData, productsData, ordersData, bookingsData, faceScansData] =
+      const [dashboardData, productsData, ordersData, bookingsData, faceScansData, categoriesData, stylesData] =
         await Promise.all([
           adminApi.dashboard<{ dashboard: DashboardData }>(),
           adminApi.products<{ products?: Product[] }>(),
           adminApi.orders<{ orders?: Order[] }>(),
           adminApi.bookings<{ bookings?: Booking[] }>(),
           adminApi.faceScans<{ face_scan_records?: FaceScanRecord[] }>(),
+          catalogApi.categories(true),
+          catalogApi.styles(true),
         ]);
 
       setDashboard(dashboardData.dashboard);
@@ -316,9 +320,11 @@ export default function AdminView() {
       setOrders(ordersData.orders || []);
       setBookings(bookingsData.bookings || []);
       setFaceScans(faceScansData.face_scan_records || []);
+      setCategoryRows(categoriesData.categories);
+      setStyleRows(stylesData.styles);
     } catch (error) {
       console.error(error);
-      alert("Admin data load nahi hua. Django server check karo.");
+      notify("Admin data could not be loaded. Check that the server is running.");
     } finally {
       setLoading(false);
     }
@@ -390,7 +396,7 @@ export default function AdminView() {
     event.preventDefault();
 
     if (!productForm.name || !productForm.price) {
-      alert("Product name aur selling price required hain.");
+      notify("Product name and selling price are required.");
       return;
     }
 
@@ -430,10 +436,11 @@ export default function AdminView() {
       await loadAllData();
     } catch (error) {
       console.error(error);
-      alert(
+      notify(
         error instanceof ApiError && error.status === 400
-          ? "Product save nahi hua. Fields check karo."
-          : "Product save karte waqt error aaya.",
+          ? `The product was not saved: ${describeApiErrors(error.details)}`
+          : "The product could not be saved. Please try again.",
+        "error",
       );
     }
   };
@@ -449,7 +456,7 @@ export default function AdminView() {
       await loadAllData();
     } catch (error) {
       console.error(error);
-      alert("Delete karte waqt error aaya.");
+      notify("Could not delete. Please try again.");
     }
   };
 
@@ -460,7 +467,7 @@ export default function AdminView() {
       await loadAllData();
     } catch (error) {
       console.error(error);
-      alert("Booking status update karte waqt error aaya.");
+      notify("Could not update the booking status. Please try again.");
     }
   };
 
@@ -475,7 +482,7 @@ export default function AdminView() {
       await loadAllData();
     } catch (error) {
       console.error(error);
-      alert("Booking delete karte waqt error aaya.");
+      notify("Could not delete the booking. Please try again.");
     }
   };
 
@@ -516,7 +523,7 @@ export default function AdminView() {
       await loadAllData();
     } catch (error) {
       console.error(error);
-      alert("Order status update karte waqt error aaya.");
+      notify("Could not update the order status. Please try again.");
     }
   };
 
@@ -548,14 +555,14 @@ export default function AdminView() {
       await loadAllData();
     } catch (error) {
       console.error(error);
-      alert("Order delete karte waqt error aaya.");
+      notify("Could not delete the order. Please try again.");
     }
   };
 
   const navItems = [
     { id: "dashboard" as ActiveTab, label: "Dashboard", icon: LayoutDashboard },
     { id: "products" as ActiveTab, label: "Products", icon: Package },
-    { id: "styles" as ActiveTab, label: "Styles", icon: Tags },
+    { id: "styles" as ActiveTab, label: "Categories & Styles", icon: Tags },
     { id: "skinTone" as ActiveTab, label: "Skin Tone Matrix", icon: Palette },
     { id: "outfitRules" as ActiveTab, label: "Outfit Rules", icon: Sparkles },
     { id: "orders" as ActiveTab, label: "Orders", icon: ShoppingCart },
@@ -645,8 +652,8 @@ export default function AdminView() {
               </h2>
 
               <p className="text-sm text-slate-500 mt-2">
-                Products, orders, bookings, skin tone records aur outfit
-                recommendation data manage karo.
+                Manage products, orders, bookings, skin tone records and
+                outfit recommendation data.
               </p>
             </div>
 
@@ -907,22 +914,7 @@ export default function AdminView() {
             </section>
           )}
 
-          {activeTab === "styles" && (
-            <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-              {styles.map((style) => (
-                <MetricCard
-                  key={style}
-                  title={`${style} Products`}
-                  value={
-                    products.filter((item) => item.cultural_tag === style)
-                      .length
-                  }
-                  icon={<Tags className="w-5 h-5" />}
-                  note="Fixed style category"
-                />
-              ))}
-            </section>
-          )}
+          {activeTab === "styles" && <AdminTaxonomy />}
 
           {activeTab === "skinTone" && (
             <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -979,7 +971,7 @@ export default function AdminView() {
                 <div className="space-y-3">
                   <LogicItem text="Same Style: Eastern, Western, Formal, Casual" />
                   <LogicItem text="Same Skin Tone: Fair, Medium, Dark" />
-                  <LogicItem text="Selected item ko exclude karke missing categories recommend hoti hain" />
+                  <LogicItem text="Missing categories are recommended, leaving out the selected item" />
                   <LogicItem text="Reverse recommendation supported: Shoes/Pant/Accessory select karne par bhi outfit complete hota hai" />
                 </div>
               </Panel>
@@ -1619,7 +1611,7 @@ export default function AdminView() {
                 </h3>
 
                 <p className="text-sm text-slate-500 font-semibold mt-1">
-                  Wear Right catalog item create/update karo.
+                  Create or update a Wear Right catalog item.
                 </p>
               </div>
 
@@ -1808,7 +1800,7 @@ export default function AdminView() {
 
                 {editingProduct && (
                   <p className="text-xs text-slate-400 font-semibold mt-2">
-                    Image select na karo to old image same rahegi.
+                    If you do not choose an image, the current one is kept.
                   </p>
                 )}
               </div>

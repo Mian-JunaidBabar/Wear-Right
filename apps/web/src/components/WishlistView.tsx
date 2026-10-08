@@ -7,6 +7,7 @@ import { ArrowLeft, Heart, ShoppingBag, ShoppingCart } from "lucide-react";
 import { CartProduct } from "@/features/cart/types";
 import { useCart } from "@/features/cart/useCart";
 import { useWishlist } from "@/features/wishlist/useWishlist";
+import { notify } from "@/lib/notify";
 
 function formatPKR(value: string | number | undefined) {
   const num = Number(value || 0);
@@ -32,7 +33,7 @@ export default function WishlistView() {
       product.status === "Out of Stock" ||
       product.status === "Inactive"
     ) {
-      alert("This product is currently out of stock.");
+      notify("This product is currently out of stock.");
       return;
     }
 

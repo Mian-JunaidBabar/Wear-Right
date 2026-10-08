@@ -24,7 +24,7 @@ type AuthApi = {
   /** True until we know whether there is a session. */
   loading: boolean;
   login: (identifier: string, password: string) => Promise<Session>;
-  register: (input: { name: string; email: string; password: string }) => Promise<Session>;
+  register: (input: { name: string; email: string; password: string; password_confirm?: string }) => Promise<Session>;
   logout: () => Promise<void>;
   updateProfile: (patch: ProfilePatch) => Promise<Session>;
   /** Remember a scan result for this visit; signed-in users also get it saved to their profile. */
@@ -107,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return next;
   }, []);
 
-  const register = useCallback(async (input: { name: string; email: string; password: string }) => {
+  const register = useCallback(async (input: { name: string; email: string; password: string; password_confirm?: string }) => {
     const next = await authApi.register(input);
     setSession(next);
     return next;

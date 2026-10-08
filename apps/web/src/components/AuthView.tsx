@@ -19,6 +19,9 @@ interface AuthViewProps {
   mode: "login" | "register";
 }
 
+/** Mirrors the server's only password rule (a minimum length), so the form can say so before sending. */
+const MIN_PASSWORD_LENGTH = 6;
+
 export default function AuthView({ mode }: AuthViewProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -31,6 +34,7 @@ export default function AuthView({ mode }: AuthViewProps) {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -53,14 +57,26 @@ export default function AuthView({ mode }: AuthViewProps) {
       return;
     }
 
+    if (!isSignIn && password.length < MIN_PASSWORD_LENGTH) {
+      setErrorMsg(`Your password needs at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
+
+    if (!isSignIn && password !== confirmPassword) {
+      setErrorMsg("The two passwords do not match.");
+      return;
+    }
+
     try {
       setSubmitting(true);
       if (isSignIn) {
         await login(email.trim(), password);
       } else {
-        await register({ name: name.trim(), email: email.trim(), password });
+        await register({ name: name.trim(), email: email.trim(), password, password_confirm: confirmPassword });
       }
       setPassword("");
+    setConfirmPassword("");
+      setConfirmPassword("");
       navigate(nextPath);
     } catch (error) {
       setErrorMsg(error instanceof Error ? error.message : "Something went wrong. Please try again.");
@@ -78,6 +94,7 @@ export default function AuthView({ mode }: AuthViewProps) {
   const handleSignOut = async () => {
     await logout();
     setPassword("");
+    setConfirmPassword("");
     setSuccessMsg("Signed out successfully.");
   };
 
@@ -268,7 +285,7 @@ export default function AuthView({ mode }: AuthViewProps) {
                         autoComplete={isSignIn ? "current-password" : "new-password"}
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
-                        placeholder="Enter password"
+                        placeholder={isSignIn ? "Enter password" : `Choose a password (${MIN_PASSWORD_LENGTH}+ characters)`}
                         className="w-full bg-cream-base border border-brand-border/60 rounded-xl px-4 py-4 pr-12 text-sm font-semibold outline-none focus:ring-2 focus:ring-sage-green/20 focus:border-sage-green"
                       />
 
@@ -285,6 +302,27 @@ export default function AuthView({ mode }: AuthViewProps) {
                       </button>
                     </div>
                   </div>
+
+                  {!isSignIn && (
+                    <div>
+                      <label htmlFor="confirm-password" className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
+                        Confirm Password
+                      </label>
+                      <input
+                        id="confirm-password"
+                        type={showPassword ? "text" : "password"}
+                        autoComplete="new-password"
+                        value={confirmPassword}
+                        onChange={(event) => setConfirmPassword(event.target.value)}
+                        placeholder="Type the password again"
+                        aria-invalid={confirmPassword.length > 0 && confirmPassword !== password}
+                        className="w-full bg-cream-base border border-brand-border/60 rounded-xl px-4 py-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-sage-green/20 focus:border-sage-green"
+                      />
+                      {confirmPassword.length > 0 && confirmPassword !== password && (
+                        <p className="text-xs font-bold text-red-600 mt-2">The passwords do not match yet.</p>
+                      )}
+                    </div>
+                  )}
 
                   {isSignIn && (
                     <div className="flex items-center justify-end">

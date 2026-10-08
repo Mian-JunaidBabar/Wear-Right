@@ -192,3 +192,17 @@ def test_blank_external_id_is_stored_as_null_so_products_do_not_collide(staff_cl
     assert first.status_code == 201 and second.status_code == 201
     assert first.json()["product"]["external_id"] is None
     assert second.json()["product"]["external_id"] is None
+
+
+def test_an_unexpected_crash_is_a_json_500_with_a_friendly_message(monkeypatch):
+    from rest_framework.test import APIClient
+
+    def boom(**kwargs):
+        raise RuntimeError("database exploded")
+
+    monkeypatch.setattr("accounts.views.register_user", boom)
+    client = APIClient(raise_request_exception=False)
+    r = client.post("/api/auth/register/", {"name": "A B", "email": "a@example.com", "password": "secret1"}, format="json")
+    assert r.status_code == 500
+    assert r.json()["error"]["code"] == "ServerError" and "try again" in r.json()["error"]["message"]
+    assert "exploded" not in r.content.decode()  # the cause is logged, not shown to shoppers

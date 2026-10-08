@@ -14,10 +14,20 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { ApiError } from "@/lib/api";
 import { scannerApi } from "@/features/scanner/api";
 import { recommenderApi, type Palette as TonePalette } from "@/features/recommender/api";
 
 type ScanState = "idle" | "camera" | "scanning" | "complete" | "error";
+
+/** Say what actually went wrong: the server's own message when it answered, otherwise that it could not be reached. */
+function scanErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 503) return `The face scanner is not ready on the server. ${error.message}`;
+    return `The scan could not be analysed: ${error.message}`;
+  }
+  return "We could not reach the server. Check that it is running and try again.";
+}
 
 export default function FaceScanView() {
   const navigate = useNavigate();
@@ -271,9 +281,7 @@ export default function FaceScanView() {
     } catch (error) {
       console.error("Scan API Error:", error);
       setScanState("error");
-      setErrorMessage(
-        "Unable to analyze image. Make sure Django backend is running.",
-      );
+      setErrorMessage(scanErrorMessage(error));
     }
   };
 

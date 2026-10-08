@@ -70,7 +70,7 @@ test("7d. guest checkout is sent to login and the cart is kept", async ({ page, 
   await page.getByTitle("Cart").click();
   await page.getByRole("button", { name: /^checkout$/i }).first().click();
   await expect(page).toHaveURL(/\/login\?next=/);
-  expect(dialogs.some((m) => /log in to check out/i.test(m))).toBe(true);
+  await expect.poll(() => dialogs.some((m) => /log in to check out/i.test(m))).toBe(true);
   await page.goto("/");
   await expect(page.getByTitle("Cart").locator("span")).toHaveText("1");
 });

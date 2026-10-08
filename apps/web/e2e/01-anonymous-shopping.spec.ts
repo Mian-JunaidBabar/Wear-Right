@@ -27,7 +27,8 @@ test("1. anonymous: home loads, seeded products show in the shop, product page o
   await expect(cartBadge).toHaveText("0");
   await page.getByRole("button", { name: /add to cart/i }).first().click();
   await expect(cartBadge).toHaveText("1");
-  expect(dialogs.some((message) => message.includes("Beige Structured Blazer added to cart"))).toBe(true);
+  await expect.poll(() => dialogs.some((message) => message.includes("Beige Structured Blazer added to cart"))).toBe(true);
+  await expect(page.getByTestId("toast").first()).toContainText("added to cart");
 
   await page.reload();
   await expect(page.getByTitle("Cart").locator("span")).toHaveText("1");

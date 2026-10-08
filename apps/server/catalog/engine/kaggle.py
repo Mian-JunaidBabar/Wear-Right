@@ -18,7 +18,10 @@ ARTICLE_SLOT = {
     "Casual Shoes": "footwear", "Formal Shoes": "footwear", "Sports Shoes": "footwear",
     "Sandals": "footwear", "Flip Flops": "footwear", "Heels": "footwear", "Flats": "footwear",
     "Ties": "accessory", "Watches": "accessory", "Belts": "accessory", "Caps": "accessory", "Sunglasses": "accessory",
-    "Dupatta": "dupatta",
+    "Dupatta": "dupatta", "Stoles": "dupatta",
+    # Women's and regional wear (added so the shop is not mostly men's casual wear)
+    "Kurtis": "kurta", "Tunics": "top", "Skirts": "bottom", "Patiala": "bottom",
+    "Nehru Jackets": "outerwear", "Sweatshirts": "outerwear", "Sweaters": "outerwear",
 }
 GENDER = {"Men": "men", "Women": "women", "Unisex": "unisex"}
 
@@ -42,6 +45,15 @@ CATEGORY_FOR = {
     ("women", "dupatta"): "Women Dupatta",
 }
 
+# Article types that get their own category instead of the (gender, slot) one.
+ARTICLE_CATEGORY = {
+    "Salwar": "Women Shalwar", "Churidar": "Women Shalwar", "Patiala": "Women Shalwar", "Skirts": "Women Skirt",
+    "Nehru Jackets": "Men Waistcoat", "Waistcoat": "Men Waistcoat",
+    "Watches": "Watches", "Sunglasses": "Sunglasses", "Belts": "Belts", "Ties": "Ties", "Caps": "Caps",
+}
+# Only apply an article category when it fits the shopper group (a Nehru jacket is men's, a salwar women's).
+ARTICLE_GENDER = {"Women Shalwar": "women", "Women Skirt": "women", "Men Waistcoat": "men"}
+
 GARMENT_TYPE = {
     "top": "Top", "kurta": "Top", "outerwear": "Top", "bottom": "Bottom",
     "footwear": "Footwear", "accessory": "Accessory", "dupatta": "Accessory",
@@ -63,6 +75,7 @@ class StyleRecord:
     slot: str
     usage: str
     base_colour: str
+    article: str = ""   # the dataset's articleType, e.g. "Watches"
 
 
 REQUIRED_COLUMNS = ("id", "gender", "articleType", "baseColour", "usage", "productDisplayName")
@@ -87,6 +100,14 @@ def read_styles(path):
     return rows, malformed
 
 
+def category_for(gender, slot, article=""):
+    """The shop category for an item: its article's own category when it has one that fits, else (gender, slot)."""
+    special = ARTICLE_CATEGORY.get(article)
+    if special and ARTICLE_GENDER.get(special, gender) == gender:
+        return special
+    return CATEGORY_FOR.get((gender, slot))
+
+
 def classify(row):
     """Map one styles.csv row to a StyleRecord, or to (None, reason) when it cannot become a product."""
     slot = ARTICLE_SLOT.get(row["articleType"])
@@ -97,7 +118,7 @@ def classify(row):
         return None, REASON_GENDER
     if row["usage"] not in USAGE:
         return None, REASON_USAGE
-    if (gender, slot) not in CATEGORY_FOR:
+    if category_for(gender, slot, row["articleType"]) is None:
         return None, REASON_CATEGORY
     record = StyleRecord(
         image_id=row["id"].strip(),
@@ -106,6 +127,7 @@ def classify(row):
         slot=slot,
         usage=row["usage"],
         base_colour=row["baseColour"].strip(),
+        article=row["articleType"],
     )
     return record, None
 
@@ -123,14 +145,14 @@ def classify_all(rows):
 
 
 def select_records(records, *, limit, seed):
-    """Pick up to `limit` records, spreading them across (gender, slot) groups.
+    """Pick up to `limit` records, spreading them across (gender, slot, article type) groups.
 
     The same seed and input always give the same list, and a larger limit extends a smaller one.
     """
     rng = random.Random(seed)
     groups = {}
     for record in sorted(records, key=lambda item: item.image_id):
-        groups.setdefault((record.gender, record.slot), []).append(record)
+        groups.setdefault((record.gender, record.slot, record.article), []).append(record)
     for group in groups.values():
         rng.shuffle(group)
 
@@ -159,7 +181,7 @@ def product_fields(record, palette):
     return {
         "external_id": record.image_id,
         "name": record.name[:255] or f"Kaggle item {record.image_id}",
-        "category": CATEGORY_FOR[(record.gender, record.slot)],
+        "category": category_for(record.gender, record.slot, record.article),
         "garment_type": GARMENT_TYPE[record.slot],
         "slot": record.slot,
         "gender": record.gender,

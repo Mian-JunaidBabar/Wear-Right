@@ -24,7 +24,8 @@ import { notify } from "@/lib/notify";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useCart } from "@/features/cart/useCart";
 import { useWishlist } from "@/features/wishlist/useWishlist";
-import { catalogApi } from "@/features/catalog/api";
+import { catalogApi, type ApiCategory, type ApiStyle } from "@/features/catalog/api";
+import OutfitPreviewModal from "@/components/OutfitPreviewModal";
 import { ordersApi, orderErrorMessage } from "@/features/orders/api";
 
 interface ApiProduct {
@@ -54,95 +55,23 @@ type ShopProduct = Product & {
   image_url?: string | null;
 };
 
-type OutfitItem = {
-  name?: string;
-  image_url?: string | null;
-  image?: string | null;
-};
-
-type GeneratedOutfit = {
-  main_item?: OutfitItem;
-  outfit?: {
-    shirt?: OutfitItem | null;
-    pant?: OutfitItem | null;
-    pants_or_jeans?: OutfitItem | null;
-    shoes?: OutfitItem | null;
-    accessory?: OutfitItem | null;
-    coat_or_jacket?: OutfitItem | null;
-  };
-};
-
 type GenderType = "Men" | "Women";
 
 type ShopCategoryItem = {
   label: string;
   value: string;
   image: string;
+  group: string;
+  gender: ApiCategory["gender"];
 };
 
-const categoryGroups: Record<GenderType, ShopCategoryItem[]> = {
-  Men: [
-    {
-      label: "Men Shirt",
-      value: "Men Shirt",
-      image: "/category-images/men-shirt.jpg",
-    },
-    {
-      label: "Men Pant",
-      value: "Men Pant",
-      image: "/category-images/men-pant.jpg",
-    },
-    {
-      label: "Men Shoes",
-      value: "Men Shoes",
-      image: "/category-images/men-shoes.jpg",
-    },
-    {
-      label: "Men Cap",
-      value: "Men Cap",
-      image: "/category-images/men-cap.jpg",
-    },
-    {
-      label: "Men Shalwar Kameez",
-      value: "Men Shalwar Kameez",
-      image: "/category-images/men-shalwar-kameez.jpg",
-    },
-    {
-      label: "Men Sandals",
-      value: "Men Sandals",
-      image: "/category-images/men-sandals.jpg",
-    },
-  ],
-  Women: [
-    {
-      label: "Women Kurta",
-      value: "Women Kurta",
-      image: "/category-images/women-kurta.jpg",
-    },
-    {
-      label: "Women Shalwar Kameez",
-      value: "Women Shalwar Kameez",
-      image: "/category-images/women-shalwar-kameez.jpg",
-    },
-    {
-      label: "Women Footwear",
-      value: "Women Footwear",
-      image: "/category-images/women-footwear.jpg",
-    },
-    {
-      label: "Women Pant",
-      value: "Women Pant",
-      image: "/category-images/women-pant.jpg",
-    },
-    {
-      label: "Women Shirt",
-      value: "Women Shirt",
-      image: "/category-images/women-shirt.jpg",
-    },
-  ],
-};
-
-const allCategoryItems = [...categoryGroups.Men, ...categoryGroups.Women];
+const toShopCategory = (category: ApiCategory): ShopCategoryItem => ({
+  label: category.name,
+  value: category.name,
+  image: category.image || category.cover || "",
+  group: category.group,
+  gender: category.gender,
+});
 
 const getCategoryPlaceholder = (category: string) => {
   return `https://placehold.co/900x550/eef2ff/1e293b?text=${encodeURIComponent(category)}`;
@@ -174,9 +103,9 @@ export default function ShopView() {
   const [categorySort, setCategorySort] = useState<
     "newest" | "match" | "priceAsc" | "priceDesc"
   >("newest");
-  const [selectedCultureStyle, setSelectedCultureStyle] = useState<
-    "All" | "Eastern" | "Western" | "Casual" | "Formal"
-  >("All");
+  const [selectedCultureStyle, setSelectedCultureStyle] = useState<string>("All");
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [styles, setStyles] = useState<ApiStyle[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(
     null,
   );
@@ -189,9 +118,6 @@ export default function ShopView() {
   const [orderSubmitting, setOrderSubmitting] = useState(false);
 
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [generatedOutfit, setGeneratedOutfit] =
-    useState<GeneratedOutfit | null>(null);
 
   const [orderForm, setOrderForm] = useState({
     customer_name: "",
@@ -204,48 +130,9 @@ export default function ShopView() {
 
   const placeholderImage = PLACEHOLDER_IMAGE;
 
-  const normalizeCategory = (category?: string) => {
-    if (!category) return "Men Shirt";
+  const normalizeCategory = (category?: string) => category || "";
 
-    const legacyCategoryMap: Record<string, string> = {
-      Shirt: "Men Shirt",
-      Pant: "Men Pant",
-      Pants: "Men Pant",
-      Shoes: "Men Shoes",
-      Cap: "Men Cap",
-      "Shalwar Kameez": "Men Shalwar Kameez",
-      Sandals: "Men Sandals",
-      Chappals: "Men Sandals",
-      Accessory: "Men Cap",
-      Accessories: "Men Cap",
-      Waistcoat: "Men Shalwar Kameez",
-      "Waist Coat": "Men Shalwar Kameez",
-      Kurta: "Women Kurta",
-      Kurtas: "Women Kurta",
-      "Women Shalwar Kameez": "Women Shalwar Kameez",
-      "Women Footwear": "Women Footwear",
-      "Women Pant": "Women Pant",
-      "Women Shirt": "Women Shirt",
-    };
-
-    if (legacyCategoryMap[category]) {
-      return legacyCategoryMap[category];
-    }
-
-    return category;
-  };
-
-  const normalizeStyle = (style?: string) => {
-    if (!style) return "Casual";
-    const value = style.toLowerCase();
-
-    if (value.includes("eastern")) return "Eastern";
-    if (value.includes("western")) return "Western";
-    if (value.includes("formal")) return "Formal";
-    if (value.includes("casual")) return "Casual";
-
-    return "Casual";
-  };
+  const normalizeStyle = (style?: string) => style || "Casual";
 
   const getProductImage = (item: ApiProduct) => {
     const image = item.image_url || item.image || placeholderImage;
@@ -323,16 +210,32 @@ export default function ShopView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    catalogApi
+      .categories()
+      .then((data) => !cancelled && setCategories(data.categories))
+      .catch(() => undefined);
+    catalogApi
+      .styles()
+      .then((data) => !cancelled && setStyles(data.styles))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const getCategoryProducts = (category: string) => {
     return apiProducts.filter((product) => product.category === category);
   };
 
   const getCategoryImage = (categoryItem: ShopCategoryItem) => {
-    return categoryItem.image;
+    return categoryItem.image || getCategoryPlaceholder(categoryItem.label);
   };
 
   const getActiveCategoryItem = () => {
-    return allCategoryItems.find((item) => item.value === activeCategory);
+    const found = categories.find((item) => item.name === activeCategory);
+    return found ? toShopCategory(found) : undefined;
   };
 
   const getActiveCategoryTitle = () => {
@@ -346,7 +249,7 @@ export default function ShopView() {
       return getCategoryPlaceholder(activeCategory || "Category");
     }
 
-    return activeItem.image;
+    return activeItem.image || getCategoryPlaceholder(activeItem.label);
   };
 
   const openCategoryPage = (category: string) => {
@@ -412,22 +315,9 @@ export default function ShopView() {
     selectedCultureStyle,
   ]);
 
-  const openPreviewModal = async (product: ShopProduct) => {
-    try {
-      setSelectedProduct(product);
-      setPreviewLoading(true);
-      setGeneratedOutfit(null);
-      setIsPreviewModalOpen(true);
-
-      const data = await catalogApi.outfit<GeneratedOutfit>(product.id);
-      setGeneratedOutfit(data);
-    } catch (error) {
-      console.error("Preview API Error:", error);
-      alert("Unable to load mannequin preview from backend API.");
-      setIsPreviewModalOpen(false);
-    } finally {
-      setPreviewLoading(false);
-    }
+  const openPreviewModal = (product: ShopProduct) => {
+    setSelectedProduct(product);
+    setIsPreviewModalOpen(true);
   };
 
   const formatPrice = (price: number | string) => {
@@ -465,12 +355,12 @@ Please share more details.`;
     if (!requireLoginToOrder()) return;
 
     if (!selectedProduct) {
-      alert("Product is not selected.");
+      notify("Product is not selected.");
       return;
     }
 
     if (isOutOfStock(selectedProduct)) {
-      alert("This product is currently out of stock.");
+      notify("This product is currently out of stock.");
       return;
     }
 
@@ -488,7 +378,7 @@ Please share more details.`;
 
   const handleAddToCart = (product: ShopProduct) => {
     if (isOutOfStock(product)) {
-      alert("This product is currently out of stock.");
+      notify("This product is currently out of stock.");
       return;
     }
 
@@ -499,7 +389,7 @@ Please share more details.`;
     if (!requireLoginToOrder()) return;
 
     if (isOutOfStock(product)) {
-      alert("This product is currently out of stock.");
+      notify("This product is currently out of stock.");
       return;
     }
 
@@ -544,7 +434,7 @@ Please share more details.`;
     event.preventDefault();
 
     if (!selectedProduct) {
-      alert("Product is not selected.");
+      notify("Product is not selected.");
       return;
     }
 
@@ -555,24 +445,24 @@ Please share more details.`;
       !orderForm.customer_phone ||
       !orderForm.customer_address
     ) {
-      alert("Name, phone and address are required.");
+      notify("Name, phone and address are required.");
       return;
     }
 
     if (requestedQuantity <= 0) {
-      alert("Quantity must be 1 or greater.");
+      notify("Quantity must be 1 or greater.");
       return;
     }
 
     if (requestedQuantity > selectedProduct.stock_quantity) {
-      alert(
+      notify(
         `Only ${selectedProduct.stock_quantity} item(s) available in stock.`,
       );
       return;
     }
 
     if (isOutOfStock(selectedProduct)) {
-      alert("This product is currently out of stock.");
+      notify("This product is currently out of stock.");
       return;
     }
 
@@ -590,7 +480,7 @@ Please share more details.`;
         payment_status: orderForm.payment_status,
       });
 
-      alert("Order placed successfully. Admin panel will show this order.");
+      notify("Order placed successfully. Admin panel will show this order.");
 
       setIsOrderModalOpen(false);
       setIsPreviewModalOpen(false);
@@ -598,20 +488,17 @@ Please share more details.`;
       await refreshProducts();
     } catch (error) {
       console.error("Order API Error:", error);
-      alert(orderErrorMessage(error));
+      notify(orderErrorMessage(error));
     } finally {
       setOrderSubmitting(false);
     }
   };
 
-  const getOutfitImage = (
-    item?: { image_url?: string | null; image?: string | null } | null,
-  ) => {
-    if (!item) return placeholderImage;
-    return item.image_url || item.image || placeholderImage;
-  };
-
-  const visibleCategories = categoryGroups[selectedGender];
+  // Men and Women tabs; unisex categories (watches, belts, ...) show under both. Empty categories stay hidden.
+  const visibleCategories = categories
+    .filter((category) => category.product_count > 0 || apiProducts.some((product) => product.category === category.name))
+    .filter((category) => category.gender === selectedGender.toLowerCase() || category.gender === "unisex")
+    .map(toShopCategory);
 
   return (
     <div className="w-full bg-cream-base pb-24 text-left font-sans flex flex-col items-center">
@@ -721,6 +608,11 @@ Please share more details.`;
                         <div className="absolute top-4 right-4 bg-white/95 text-brand-dark px-3 py-1 rounded-full text-xs font-black shadow">
                           {count} {count === 1 ? "product" : "products"}
                         </div>
+                        {categoryItem.group && (
+                          <div className="absolute top-4 left-4 bg-amber-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow">
+                            {categoryItem.group}
+                          </div>
+                        )}
                       </div>
 
                       <div className="p-5 text-center">
@@ -787,9 +679,7 @@ Please share more details.`;
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  {(
-                    ["All", "Eastern", "Western", "Casual", "Formal"] as const
-                  ).map((styleOption) => (
+                  {["All", ...styles.map((style) => style.name)].map((styleOption) => (
                     <button
                       key={styleOption}
                       onClick={() => setSelectedCultureStyle(styleOption)}
@@ -1229,138 +1119,15 @@ Please share more details.`;
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {isPreviewModalOpen && selectedProduct && (
-          <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white max-w-5xl w-full rounded-2xl shadow-2xl overflow-hidden border border-brand-border/60 relative text-left"
-            >
-              <button
-                onClick={() => setIsPreviewModalOpen(false)}
-                className="absolute top-4 right-4 bg-cream-card/60 hover:bg-slate-200 text-slate-600 rounded-full p-1.5 transition-colors focus:outline-none z-10 shadow cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2">
-                <div className="bg-slate-950 p-8 flex items-center justify-center min-h-[520px]">
-                  <div className="w-full max-w-sm bg-white/10 border border-white/10 rounded-[2rem] p-6 text-center">
-                    <div className="mx-auto w-44 h-72 rounded-full bg-gradient-to-b from-slate-200 to-slate-400 border-8 border-white/10 shadow-2xl relative overflow-hidden">
-                      <div className="absolute top-5 left-1/2 -translate-x-1/2 w-16 h-16 bg-cream-card/60 rounded-full border-4 border-white shadow" />
-                      <div className="absolute top-24 left-1/2 -translate-x-1/2 w-28 h-28 bg-blue-600 rounded-3xl shadow-xl flex items-center justify-center">
-                        <Shirt className="w-10 h-10 text-white" />
-                      </div>
-                      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-24 h-28 bg-slate-800 rounded-b-3xl shadow-xl" />
-                    </div>
-
-                    <p className="text-white text-xs font-black uppercase tracking-widest mt-6">
-                      Virtual Mannequin Preview
-                    </p>
-                    <p className="text-slate-400 text-xs font-semibold mt-2">
-                      This is a simple preview before final order. Advanced AI
-                      model training can be added later.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-8">
-                  <p className="text-[10px] uppercase text-sage-green font-extrabold tracking-widest">
-                    Outfit Preview
-                  </p>
-
-                  <h3 className="text-2xl font-bold text-brand-dark mt-1">
-                    See how this outfit may look
-                  </h3>
-
-                  <p className="text-xs text-slate-500 font-semibold mt-2">
-                    This preview helps the customer understand the selected
-                    outfit before placing the final order.
-                  </p>
-
-                  <div className="h-px bg-cream-card/60 my-6" />
-
-                  {previewLoading ? (
-                    <div className="py-20 text-center">
-                      <p className="text-sm font-bold text-slate-700">
-                        Generating preview...
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Please wait.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <PreviewItem
-                        title="Main Product"
-                        name={
-                          generatedOutfit?.main_item?.name ||
-                          selectedProduct.name
-                        }
-                        image={getOutfitImage(generatedOutfit?.main_item)}
-                        placeholderImage={placeholderImage}
-                      />
-
-                      <PreviewItem
-                        title="Pants / Jeans"
-                        name={
-                          generatedOutfit?.outfit?.pant?.name ||
-                          generatedOutfit?.outfit?.pants_or_jeans?.name ||
-                          "Not available"
-                        }
-                        image={getOutfitImage(
-                          generatedOutfit?.outfit?.pant ||
-                            generatedOutfit?.outfit?.pants_or_jeans,
-                        )}
-                        placeholderImage={placeholderImage}
-                      />
-
-                      <PreviewItem
-                        title="Shoes"
-                        name={
-                          generatedOutfit?.outfit?.shoes?.name ||
-                          "Not available"
-                        }
-                        image={getOutfitImage(generatedOutfit?.outfit?.shoes)}
-                        placeholderImage={placeholderImage}
-                      />
-
-                      <PreviewItem
-                        title="Accessory"
-                        name={
-                          generatedOutfit?.outfit?.accessory?.name ||
-                          "Not available"
-                        }
-                        image={getOutfitImage(
-                          generatedOutfit?.outfit?.accessory,
-                        )}
-                        placeholderImage={placeholderImage}
-                      />
-
-                      <button
-                        onClick={openOrderModal}
-                        disabled={isOutOfStock(selectedProduct)}
-                        className={`w-full mt-6 text-white text-xs font-bold uppercase tracking-wider py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md ${
-                          isOutOfStock(selectedProduct)
-                            ? "bg-slate-300 cursor-not-allowed"
-                            : "bg-brand-gold hover:opacity-90 cursor-pointer shadow-brand-gold/10"
-                        }`}
-                      >
-                        <ShoppingBag className="w-4 h-4 text-white/80" />
-                        {isOutOfStock(selectedProduct)
-                          ? "Out of Stock"
-                          : "Continue to Order"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {isPreviewModalOpen && selectedProduct && (
+        <OutfitPreviewModal
+          productId={selectedProduct.id}
+          outOfStock={isOutOfStock(selectedProduct)}
+          onClose={() => setIsPreviewModalOpen(false)}
+          onOrder={openOrderModal}
+          onFullLook={() => navigate(`/complete-outfit?productId=${selectedProduct.id}&skinTone=${(user.contrastType || "medium").toLowerCase()}`)}
+        />
+      )}
 
       <AnimatePresence>
         {isOrderModalOpen && selectedProduct && (
@@ -1539,35 +1306,3 @@ function InfoBox({ label, value }: { label: string; value: string }) {
   );
 }
 
-function PreviewItem({
-  title,
-  name,
-  image,
-  placeholderImage,
-}: {
-  title: string;
-  name: string;
-  image: string;
-  placeholderImage: string;
-}) {
-  return (
-    <div className="flex items-center gap-4 p-3 bg-cream-base border border-slate-100 rounded-xl">
-      <img
-        src={image}
-        alt={name}
-        className="w-16 h-16 rounded-xl object-cover bg-white border border-brand-border/60"
-        onError={(event) => {
-          event.currentTarget.src = placeholderImage;
-        }}
-      />
-
-      <div>
-        <p className="text-[10px] uppercase text-slate-400 font-black tracking-widest">
-          {title}
-        </p>
-
-        <p className="text-sm font-black text-brand-dark mt-1">{name}</p>
-      </div>
-    </div>
-  );
-}

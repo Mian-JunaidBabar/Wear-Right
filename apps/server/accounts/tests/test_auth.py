@@ -52,8 +52,8 @@ def test_register_rejects_duplicate_email_case_insensitively(api_client):
     assert User.objects.filter(email__iexact="taken@example.com").count() == 1
 
 
-@pytest.mark.parametrize("password", ["short1", "password", "12345678901234", "ayesha@example.com"])
-def test_register_rejects_weak_passwords(api_client, password):
+@pytest.mark.parametrize("password", ["", "a", "12345", "short"])
+def test_register_rejects_passwords_shorter_than_six_characters(api_client, password):
     r = api_client.post("/api/auth/register/", {**REGISTER, "password": password}, format="json")
     assert_error_shape(r, 400)
     assert "password" in r.json()["error"]["details"]
@@ -192,3 +192,24 @@ def test_session_hint_cookie_follows_login_refresh_and_logout(api_client):
 def test_register_sets_the_session_hint(api_client):
     r = api_client.post("/api/auth/register/", REGISTER, format="json")
     assert cookie(r, "wr-session").value == "1"
+
+
+@pytest.mark.parametrize("password", ["123456", "password", "Duck@123", "ayesha@example.com", "ayesha"])
+def test_register_accepts_simple_passwords_of_six_or_more_characters(api_client, password):
+    r = api_client.post("/api/auth/register/", {**REGISTER, "password": password, "password_confirm": password}, format="json")
+    assert r.status_code == 201, r.json()
+
+
+def test_register_rejects_a_confirmation_that_does_not_match(api_client):
+    r = api_client.post("/api/auth/register/", {**REGISTER, "password_confirm": "something-else"}, format="json")
+    assert r.status_code == 400
+    assert "password_confirm" in r.json()["error"]["details"]
+    from django.contrib.auth.models import User
+    assert not User.objects.filter(email=REGISTER["email"]).exists()
+
+
+def test_register_works_with_a_matching_confirmation_and_without_one(api_client):
+    ok = api_client.post("/api/auth/register/", {**REGISTER, "password_confirm": REGISTER["password"]}, format="json")
+    assert ok.status_code == 201
+    other = api_client.post("/api/auth/register/", {**REGISTER, "email": "second@example.com"}, format="json")
+    assert other.status_code == 201

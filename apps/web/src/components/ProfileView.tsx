@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "@/lib/navigation";
 import {
   ArrowRight,
@@ -9,11 +9,11 @@ import {
   LogOut,
 } from "lucide-react";
 import { notify } from "@/lib/notify";
+import { catalogApi, type ApiStyle } from "@/features/catalog/api";
 import { useAuth } from "@/features/auth/AuthProvider";
 import type { ApiProfile } from "@/features/auth/api";
 
 const GENDERS: ApiProfile["gender"][] = ["male", "female", "unspecified"];
-const STYLES: ApiProfile["preferred_style"][] = ["casual", "formal", "eastern", "mixed"];
 
 const FIELD_CLASS =
   "w-full bg-cream-base border border-blue-200/60 rounded-xl py-3 px-4 text-sm font-sans font-medium outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold transition-all disabled:opacity-75 disabled:cursor-not-allowed disabled:bg-slate-50";
@@ -30,10 +30,22 @@ export default function ProfileView() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [gender, setGender] = useState<ApiProfile["gender"]>(profile?.gender ?? "unspecified");
-  const [preferredStyle, setPreferredStyle] = useState<ApiProfile["preferred_style"]>(profile?.preferred_style ?? "mixed");
+  const [preferredStyle, setPreferredStyle] = useState<string>(profile?.preferred_style ?? "mixed");
   const [topSize, setTopSize] = useState(profile?.top_size ?? "");
   const [bottomSize, setBottomSize] = useState(profile?.bottom_size ?? "");
   const [shoeSize, setShoeSize] = useState(profile?.shoe_size ?? "");
+  const [styles, setStyles] = useState<ApiStyle[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    catalogApi
+      .styles()
+      .then((data) => !cancelled && setStyles(data.styles))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [culturalPref, setCulturalPref] = useState(profile?.cultural_preference ?? "Western");
   const [saving, setSaving] = useState(false);
 
@@ -214,13 +226,14 @@ export default function ProfileView() {
                 <label className={LABEL_CLASS}>Preferred Style</label>
                 <select
                   value={preferredStyle}
-                  onChange={(e) => setPreferredStyle(e.target.value as ApiProfile["preferred_style"])}
+                  onChange={(e) => setPreferredStyle(e.target.value)}
                   disabled={!isEditing}
                   className={FIELD_CLASS}
                 >
-                  {STYLES.map((value) => (
-                    <option key={value} value={value}>
-                      {value.charAt(0).toUpperCase() + value.slice(1)}
+                  <option value="mixed">Mixed</option>
+                  {styles.map((style) => (
+                    <option key={style.slug} value={style.slug}>
+                      {style.name}
                     </option>
                   ))}
                 </select>
@@ -305,7 +318,7 @@ export default function ProfileView() {
           </p>
 
           <div className="flex flex-wrap gap-3 mt-6">
-            {["Eastern", "Western", "Casual", "Formal"].map((pref) => {
+            {styles.map((style) => style.name).map((pref) => {
               const isSelected = culturalPref === pref;
 
               return (

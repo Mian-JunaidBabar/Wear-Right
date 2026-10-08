@@ -26,6 +26,7 @@ import { ADMIN_WHATSAPP_NUMBER, PLACEHOLDER_IMAGE } from "@/lib/config";
 import { useCart } from "@/features/cart/useCart";
 import { useWishlist } from "@/features/wishlist/useWishlist";
 import { catalogApi } from "@/features/catalog/api";
+import { notify } from "@/lib/notify";
 
 type ApiProduct = {
   id: number | string;
@@ -278,7 +279,7 @@ function ProductDetail({ id }: { id: string | undefined }) {
     if (!cartProduct || !product) return;
 
     if (isOutOfStock) {
-      alert("This product is currently out of stock.");
+      notify("This product is currently out of stock.");
       return;
     }
 
@@ -297,7 +298,7 @@ function ProductDetail({ id }: { id: string | undefined }) {
     }
 
     // Navigate to shop where user can proceed from cart drawer
-    alert(
+    notify(
       `${product.name} (x${quantity}) added to cart. Open the cart to checkout!`,
     );
   };
@@ -367,7 +368,7 @@ Please share more details.`;
       addToCart(toCartProduct(outfitProduct));
     });
 
-    alert(`${outfitItems.length} outfit item(s) added to cart!`);
+    notify(`${outfitItems.length} outfit item(s) added to cart!`);
   };
 
   // ─── LOADING STATE ────────────────────────────────────
