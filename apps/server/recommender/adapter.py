@@ -43,6 +43,7 @@ def product_to_item(product, size=''):
         formality=product.formality or STYLE_FORMALITY.get(product.cultural_tag, 0),
         styles=styles, color_hex=product.color_hex or '', color_name=product.color_name or product.color or '',
         category=product.category or '', size_ok=size_in_stock(product, slot, size),
+        ready=bool(product.mannequin_ready),
     )
 
 

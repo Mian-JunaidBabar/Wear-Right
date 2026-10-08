@@ -48,3 +48,31 @@ def apply_image_pipeline(product, *, source_image, remover):
         product.color_name = palette[0]["name"]
     product.save(update_fields=["image", "color_palette", "color_hex", "color_name", "updated_at"])
     return product
+
+
+def prepare_mannequin_asset(product, *, source_image, detector=None, cloth=None):
+    """Save the garment-only crop for the mannequin and record whether the photo can be placed on it.
+
+    Clean flat-lay photos keep their cut-out. When a person is in the photo (face, skin, or clothing in the
+    other body layer) and a cloth model is given, the garment is cut out of the person instead.
+    """
+    from .engine.mannequin import (
+        MIN_GARMENT_SHARE, GARMENT_LAYERS, LEAK_SHARE, NOTE_EXTRACTED, REASON_NO_SPLIT,
+        assess, clean_cutout, content_share, extract_garment, flatten_on_white, split_layers, trim_to_content,
+    )
+
+    slot = product.slot or ""
+    ready, note = assess(source_image, detector, slot)
+    garment = clean_cutout(source_image)
+    if cloth is not None and slot in GARMENT_LAYERS:
+        extracted, leak = extract_garment(slot, split_layers(cloth(flatten_on_white(source_image))))
+        if not ready or leak >= LEAK_SHARE:
+            if content_share(extracted) >= MIN_GARMENT_SHARE:
+                garment, ready, note = extracted, True, NOTE_EXTRACTED
+            else:
+                ready, note = False, REASON_NO_SPLIT
+    product.mannequin_image.save(f"{product.pk}.png", ContentFile(_png_bytes(trim_to_content(garment))), save=False)
+    product.mannequin_ready = ready
+    product.mannequin_note = note
+    product.save(update_fields=["mannequin_image", "mannequin_ready", "mannequin_note", "updated_at"])
+    return product

@@ -21,6 +21,7 @@ class Item:
     color_name: str
     category: str
     size_ok: bool = True  # in stock in the shopper's size
+    ready: bool = True    # its photo can be drawn on the mannequin
 
 
 @dataclass(frozen=True)

@@ -151,3 +151,18 @@ def test_the_same_inputs_always_give_the_same_look():
     first = [(s["slot"], s["pick"]["item"].id) for s in complete_look(anchor, pool, NONE)["slots"] if s["pick"]]
     second = [(s["slot"], s["pick"]["item"].id) for s in complete_look(anchor, list(reversed(pool)), NONE)["slots"] if s["pick"]]
     assert first == second
+
+
+def test_a_piece_that_can_be_drawn_on_the_mannequin_beats_an_equal_one_that_cannot():
+    anchor = item("top", "White")
+    undrawable = item("bottom", "Black", ready=False)
+    drawable = item("bottom", "Black", ready=True)
+    pool = [anchor, undrawable, drawable, item("footwear", "Brown")]
+    bottoms = slots_by_name(complete_look(anchor, pool, NONE))["bottom"]
+    assert bottoms["pick"]["item"].id == drawable.id and bottoms["swaps"][0]["item"].id == undrawable.id
+
+
+def test_a_better_colour_still_wins_over_the_ready_bonus():
+    anchor = item("top", "Hot Pink")
+    pool = [anchor, item("bottom", "Black", ready=False), item("bottom", "Yellow", ready=True), item("footwear", "Brown")]
+    assert slots_by_name(complete_look(anchor, pool, NONE))["bottom"]["pick"]["item"].color_name == "Black"

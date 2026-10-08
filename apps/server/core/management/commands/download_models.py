@@ -4,7 +4,7 @@ import urllib.request
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from catalog.engine.cutout import DEFAULT_MODEL, rembg_remover
+from catalog.engine.cutout import CLOTH_MODEL, DEFAULT_MODEL, rembg_remover
 
 # Google's published MediaPipe Face Landmarker bundle, and a portrait Google ships as a MediaPipe test asset.
 FILES = {
@@ -31,6 +31,7 @@ class Command(BaseCommand):
 
         rembg_dir = root / "rembg"
         rembg_remover(model_dir=rembg_dir)  # downloads the weights if missing
+        rembg_remover(CLOTH_MODEL, rembg_dir)  # garment segmentation for model photos (phase 5)
         for weights in sorted(rembg_dir.glob("*.onnx")):
             self.stdout.write(f"have  rembg/{weights.name} ({weights.stat().st_size} bytes)")
         for path in sorted(root.rglob("*")):

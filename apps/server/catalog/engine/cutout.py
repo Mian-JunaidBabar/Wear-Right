@@ -27,3 +27,11 @@ def rembg_remover(model_name=DEFAULT_MODEL, model_dir=None):
 
     session = new_session(model_name)
     return lambda image: remove(image, session=session)
+
+
+CLOTH_MODEL = "u2net_cloth_seg"
+
+
+def cloth_remover(model_dir=None):
+    """Build the cloth segmentation function (rembg `u2net_cloth_seg`): photo in, three stacked cut-outs out."""
+    return rembg_remover(CLOTH_MODEL, model_dir)

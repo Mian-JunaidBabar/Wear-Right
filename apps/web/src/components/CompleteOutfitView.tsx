@@ -8,6 +8,8 @@ import { useAuth } from "@/features/auth/AuthProvider";
 import { useCart } from "@/features/cart/useCart";
 import { recommenderApi, type ApiItem, type CompleteLookResponse, type LookEntry } from "@/features/recommender/api";
 import { normalizeSkinTone } from "@/features/recommender/recommendationRules";
+import { layoutLook, type Angle, type BodyGender, type Preset } from "@/features/mannequin/layout";
+import Mannequin from "@/components/Mannequin";
 import { PLACEHOLDER_IMAGE } from "@/lib/config";
 
 const LOOK_TITLES: Record<CompleteLookResponse["look_type"], string> = {
@@ -48,7 +50,7 @@ function toCartProduct(item: ApiItem): CartProduct {
 
 export default function CompleteOutfitView() {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const { addToCart } = useCart();
   const [searchParams] = useSearchParams();
 
@@ -61,6 +63,10 @@ export default function CompleteOutfitView() {
   const [errorMessage, setErrorMessage] = useState("");
   // The shopper's chosen entry for each slot (default: the best pick). Keyed by kind or slot.
   const [chosen, setChosen] = useState<Record<string, LookEntry | null>>({});
+
+  const [angle, setAngle] = useState<Angle>("front");
+  const [presetChoice, setPresetChoice] = useState<Preset | null>(null);
+  const preset: Preset = presetChoice ?? profile?.body_preset ?? "regular";
 
   const requestKey = `${productId}|${depth}|${undertone}`;
   const loading = Boolean(productId) && loadedFor !== requestKey;
@@ -88,6 +94,17 @@ export default function CompleteOutfitView() {
   }, [productId, depth, undertone, requestKey]);
 
   const picked = useMemo(() => Object.values(chosen).filter((entry): entry is LookEntry => Boolean(entry)), [chosen]);
+  const bodyGender: BodyGender =
+    look?.gender === "women" || look?.gender === "men" ? look.gender : profile?.gender === "female" ? "women" : "men";
+  const layout = useMemo(
+    () => layoutLook(look ? [look.anchor, ...picked] : [], bodyGender, preset, angle),
+    [look, picked, bodyGender, preset, angle],
+  );
+  const choosePreset = (next: Preset) => {
+    setPresetChoice(next);
+    if (profile) void updateProfile({ body_preset: next }).catch(() => undefined);
+  };
+
   const total = (look ? Number(look.anchor.price || 0) : 0) + picked.reduce((sum, entry) => sum + Number(entry.price || 0), 0);
 
   const addWholeLook = () => {
@@ -136,7 +153,8 @@ export default function CompleteOutfitView() {
             <p className="text-sm font-black text-slate-700">Building your look...</p>
           </div>
         ) : look ? (
-          <div className="mt-8 space-y-5">
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 items-start">
+            <div className="space-y-5">
             <ItemRow title="Your pick" entry={look.anchor} note="The piece you started from." />
 
             {look.slots.map((slot) => {
@@ -201,6 +219,11 @@ export default function CompleteOutfitView() {
                 <ShoppingCart className="w-4 h-4" />
                 Add whole look to cart
               </button>
+            </div>
+            </div>
+
+            <div className="lg:sticky lg:top-24">
+              <Mannequin layout={layout} angle={angle} preset={preset} onAngle={setAngle} onPreset={choosePreset} />
             </div>
           </div>
         ) : null}

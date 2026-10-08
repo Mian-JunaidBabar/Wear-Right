@@ -5,7 +5,7 @@ VENV   := $(SERVER)/venv
 PY     := $(VENV)/bin/python
 PIP    := $(VENV)/bin/pip
 
-.PHONY: help demo demo-reset db-up db-down db-reset venv env install migrate seed models test-models demo-catalog import-catalog process-images test test-api test-web e2e check build dev
+.PHONY: help demo demo-reset db-up db-down db-reset venv env install migrate seed models test-models mannequin mannequin-assets demo-catalog import-catalog process-images test test-api test-web e2e check build dev
 
 help:
 	@grep -E '^[a-z-]+:' Makefile | cut -d: -f1 | tr '\n' ' '; echo
@@ -50,6 +50,14 @@ models:
 import-catalog:
 	@test -n "$(SOURCE)" || { echo 'usage: make import-catalog SOURCE=/path/to/kaggle-folder [LIMIT=150]'; exit 1; }
 	$(PY) $(SERVER)/manage.py import_fashion_catalog --source "$(SOURCE)" --limit $(or $(LIMIT),150)
+
+# Redraws the 12 mannequin bodies and anchors.json (apps/web/public/mannequin). Needs only Pillow.
+mannequin:
+	$(PY) tools/generate_mannequin_bodies.py
+
+# Crops each garment cut-out for the mannequin and flags photos that show a person (needs `make models`).
+mannequin-assets:
+	$(PY) $(SERVER)/manage.py prepare_mannequin_assets
 
 # DEMO ONLY: activates imported drafts with placeholder prices and stock so the recommender has items to rank.
 demo-catalog:

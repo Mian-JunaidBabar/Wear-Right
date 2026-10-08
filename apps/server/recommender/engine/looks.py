@@ -19,6 +19,7 @@ LOOK_TEMPLATES = {
     ],
 }
 W_HARMONY, W_PALETTE, W_FORMALITY = 0.5, 0.3, 0.2
+W_DRAWABLE = 0.1  # share of the score for a piece whose photo can be shown on the mannequin
 SWAPS = 2
 
 
@@ -56,7 +57,8 @@ def _score(anchor, item, spec, references, palette, footwear):
         fit = sum(score for score, _ in results) / len(results)
         why = results[0][1]
     palette_score = palette.normalised(colour_label(item))
-    total = W_HARMONY * fit + W_PALETTE * palette_score + W_FORMALITY * _formality_score(anchor, item)
+    total = (1 - W_DRAWABLE) * (W_HARMONY * fit + W_PALETTE * palette_score + W_FORMALITY * _formality_score(anchor, item))
+    total += W_DRAWABLE * (1 if item.ready else 0)
     return round(total, 3), why
 
 

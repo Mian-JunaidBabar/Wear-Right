@@ -16,4 +16,6 @@ class ProductSerializer(serializers.ModelSerializer):
         # Relative URL (/media/...) so the browser loads images through the
         # Next.js rewrite on port 3000 instead of an absolute :8000 URL.
         data['image'] = instance.image.url if instance.image else None
+        for name in ('mannequin_image', 'back_image'):
+            data[name] = getattr(instance, name).url if getattr(instance, name) else None
         return data

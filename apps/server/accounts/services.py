@@ -6,7 +6,7 @@ from .models import UserProfile
 from .selectors import get_user_by_email
 
 PROFILE_FIELDS = (
-    'skin_tone', 'monk_tone', 'undertone', 'favorite_colors', 'avoided_colors', 'cultural_preference', 'gender', 'preferred_style',
+    'skin_tone', 'monk_tone', 'undertone', 'favorite_colors', 'avoided_colors', 'body_preset', 'cultural_preference', 'gender', 'preferred_style',
     'top_size', 'bottom_size', 'shoe_size',
 )
 

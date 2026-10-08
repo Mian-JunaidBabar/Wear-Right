@@ -12,7 +12,7 @@ vi.mock("@/lib/api", async () => {
 
 const session: Session = {
   user: { id: 5, username: "sara@example.com", email: "sara@example.com", first_name: "Sara", last_name: "Ahmed", name: "Sara Ahmed", is_staff: false, is_superuser: false },
-  profile: { id: 1, user: 5, skin_tone: "Medium", monk_tone: null, undertone: null, cultural_preference: "Western", gender: "female", preferred_style: "casual", top_size: "M", bottom_size: "", shoe_size: "" },
+  profile: { id: 1, user: 5, skin_tone: "Medium", monk_tone: null, undertone: null, body_preset: "regular", cultural_preference: "Western", gender: "female", preferred_style: "casual", top_size: "M", bottom_size: "", shoe_size: "" },
 };
 const staffSession: Session = { ...session, user: { ...session.user, is_staff: true } };
 

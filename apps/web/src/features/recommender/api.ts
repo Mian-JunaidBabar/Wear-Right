@@ -13,6 +13,11 @@ export type ApiItem = {
   color_name?: string | null;
   color_hex?: string | null;
   slot?: string | null;
+  gender?: string | null;
+  mannequin_image?: string | null;
+  back_image?: string | null;
+  mannequin_ready?: boolean;
+  mannequin_note?: string;
   price: string | number;
   image?: string | null;
   stock_quantity?: number;
@@ -33,6 +38,7 @@ export type LookSlot = { slot: string; kind: string; required: boolean; pick: Lo
 export type CompleteLookResponse = {
   status: string;
   look_type: "casual" | "formal" | "eastern_men" | "eastern_women";
+  gender: string;
   complete: boolean;
   missing: string[];
   anchor: ApiItem;

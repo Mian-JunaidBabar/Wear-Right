@@ -115,7 +115,8 @@ class CompleteLookAPIView(APIView):
             for s in look["slots"]
         ]
         return Response({
-            "status": "success", "look_type": look["look_type"], "complete": look["complete"], "missing": look["missing"],
+            "status": "success", "look_type": look["look_type"], "gender": look["gender"],
+            "complete": look["complete"], "missing": look["missing"],
             "context": _context(profile), "anchor": _product_json(product, request), "slots": slots,
         })
 

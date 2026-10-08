@@ -6,6 +6,7 @@ from core.models import TimeStampedModel
 class UserProfile(TimeStampedModel):
     STYLE_CHOICES = [('Eastern', 'Eastern'), ('Western', 'Western'), ('Formal', 'Formal'), ('Casual', 'Casual')]
     SKIN_TONE_CHOICES = [('Fair', 'Fair'), ('Medium', 'Medium'), ('Dark', 'Dark')]
+    BODY_PRESET_CHOICES = [('slim', 'Slim (waist 30-32)'), ('regular', 'Regular (waist 34-38)'), ('plus', 'Plus (waist 40+)')]
     UNDERTONE_CHOICES = [('warm', 'Warm'), ('cool', 'Cool'), ('neutral', 'Neutral')]
     GENDER_CHOICES = [('male', 'Male'), ('female', 'Female'), ('unspecified', 'Unspecified')]
     PREFERRED_STYLE_CHOICES = [
@@ -20,6 +21,7 @@ class UserProfile(TimeStampedModel):
     preferred_style = models.CharField(max_length=20, choices=PREFERRED_STYLE_CHOICES, default='mixed')
     favorite_colors = models.JSONField(default=list, blank=True)  # colour names, from catalog.engine.color
     avoided_colors = models.JSONField(default=list, blank=True)
+    body_preset = models.CharField(max_length=10, choices=BODY_PRESET_CHOICES, default='regular')  # slim, regular or plus
     top_size = models.CharField(max_length=10, blank=True, default='')
     bottom_size = models.CharField(max_length=10, blank=True, default='')
     shoe_size = models.CharField(max_length=10, blank=True, default='')

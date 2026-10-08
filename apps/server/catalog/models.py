@@ -72,6 +72,12 @@ class Product(TimeStampedModel):
     # Dominant colours from k-means on the cut-out pixels: [{"hex", "name", "share"}], largest first.
     color_palette = models.JSONField(default=list, blank=True)
 
+    # Mannequin (phase 5). mannequin_image is the cut-out trimmed to the garment; back_image is optional.
+    mannequin_image = models.ImageField(upload_to='products/mannequin/', blank=True, null=True)
+    back_image = models.ImageField(upload_to='products/back/', blank=True, null=True)
+    mannequin_ready = models.BooleanField(default=False)
+    mannequin_note = models.CharField(max_length=120, blank=True, default='')  # why a photo cannot be placed
+
     def profit_per_item(self):
         return self.price - self.cost_price
 

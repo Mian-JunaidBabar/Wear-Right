@@ -262,6 +262,7 @@ def test_tagged_values_win_over_inference():
     tagged = ProductFactory(category="Men Shirt", garment_type="Top", slot="outerwear", gender="unisex", formality=5)
     item = product_to_item(tagged)
     assert (item.slot, item.gender, item.formality) == ("outerwear", "unisex", 5)
+    assert item.ready is False  # no mannequin photo prepared
 
 
 def test_size_stock_rules():
