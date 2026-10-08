@@ -38,7 +38,7 @@ export default function ProfileView() {
   useEffect(() => {
     let cancelled = false;
     catalogApi
-      .styles()
+      .getStyles()
       .then((data) => !cancelled && setStyles(data.styles))
       .catch(() => undefined);
     return () => {

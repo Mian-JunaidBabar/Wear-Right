@@ -8,6 +8,6 @@
     "demo": "concurrently -n web,api -c cyan,yellow \"npm --prefix apps/web run start\" \"apps/server/venv/bin/python apps/server/manage.py runserver 8000 --noreload\""
   },
   "devDependencies": {
-    "concurrently": "^10.0.5"
+    "concurrently": "^10.0.6"
   }
 }

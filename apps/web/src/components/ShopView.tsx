@@ -217,7 +217,7 @@ export default function ShopView() {
       .then((data) => !cancelled && setCategories(data.categories))
       .catch(() => undefined);
     catalogApi
-      .styles()
+      .getStyles()
       .then((data) => !cancelled && setStyles(data.styles))
       .catch(() => undefined);
     return () => {
@@ -1305,4 +1305,3 @@ function InfoBox({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-

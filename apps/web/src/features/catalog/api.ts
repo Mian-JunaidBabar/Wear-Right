@@ -30,7 +30,7 @@ export const catalogApi = {
   updateCategory: (id: number, data: Partial<ApiCategory>) => apiSend("PUT", `/api/categories/${id}/`, data),
   deleteCategory: (id: number) => apiSend("DELETE", `/api/categories/${id}/`),
 
-  styles: (all = false) => apiGet<{ status: string; styles: ApiStyle[] }>(`/api/styles/${all ? "?all=1" : ""}`),
+  getStyles: (all = false) => apiGet<{ status: string; styles: ApiStyle[] }>(`/api/styles/${all ? "?all=1" : ""}`),
   createStyle: (data: Partial<ApiStyle>) => apiSend("POST", "/api/styles/", data),
   updateStyle: (id: number, data: Partial<ApiStyle>) => apiSend("PUT", `/api/styles/${id}/`, data),
   deleteStyle: (id: number) => apiSend("DELETE", `/api/styles/${id}/`),

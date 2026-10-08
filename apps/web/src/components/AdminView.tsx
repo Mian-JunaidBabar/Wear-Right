@@ -312,7 +312,7 @@ export default function AdminView() {
           adminApi.bookings<{ bookings?: Booking[] }>(),
           adminApi.faceScans<{ face_scan_records?: FaceScanRecord[] }>(),
           catalogApi.categories(true),
-          catalogApi.styles(true),
+          catalogApi.getStyles(true),
         ]);
 
       setDashboard(dashboardData.dashboard);

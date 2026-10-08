@@ -23,7 +23,7 @@ export default function AdminTaxonomy() {
 
   const load = useCallback(async () => {
     try {
-      const [c, s] = await Promise.all([catalogApi.categories(true), catalogApi.styles(true)]);
+      const [c, s] = await Promise.all([catalogApi.categories(true), catalogApi.getStyles(true)]);
       setCategories(c.categories);
       setStyles(s.styles);
     } catch (error) {
