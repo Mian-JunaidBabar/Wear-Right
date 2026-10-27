@@ -7,7 +7,7 @@ import { API_PATHS } from "@/lib/config";
  */
 export const adminApi = {
   dashboard: <T = unknown>() => apiGet<T>(API_PATHS.adminDashboard),
-  products: <T = unknown>() => apiGet<T>(API_PATHS.products),
+  products: <T = unknown>() => apiGet<T>(`${API_PATHS.products}?page_size=500`),
   orders: <T = unknown>() => apiGet<T>(API_PATHS.orders),
   bookings: <T = unknown>() => apiGet<T>(API_PATHS.bookings),
   faceScans: <T = unknown>() => apiGet<T>(API_PATHS.faceScans),
@@ -24,6 +24,6 @@ export const adminApi = {
   deleteBooking: (id: number) => apiSend("DELETE", `${API_PATHS.bookings}${id}/`),
 
   updateOrder: (id: number, patch: { order_status: string }) =>
-    apiSend("PUT", `${API_PATHS.orders}${id}/`, patch),
+    apiSend("PATCH", `${API_PATHS.orders}${id}/status/`, patch),
   deleteOrder: (id: number) => apiSend("DELETE", `${API_PATHS.orders}${id}/`),
 };

@@ -107,7 +107,7 @@ function getProductImage(product?: ApiProduct | null) {
   );
 }
 
-function toCartProduct(product: ApiProduct): CartProduct {
+function toCartProduct(product: ApiProduct, size?: string): CartProduct {
   return {
     id: product.id,
     name: product.name,
@@ -122,6 +122,7 @@ function toCartProduct(product: ApiProduct): CartProduct {
     price: product.price,
     stock_quantity: Number(product.stock_quantity || 0),
     status: product.status || "Active",
+    size,
   };
 }
 
@@ -177,8 +178,8 @@ function ProductDetail({ id }: { id: string | undefined }) {
 
   const cartProduct = useMemo<CartProduct | null>(() => {
     if (!product) return null;
-    return toCartProduct(product);
-  }, [product]);
+    return toCartProduct(product, selectedSize);
+  }, [product, selectedSize]);
 
   // Feature 5: You May Also Like — related products
   const relatedProducts = useMemo(() => {
@@ -297,10 +298,9 @@ function ProductDetail({ id }: { id: string | undefined }) {
       addToCart(cartProduct);
     }
 
-    // Navigate to shop where user can proceed from cart drawer
-    notify(
-      `${product.name} (x${quantity}) added to cart. Open the cart to checkout!`,
-    );
+    // Navigate to the cart so the customer can review and check out.
+    notify(`${product.name} (x${quantity}) added to cart.`);
+    navigate("/cart");
   };
 
   const handleWishlist = () => {

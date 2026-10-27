@@ -54,6 +54,10 @@ export default function FaceScanView() {
   const [sunReaction, setSunReaction] = useState<"tan" | "burn" | null>(null);
   const [previewImage, setPreviewImage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [showManual, setShowManual] = useState(false);
+  const [manualDepth, setManualDepth] = useState<"Fair" | "Medium" | "Dark">("Medium");
+  const [manualUndertone, setManualUndertone] = useState<"warm" | "cool" | "neutral">("neutral");
+  const [manualSubmitting, setManualSubmitting] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [, setFramesAnalyzed] = useState<number | null>(null);
 
@@ -279,6 +283,26 @@ export default function FaceScanView() {
         setScanState("complete");
       }, 800);
     } catch (error) {
+      // The API reports "no usable face" as 422. That is a normal scan
+      // outcome, not a broken page: show the old rescan card and the manual
+      // tone picker so the shopper can continue.
+      if (error instanceof ApiError && error.status === 422) {
+        setDetectedTone("Rescan Required");
+        setConfidenceScore(0);
+        setLightingQuality("Unknown");
+        setBackendMessage(
+          "We could not find a clear face in that photo. Please scan again or pick your tone below.",
+        );
+        setUndertone(null);
+        setMonk(null);
+        setJewelry(null);
+        setSunReaction(null);
+        setPalette({ best: [], avoid: [] });
+        setProgress(100);
+        setActiveTelemetry("SCAN COMPLETE");
+        setScanState("complete");
+        return;
+      }
       console.error("Scan API Error:", error);
       setScanState("error");
       setErrorMessage(scanErrorMessage(error));
@@ -390,6 +414,36 @@ export default function FaceScanView() {
     detectedTone === "Rescan Required" ||
     lightingQuality === "Too Low" ||
     lightingQuality === "Too Bright";
+
+  const manualVisible = showManual || scanState === "error";
+
+  const submitManualTone = async () => {
+    try {
+      setManualSubmitting(true);
+      const response = await scannerApi.manual(manualDepth, manualUndertone);
+      const normalise = (colours: Array<string | { name: string; hex: string | null }> = []) =>
+        colours.map((colour) => (typeof colour === "string" ? { name: colour, hex: null } : colour));
+      setDetectedTone(response.detected_skin_tone || manualDepth);
+      setUndertone(response.undertone || manualUndertone);
+      setConfidenceScore(response.confidence_score ?? 100);
+      setLightingQuality(response.lighting_quality || "Manual");
+      setPalette({
+        best: response.palette ? normalise(response.palette.best) : [],
+        avoid: response.palette ? normalise(response.palette.avoid) : [],
+      });
+      setBackendMessage("Tone chosen manually. You can change it any time by scanning again.");
+      setScanState("complete");
+      setSkinTone(response.detected_skin_tone || manualDepth);
+      if (profile) {
+        void updateProfile({ skin_tone: response.detected_skin_tone || manualDepth }).catch(() => undefined);
+      }
+    } catch (error) {
+      setErrorMessage(scanErrorMessage(error));
+      setScanState("error");
+    } finally {
+      setManualSubmitting(false);
+    }
+  };
 
   return (
     <div className="w-full bg-cream-base min-h-[calc(100vh-80px)] py-12 px-6 flex flex-col items-center justify-center font-sans tracking-tight relative overflow-hidden">
@@ -669,6 +723,18 @@ export default function FaceScanView() {
                   View Recommended Products
                 </button>
 
+                {isWarningResult && (
+                  <button
+                    onClick={() => {
+                      resetScan();
+                      setShowManual(true);
+                    }}
+                    className="w-full border-2 border-slate-300 hover:border-slate-500 text-slate-700 font-bold text-xs uppercase py-4 tracking-widest rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer bg-transparent hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    Pick my tone instead
+                  </button>
+                )}
+
                 <button
                   onClick={resetScan}
                   className="w-full border-2 border-blue-600/30 hover:border-blue-600/60 hover:bg-blue-50/50 text-blue-800 font-bold text-xs uppercase py-4 tracking-widest rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer bg-transparent hover:scale-[1.02] active:scale-[0.98]"
@@ -695,6 +761,56 @@ export default function FaceScanView() {
                   <span>{errorMessage}</span>
                 </div>
               )}
+
+              {/* Manual fallback: the journey must not depend on face detection. */}
+              <div className="w-full max-w-sm mt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowManual((current) => !current)}
+                  className="text-xs font-bold text-blue-800 underline underline-offset-4"
+                >
+                  Skip, pick my tone
+                </button>
+                {manualVisible ? (
+                  <div className="mt-3 bg-white border border-blue-100 rounded-2xl p-4 text-left shadow-sm space-y-3">
+                    <p className="text-xs font-bold text-slate-600">
+                      No face detected or camera unavailable? Choose the closest match.
+                    </p>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      Skin depth
+                      <select
+                        value={manualDepth}
+                        onChange={(event) => setManualDepth(event.target.value as typeof manualDepth)}
+                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-800"
+                      >
+                        <option value="Fair">Fair</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Dark">Dark</option>
+                      </select>
+                    </label>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      Undertone
+                      <select
+                        value={manualUndertone}
+                        onChange={(event) => setManualUndertone(event.target.value as typeof manualUndertone)}
+                        className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-800"
+                      >
+                        <option value="warm">Warm</option>
+                        <option value="cool">Cool</option>
+                        <option value="neutral">Neutral</option>
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={submitManualTone}
+                      disabled={manualSubmitting}
+                      className="w-full bg-slate-900 disabled:opacity-60 text-white py-3 rounded-xl text-xs font-black uppercase tracking-wider"
+                    >
+                      {manualSubmitting ? "Saving..." : "Use this tone"}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
 
               {/* Highlighted Instruction Box */}
               <div className="flex items-start gap-3 p-3.5 bg-blue-50/50 border border-blue-100/50 rounded-2xl w-full max-w-sm mt-1 shadow-sm text-left">

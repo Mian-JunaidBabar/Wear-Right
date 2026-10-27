@@ -6,6 +6,8 @@ const PUBLIC_ROUTES = [
   "/shop",
   "/shop?gender=Women",
   "/scanner",
+  "/scan",
+  "/cart",
   "/recommended",
   "/recommended?skinTone=medium",
   "/complete-outfit",
@@ -15,7 +17,7 @@ const PUBLIC_ROUTES = [
   "/login",
   "/register",
 ];
-const USER_ROUTES = ["/profile", "/my-orders", "/order-confirmation"];
+const USER_ROUTES = ["/profile", "/my-orders", "/order-confirmation", "/checkout"];
 const ADMIN_ROUTES = ["/admin"];
 
 async function visit(page: Page, problems: Problems, path: string, failures: string[]) {
@@ -29,7 +31,7 @@ async function visit(page: Page, problems: Problems, path: string, failures: str
 
 test("6a. every public route loads with no console errors and no failed requests", async ({ page, problems }) => {
   // a real seeded product page too
-  const list = await (await page.request.get("/api/products/")).json();
+  const list = await (await page.request.get("/api/products/?page_size=200")).json();
   const productRoute = `/product/${list.products[0].id}`;
 
   const failures: string[] = [];

@@ -29,7 +29,7 @@ test("9b. a different undertone changes the palette shown", async ({ page }) => 
 });
 
 test("9c. complete the look: a pick per slot, swaps, a total, and the whole look goes to the cart", async ({ page, request, dialogs, problems }) => {
-  const products = await (await request.get("/api/products/")).json();
+  const products = await (await request.get("/api/products/?page_size=200&search=Off-White%20Casual%20Linen%20Shirt")).json();
   const shirt = products.products.find((p: { name: string }) => p.name === "Off-White Casual Linen Shirt");
   expect(shirt, "the seeded demo shirt").toBeTruthy();
 

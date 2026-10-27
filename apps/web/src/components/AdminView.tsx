@@ -80,6 +80,8 @@ type Product = {
   size_xl_stock: number;
   size_xxl_stock: number;
   status: string;
+  description?: string;
+  is_active?: boolean;
   created_at?: string;
 };
 
@@ -205,6 +207,8 @@ const emptyProductForm = {
   size_xl_stock: "0",
   size_xxl_stock: "0",
   status: "Active",
+  description: "",
+  is_active: true,
 };
 
 function formatPKR(value: string | number | undefined) {
@@ -301,6 +305,8 @@ export default function AdminView() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productForm, setProductForm] = useState(emptyProductForm);
   const [productImage, setProductImage] = useState<File | null>(null);
+  const [productImagePreview, setProductImagePreview] = useState("");
+  const [suggestingColour, setSuggestingColour] = useState(false);
 
   const fetchAllData = async () => {
     try {
@@ -359,6 +365,7 @@ export default function AdminView() {
     setEditingProduct(null);
     setProductForm(emptyProductForm);
     setProductImage(null);
+    setProductImagePreview("");
     setIsProductModalOpen(true);
   };
 
@@ -380,8 +387,11 @@ export default function AdminView() {
       size_xl_stock: String(product.size_xl_stock || 0),
       size_xxl_stock: String(product.size_xxl_stock || 0),
       status: product.status,
+      description: product.description || "",
+      is_active: product.is_active !== false,
     });
     setProductImage(null);
+    setProductImagePreview(getImage(product));
     setIsProductModalOpen(true);
   };
 
@@ -390,6 +400,7 @@ export default function AdminView() {
     setEditingProduct(null);
     setProductForm(emptyProductForm);
     setProductImage(null);
+    setProductImagePreview("");
   };
 
   const handleProductSubmit = async (event: React.FormEvent) => {
@@ -424,6 +435,8 @@ export default function AdminView() {
     formData.append("size_xl_stock", productForm.size_xl_stock || "0");
     formData.append("size_xxl_stock", productForm.size_xxl_stock || "0");
     formData.append("status", productForm.status);
+    formData.append("description", productForm.description);
+    formData.append("is_active", String(productForm.is_active));
 
     if (productImage) {
       formData.append("image", productImage);
@@ -442,6 +455,43 @@ export default function AdminView() {
           : "The product could not be saved. Please try again.",
         "error",
       );
+    }
+  };
+
+  const handleImageChange = (file: File | null) => {
+    setProductImage(file);
+    setProductImagePreview(file ? URL.createObjectURL(file) : editingProduct ? getImage(editingProduct) : "");
+  };
+
+  const suggestColour = async () => {
+    if (!productImage) {
+      notify("Choose a product image first, then ask for a colour suggestion.");
+      return;
+    }
+    try {
+      setSuggestingColour(true);
+      const response = await catalogApi.colourSuggestion(productImage);
+      const suggestion = response.suggestion;
+      setProductForm((current) => ({ ...current, color: suggestion.name }));
+      notify(`Suggested colour: ${suggestion.name} (${suggestion.hex}).`);
+    } catch (error) {
+      console.error(error);
+      notify("Could not read a colour from that image.", "error");
+    } finally {
+      setSuggestingColour(false);
+    }
+  };
+
+  const toggleProductActive = async (product: Product) => {
+    const formData = new FormData();
+    formData.append("is_active", String(product.is_active === false));
+    try {
+      await adminApi.saveProduct(product.id, formData);
+      await loadAllData();
+      notify(product.is_active === false ? "Product is visible in the shop." : "Product hidden from the shop.");
+    } catch (error) {
+      console.error(error);
+      notify("Could not change product visibility.", "error");
     }
   };
 
@@ -880,11 +930,25 @@ export default function AdminView() {
                         </td>
 
                         <td className="p-4">
-                          <StatusBadge status={product.status} />
+                          {product.is_active === false ? (
+                            <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-[10px] font-black uppercase">
+                              Hidden
+                            </span>
+                          ) : (
+                            <StatusBadge status={product.status} />
+                          )}
                         </td>
 
                         <td className="p-4">
                           <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => toggleProductActive(product)}
+                              title={product.is_active === false ? "Show in shop" : "Hide from shop"}
+                              className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
+                            >
+                              <Eye className={`w-4 h-4 ${product.is_active === false ? "opacity-40" : ""}`} />
+                            </button>
+
                             <button
                               onClick={() => openEditProductModal(product)}
                               className="p-2 rounded-lg bg-cream-card/60 text-slate-600 hover:text-sage-green"
@@ -1667,7 +1731,7 @@ export default function AdminView() {
                 <Select
                   label="Color"
                   value={productForm.color}
-                  options={colors}
+                  options={Array.from(new Set([productForm.color, ...colors].filter(Boolean)))}
                   onChange={(value) =>
                     setProductForm({ ...productForm, color: value })
                   }
@@ -1782,6 +1846,31 @@ export default function AdminView() {
                     setProductForm({ ...productForm, status: value })
                   }
                 />
+
+                <label className="flex items-center gap-3 bg-cream-base border border-brand-border/60 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={productForm.is_active}
+                    onChange={(event) =>
+                      setProductForm({ ...productForm, is_active: event.target.checked })
+                    }
+                  />
+                  Visible in shop
+                </label>
+
+                <label className="md:col-span-2 block">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
+                    Description
+                  </span>
+                  <textarea
+                    value={productForm.description}
+                    onChange={(event) =>
+                      setProductForm({ ...productForm, description: event.target.value })
+                    }
+                    rows={3}
+                    className="w-full bg-cream-base border border-brand-border/60 rounded-xl p-3 text-sm font-semibold"
+                  />
+                </label>
               </div>
 
               <div>
@@ -1793,10 +1882,29 @@ export default function AdminView() {
                   type="file"
                   accept="image/*"
                   onChange={(event) =>
-                    setProductImage(event.target.files?.[0] || null)
+                    handleImageChange(event.target.files?.[0] || null)
                   }
                   className="w-full bg-cream-base border border-brand-border/60 rounded-xl p-3 text-sm font-semibold"
                 />
+
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  {productImagePreview ? (
+                    <img
+                      src={productImagePreview}
+                      alt="Product preview"
+                      className="w-24 h-28 rounded-xl object-cover border border-brand-border/60 bg-cream-card/60"
+                    />
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={suggestColour}
+                    disabled={!productImage || suggestingColour}
+                    className="bg-slate-900 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2"
+                  >
+                    <Palette className="w-4 h-4" />
+                    {suggestingColour ? "Reading image..." : "Suggest colour"}
+                  </button>
+                </div>
 
                 {editingProduct && (
                   <p className="text-xs text-slate-400 font-semibold mt-2">

@@ -6,7 +6,7 @@ test("7a. scanner: uploading an image returns a result (or a clear rescan messag
   await page.locator('input[type="file"]').setInputFiles(path.join(__dirname, "assets", "skin-patch.jpg"));
   // Either a detected tone or a "rescan" message; both are valid answers for a synthetic patch.
   await expect(page.getByText(/scan complete|rescan|unable to analyze|View Recommended Products/i).first()).toBeVisible({ timeout: 30_000 });
-  expect(problems).toEqual([]);
+  expect(problems.filter((p) => !/\/api\/scanner\/analyze\/|status of 422/.test(p))).toEqual([]);
 });
 
 test("7b. recommendations and complete-the-outfit work for a detected tone", async ({ page, problems }) => {
@@ -35,9 +35,10 @@ test("7c. full purchase: cart, checkout, confirmation, my orders, then admin pro
   // Checkout
   await page.getByTitle("Cart").click();
   await page.getByRole("button", { name: /^checkout$/i }).first().click();
-  await page.getByPlaceholder("Full name").fill("Demo Customer");
-  await page.getByPlaceholder("03000000000").fill("03001234567");
-  await page.getByPlaceholder("House no, street, city").fill("12 Model Town, Lahore");
+  await expect(page).toHaveURL(/\/checkout$/);
+  await page.getByLabel(/full name/i).fill("Demo Customer");
+  await page.getByLabel(/^phone/i).fill("03001234567");
+  await page.getByLabel(/delivery address/i).fill("12 Model Town, Lahore");
   await page.getByRole("button", { name: /place order/i }).click();
 
   // Confirmation page shows the order, the cart is emptied

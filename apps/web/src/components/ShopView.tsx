@@ -104,6 +104,8 @@ export default function ShopView() {
     "newest" | "match" | "priceAsc" | "priceDesc"
   >("newest");
   const [selectedCultureStyle, setSelectedCultureStyle] = useState<string>("All");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [styles, setStyles] = useState<ApiStyle[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(
@@ -314,6 +316,14 @@ export default function ShopView() {
     categorySort,
     selectedCultureStyle,
   ]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
+  const visibleProducts = filteredProducts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset paging whenever a filter changes
+    setPage(1);
+  }, [activeCategory, categorySearch, categorySort, selectedCultureStyle]);
 
   const openPreviewModal = (product: ShopProduct) => {
     setSelectedProduct(product);
@@ -781,7 +791,7 @@ Please share more details.`;
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredProducts.map((prod) => (
+                {visibleProducts.map((prod) => (
                   <article
                     key={prod.id}
                     onClick={() => openProductDetail(prod)}
@@ -902,6 +912,40 @@ Please share more details.`;
                 ))}
               </div>
             )}
+
+            {filteredProducts.length > PAGE_SIZE ? (
+              <nav className="flex items-center justify-center gap-2 mt-8" aria-label="Product pages">
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={page === 1}
+                  className="px-4 py-2 rounded-xl border border-brand-border/60 bg-white text-xs font-black disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
+                  <button
+                    key={number}
+                    type="button"
+                    onClick={() => setPage(number)}
+                    aria-current={number === page ? "page" : undefined}
+                    className={`w-9 h-9 rounded-xl text-xs font-black ${
+                      number === page ? "bg-slate-900 text-white" : "bg-white border border-brand-border/60 text-slate-700"
+                    }`}
+                  >
+                    {number}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
+                  disabled={page === pageCount}
+                  className="px-4 py-2 rounded-xl border border-brand-border/60 bg-white text-xs font-black disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </nav>
+            ) : null}
           </section>
         )}
       </div>

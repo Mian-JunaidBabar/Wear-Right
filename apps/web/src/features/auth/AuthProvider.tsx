@@ -159,3 +159,8 @@ export function useAuth(): AuthApi {
   if (!context) throw new Error("useAuth must be used inside <AuthProvider>");
   return context;
 }
+
+/** For reusable hooks that also work outside the provider (e.g. cart unit tests). */
+export function useOptionalAuth(): AuthApi | null {
+  return useContext(AuthContext);
+}

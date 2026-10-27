@@ -64,7 +64,7 @@ test("11d. the shop's categories come from the server: women's, regional and uni
 });
 
 test("11e. products have different photos, not one placeholder", async ({ request }) => {
-  const { products } = await (await request.get("/api/products/")).json();
+  const { products } = await (await request.get("/api/products/?page_size=200")).json();
   const images = new Set(products.map((p: { image: string | null }) => p.image).filter(Boolean));
   expect(images.size).toBeGreaterThan(20);
   for (const url of [...images].slice(0, 6)) expect((await request.get(url as string)).status()).toBe(200);
@@ -97,7 +97,7 @@ test("11f. staff can add and remove a category and a style from the admin screen
 });
 
 test("11g. the shop's outfit preview is the real mannequin, not the grey placeholder", async ({ page, request, problems }) => {
-  const { products } = await (await request.get("/api/products/")).json();
+  const { products } = await (await request.get("/api/products/?page_size=200")).json();
   const shirt = products.find((p: { slot: string; mannequin_ready: boolean; stock_quantity: number; gender: string }) => p.slot === "top" && p.gender === "men" && p.mannequin_ready && p.stock_quantity > 0);
   test.skip(!shirt, "no mannequin-ready shirt: run `make mannequin-assets`");
 

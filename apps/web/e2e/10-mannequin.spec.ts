@@ -3,7 +3,7 @@ import { expect, login, test } from "./fixtures";
 type Product = { id: number; name: string; slot: string | null; gender: string | null; mannequin_ready: boolean; mannequin_image: string | null; stock_quantity: number };
 
 async function products(request: import("@playwright/test").APIRequestContext): Promise<Product[]> {
-  return (await (await request.get("/api/products/")).json()).products;
+  return (await (await request.get("/api/products/?page_size=200")).json()).products;
 }
 
 /** A shirt that can sit on the mannequin and has stock. Needs `make mannequin-assets` (and `make demo-catalog` for more variety). */

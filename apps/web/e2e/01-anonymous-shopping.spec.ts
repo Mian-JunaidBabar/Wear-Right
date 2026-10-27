@@ -9,13 +9,15 @@ test("1. anonymous: home loads, seeded products show in the shop, product page o
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /find your/i })).toBeVisible();
 
-  // Shop grid shows seeded products (Men Shirt holds three of them)
+  // Shop grid shows seeded products (Men Shirt holds three of them). The
+  // catalogue is paginated now, so search rather than assuming every seeded
+  // product lands on the first page.
   await page.goto("/shop");
   await page.getByRole("button", { name: /Men Shirt/ }).first().click();
-  const names = ["Olive Green Tailored Blazer", "Beige Structured Blazer", "Off-White Casual Linen Shirt"];
-  for (const name of names) {
-    await expect(page.getByText(name, { exact: true }).first()).toBeVisible();
-  }
+  const search = page.getByPlaceholder("Search products...");
+  await expect(search).toBeVisible();
+  await search.fill("Beige Structured Blazer");
+  await expect(page.getByText("Beige Structured Blazer", { exact: true }).first()).toBeVisible();
 
   // Product page opens
   await page.getByText("Beige Structured Blazer", { exact: true }).first().click();

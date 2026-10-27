@@ -134,7 +134,8 @@ export default function Navbar() {
     }
 
     setCartOpen(false);
-    setCheckoutOpen(true);
+    setMobileMenuOpen(false);
+    navigate("/checkout");
   };
 
   const closeCheckout = () => {

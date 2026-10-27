@@ -244,11 +244,12 @@ export default function AuthView({ mode }: AuthViewProps) {
                 <form onSubmit={handleSubmit} className="space-y-5">
                   {!isSignIn && (
                     <div>
-                      <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
+                      <label htmlFor="auth-name" className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
                         Full Name
                       </label>
 
                       <input
+                        id="auth-name"
                         type="text"
                         value={name}
                         onChange={(event) => setName(event.target.value)}
@@ -259,11 +260,12 @@ export default function AuthView({ mode }: AuthViewProps) {
                   )}
 
                   <div>
-                    <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
+                    <label htmlFor="auth-email" className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
                       Email Address
                     </label>
 
                     <input
+                      id="auth-email"
                       type={isSignIn ? "text" : "email"}
                       inputMode="email"
                       autoComplete="username"
@@ -275,12 +277,13 @@ export default function AuthView({ mode }: AuthViewProps) {
                   </div>
 
                   <div>
-                    <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
+                    <label htmlFor="auth-password" className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
                       Password
                     </label>
 
                     <div className="relative">
                       <input
+                        id="auth-password"
                         type={showPassword ? "text" : "password"}
                         autoComplete={isSignIn ? "current-password" : "new-password"}
                         value={password}

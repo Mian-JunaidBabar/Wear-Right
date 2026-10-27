@@ -32,6 +32,12 @@ type ApiOrder = {
   payment_status: string;
   order_date: string;
   items?: ApiOrder[];
+  /** OrderItem fields (multi-item checkout). */
+  name?: string;
+  image?: string | null;
+  price?: string;
+  line_total?: string;
+  size?: string;
 };
 
 function formatPKR(value: string | number | undefined) {
@@ -689,13 +695,21 @@ export default function MyOrdersView() {
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => downloadInvoicePDF(order)}
-                    className="bg-slate-950 hover:bg-black text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download PDF
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      onClick={() => navigate(`/orders/${order.id}`)}
+                      className="bg-brand-gold hover:opacity-90 text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider"
+                    >
+                      View order
+                    </button>
+                    <button
+                      onClick={() => downloadInvoicePDF(order)}
+                      className="bg-slate-950 hover:bg-black text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download PDF
+                    </button>
+                  </div>
                 </div>
 
                 <div className="p-5 grid grid-cols-1 lg:grid-cols-[55%_45%] gap-5">
@@ -710,10 +724,11 @@ export default function MyOrdersView() {
                       >
                         <img
                           src={
+                            item.image ||
                             item.product_image_url ||
                             PLACEHOLDER_IMAGE
                           }
-                          alt={item.product_name}
+                          alt={item.name || item.product_name}
                           className="w-20 h-24 rounded-2xl object-cover bg-cream-card/60 border border-brand-border/60 flex-shrink-0"
                           onError={(event) => {
                             event.currentTarget.src =
@@ -727,15 +742,16 @@ export default function MyOrdersView() {
                           </p>
 
                           <h4 className="text-lg font-black text-brand-dark line-clamp-1">
-                            {item.product_name}
+                            {item.name || item.product_name}
                           </h4>
 
                           <p className="text-xs text-slate-500 font-bold mt-1">
                             Quantity: {item.quantity}
+                            {item.size ? ` · Size ${item.size}` : ""}
                           </p>
 
                           <p className="text-xl font-black text-brand-dark mt-3">
-                            {formatPKR(item.total_amount)}
+                            {formatPKR(item.line_total || item.total_amount)}
                           </p>
                         </div>
                       </div>
