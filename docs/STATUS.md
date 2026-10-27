@@ -21,6 +21,7 @@ next build          passed
 manage.py check     no issues
 makemigrations --check  no changes
 Playwright          48 passed (4.5m), EXIT:0
+models tests        10 passed (real MediaPipe/rembg, 41.23s)
 ```
 
 The exact Playwright count and any skipped model-dependent scenarios are in the Phase 5 summary and the final report. Model tests (`make test-models`) still require downloaded weights and were not part of the functional M1 gate.

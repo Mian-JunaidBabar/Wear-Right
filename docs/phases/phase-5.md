@@ -30,6 +30,7 @@ Freeze a working, demonstrable M1: every main journey works in a browser, the ap
 make test:     450 backend passed; 99 web tests passed (11 files); tsc clean; eslint clean
 npm run build: passed (Next.js 16.4.0; security advisory acknowledged and reported)
 make e2e:      48 passed (4.5m), EXIT:0
+make test-models: 10 passed (41.23s)
 manage.py check: no issues
 makemigrations --check: no changes
 ```
