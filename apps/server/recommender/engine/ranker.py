@@ -50,6 +50,8 @@ def rank(items, profile, palette, *, limit=DEFAULT_LIMIT):
     for item in items:
         if not item.size_ok or not gender_ok(item.gender, profile.gender):
             continue
+        if item.is_kids:
+            continue  # kids products never appear on a grown-up shopper's picks
         palette_score = palette.score_item(item)
         if palette.known and palette_score <= -2:
             continue  # a colour to avoid is never recommended

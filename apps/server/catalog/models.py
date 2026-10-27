@@ -3,6 +3,8 @@ from django.db import models
 from django.utils.text import slugify
 from core.models import TimeStampedModel
 
+from .engine.kinds import KINDS
+
 
 class Category(TimeStampedModel):
     """A shop category. Staff add, rename, reorder or switch these off; the shop and admin read them from the API."""
@@ -148,6 +150,10 @@ class Product(TimeStampedModel):
     external_id = models.CharField(max_length=32, unique=True, null=True, blank=True)  # Kaggle image id for imports
     slot = models.CharField(max_length=20, choices=SLOT_CHOICES, blank=True, null=True)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
+    # What the garment actually is (tshirt, jeans, kurta, sandals...), from catalog.engine.kinds. Guessed
+    # by the serializer when blank because words in the name/category say it; the look engine uses it to
+    # know that a shirt already covers the "top" slot and a kurta is a one-piece.
+    kind = models.CharField(max_length=40, choices=[(kind, kind) for kind in KINDS], blank=True, null=True)
     formality = models.PositiveSmallIntegerField(
         blank=True, null=True, validators=[MinValueValidator(1), MaxValueValidator(5)],
     )

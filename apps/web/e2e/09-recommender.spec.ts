@@ -65,3 +65,26 @@ test("9e. the scan result card shows the palette from the server's tone rules", 
   expect(await palette.locator("div[title]").count()).toBeGreaterThanOrEqual(4);
   await expect(palette).toContainText("Skip:");
 });
+
+test("9f. a shirt anchor covers the top slot: no phantom Top row and never a kids piece", async ({ page, request }) => {
+  // "Heavy Shirt" is the mislabelled import row (legacy garment_type "Accessory"); the server
+  // classifies it from its words (kind=shirt, slot=top), so the look must not re-complement the
+  // top slot — and a kids tee must never fill any slot of an adult look.
+  const products = await (await request.get("/api/products/?page_size=500&search=Heavy%20Shirt")).json();
+  const shirt = products.products.find((p: { name: string }) => p.name.startsWith("Heavy Shirt"));
+  expect(shirt, "the mislabelled seeded shirt").toBeTruthy();
+
+  const apiLook = await (await request.get(`/api/looks/complete/?product_id=${shirt.id}`)).json();
+  expect(apiLook.anchor_kind).toBe("shirt");
+  expect(apiLook.anchor_slot).toBe("top");
+  expect(apiLook.slots.map((s: { slot: string }) => s.slot)).not.toContain("top");
+  for (const slot of apiLook.slots) {
+    const pieces = [slot.pick, ...slot.swaps].filter(Boolean) as Array<{ name: string }>;
+    for (const piece of pieces) expect(piece.name).not.toMatch(/kids?\b|kidswear/i);
+  }
+
+  await page.goto(`/complete-outfit?productId=${shirt.id}&skinTone=medium&undertone=warm`);
+  await expect(page.getByRole("heading", { name: /look/i }).first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId("look-slot-bottom")).toBeVisible();
+  await expect(page.getByTestId("look-slot-top")).toHaveCount(0);
+});

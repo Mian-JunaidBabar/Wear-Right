@@ -1,4 +1,6 @@
 """Turns catalog Products into the engine's plain Items, filling gaps for products that were never tagged."""
+from catalog.engine.kinds import infer_kind, is_kids_name as infer_is_kids, slot_of_kind
+
 from .engine.items import COLOUR_HEX, Item, Profile
 
 SIZE_FIELDS = {'S': 'size_s_stock', 'M': 'size_m_stock', 'L': 'size_l_stock', 'XL': 'size_xl_stock', 'XXL': 'size_xxl_stock'}
@@ -10,6 +12,10 @@ STYLE_FORMALITY = {'Formal': 4, 'Eastern': 3, 'Western': 2, 'Casual': 2}
 def infer_slot(product):
     if product.slot:
         return product.slot
+    kind = infer_kind(product.name, product.category, product.garment_type or '', '')
+    by_kind = slot_of_kind(kind)
+    if by_kind:
+        return by_kind
     category = (product.category or '').lower()
     for word, slot in (('kurta', 'kurta'), ('kameez', 'kurta'), ('dupatta', 'dupatta'), ('outerwear', 'outerwear')):
         if word in category:
@@ -38,6 +44,7 @@ def size_in_stock(product, slot, size):
 def product_to_item(product, size=''):
     slot = infer_slot(product)
     styles = tuple(product.style_tags or ([product.cultural_tag] if product.cultural_tag else []))
+    kind = product.kind or infer_kind(product.name, product.category, product.garment_type or '', product.slot or '')
     return Item(
         id=product.id, name=product.name, slot=slot, gender=infer_gender(product),
         formality=product.formality or STYLE_FORMALITY.get(product.cultural_tag, 0),
@@ -46,7 +53,7 @@ def product_to_item(product, size=''):
                    or COLOUR_HEX.get(product.color_name or product.color or '', '')),
         color_name=product.color_name or product.color or '',
         category=product.category or '', size_ok=size_in_stock(product, slot, size),
-        ready=bool(product.mannequin_ready),
+        ready=bool(product.mannequin_ready), kind=kind, is_kids=infer_is_kids(product.name),
     )
 
 

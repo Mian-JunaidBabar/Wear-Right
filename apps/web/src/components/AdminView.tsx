@@ -64,6 +64,12 @@ type Product = {
   compatible_skin_tone: string;
   color?: string;
   garment_type?: string;
+  /** What the garment actually is ("shirt", "kurta", ... from catalog kinds); the server cores it when blank. */
+  kind?: string | null;
+  /** Which shop section the row belongs to: men / women / unisex ("" until guessed). */
+  gender?: string | null;
+  /** Outfit slot the row covers ("top", "bottom", ...); read-only, derived by the server. */
+  slot?: string | null;
   image?: string | null;
   image_url?: string | null;
   cost_price: string | number;
@@ -226,7 +232,25 @@ const colors = [
   "Charcoal",
 ];
 
-const garmentTypes = ["Top", "Bottom", "Footwear", "Accessory"];
+// What garments exist, mirroring apps/server/catalog/engine/kinds.py KIND_GROUPS. The option
+// label adds the group ("Top — shirt") since flat kind ids are lowercase words.
+const KIND_GROUPS_UI: Array<[string, string[]]> = [
+  ["Top", ["tshirt", "shirt", "polo", "kurta", "kameez"]],
+  ["Outerwear", ["jacket", "blazer", "waistcoat", "hoodie"]],
+  ["Bottom", ["jeans", "trousers", "shorts", "shalwar"]],
+  ["Footwear", ["sneakers", "formal_shoes", "sandals", "boots"]],
+  ["Accessory", ["watch", "belt", "tie", "cap", "sunglasses", "bag"]],
+  ["Women", ["dupatta", "dress"]],
+];
+const kindOptions = KIND_GROUPS_UI.flatMap(([group, kinds]) => kinds.map((kind) => `${group} — ${kind}`));
+const kindValue = (option: string) => option.split(" — ")[1] ?? "";
+/** Readable label like "Top — shirt" for a kind id ("shirt"). */
+const kindLabel = (kind: string) =>
+  KIND_GROUPS_UI.flatMap(([, kinds]) => kinds).includes(kind) // eslint-disable-line no-shadow -- covered above
+    ? (KIND_GROUPS_UI.find(([, kinds]) => kinds.includes(kind))?.[0] ?? "") + " — " + kind
+    : kind;
+
+const shopSections = ["men", "women", "unisex"];
 
 const emptyProductForm = {
   name: "",
@@ -235,6 +259,8 @@ const emptyProductForm = {
   compatible_skin_tone: "Medium",
   color: "White",
   garment_type: "Top",
+  kind: "",
+  gender: "",
   cost_price: "0",
   price: "",
   stock_quantity: "0",
@@ -432,6 +458,8 @@ export default function AdminView() {
       // Keep blanks blank: the old form filled them with White / Top and saved that over the real value.
       color: product.color || "",
       garment_type: product.garment_type || "",
+      kind: product.kind || "",
+      gender: product.gender || "",
       cost_price: String(product.cost_price),
       price: String(product.price),
       stock_quantity: String(product.stock_quantity),
@@ -481,6 +509,10 @@ export default function AdminView() {
     // Blank colour / garment type are sent as empty, which the API stores as "not set".
     formData.append("color", productForm.color);
     formData.append("garment_type", productForm.garment_type);
+    // Kind is what the garment actually is; the server guesses it when left blank.
+    formData.append("kind", productForm.kind);
+    // Shop section (men / women / unisex); blank lets the server take it from the category.
+    formData.append("gender", productForm.gender);
     formData.append("cost_price", productForm.cost_price || "0");
     formData.append("price", productForm.price);
     // With per-size stock the total is their sum; products without sizes (watches, caps) keep a plain total.
@@ -1572,9 +1604,29 @@ export default function AdminView() {
                   label="Garment Type"
                   value={productForm.garment_type}
                   emptyLabel="Not set"
-                  options={garmentTypes}
+                  options={["Top", "Bottom", "Footwear", "Accessory"]}
                   onChange={(value) =>
                     setProductForm({ ...productForm, garment_type: value })
+                  }
+                />
+
+                <Select
+                  label="Type"
+                  value={productForm.kind ? kindLabel(productForm.kind) : ""}
+                  emptyLabel="Let the server guess"
+                  options={kindOptions}
+                  onChange={(option) =>
+                    setProductForm({ ...productForm, kind: kindValue(option) })
+                  }
+                />
+
+                <Select
+                  label="Shop section"
+                  value={productForm.gender}
+                  emptyLabel="From the category"
+                  options={shopSections}
+                  onChange={(value) =>
+                    setProductForm({ ...productForm, gender: value })
                   }
                 />
 
@@ -1597,6 +1649,18 @@ export default function AdminView() {
                   }
                   placeholder="2500"
                 />
+
+                <div className="md:col-span-2 flex items-center gap-2 text-xs font-semibold text-slate-400">
+                  <span className="uppercase tracking-widest font-black">Outfit slot</span>
+                  {/* Read-only: the slot is derived on the server from kind/category (edit the Category or Type to change it). */}
+                  <span className="text-slate-600">
+                    {editingProduct?.slot
+                      ? editingProduct.slot.charAt(0).toUpperCase() + editingProduct.slot.slice(1)
+                      : productForm.kind
+                        ? "From the type once saved"
+                        : "From the category once saved"}
+                  </span>
+                </div>
 
                 {/* Editable Sizing Stocks */}
                 <div className="md:col-span-3 bg-blue-50/20 border border-blue-200/40 rounded-2xl p-5 space-y-4">

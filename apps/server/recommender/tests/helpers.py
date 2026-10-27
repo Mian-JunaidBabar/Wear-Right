@@ -7,11 +7,12 @@ _counter = iter(range(1, 10_000))
 
 
 def item(slot="top", colour="Navy Blue", *, gender="men", formality=2, styles=("Casual",), name=None,
-         category=None, size_ok=True, id=None, ready=True):
+         category=None, size_ok=True, id=None, ready=True, kind="", kids=False):
     number = id if id is not None else next(_counter)
     return Item(
         id=number, name=name or f"{colour} {slot} {number}", slot=slot, gender=gender, formality=formality,
-        styles=tuple(styles), color_hex=HEX[colour], color_name=colour, category=category or f"cat-{slot}", size_ok=size_ok, ready=ready,
+        styles=tuple(styles), color_hex=HEX[colour], color_name=colour, category=category or f"cat-{slot}", size_ok=size_ok,
+        kind=kind, is_kids=kids, ready=ready,
     )
 
 

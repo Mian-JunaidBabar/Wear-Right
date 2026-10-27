@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from .engine.kinds import KINDS, infer_kind, is_kids_name, slot_of_kind
 from .models import Category, Color, Product, Style
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
@@ -75,6 +76,12 @@ class ProductSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(f"Unknown style. Use one of: {', '.join(sorted(names.values()))}.")
         return names.get(value.lower(), value)
 
+    def validate_kind(self, value):
+        """A garment kind must be one of the catalog kinds (or blank, to let the words decide)."""
+        if value and value not in KINDS:
+            raise serializers.ValidationError(f"Unknown kind. Use one of: {', '.join(KINDS)}.")
+        return value or None
+
     def validate_image(self, value):
         if value is None:
             return value
@@ -136,14 +143,62 @@ class ProductSerializer(serializers.ModelSerializer):
             validated_data['sizes'] = []
         return validated_data
 
-    def _sync_relations(self, validated_data):
-        category = validated_data.get('category')
+    def _sync_relations(self, validated_data, instance=None):
+        """Fill the relations and the derived tagging (kind / slot / gender) around one write.
+
+        `instance` is passed on updates, where the payload may be partial (an eye toggle sends only
+        `is_active`): words then come from the merged product, so nothing already set is clobbered.
+        """
+        def current(field):
+            """The merged value for a field: the payload wins, then whatever the product already has."""
+            if field in validated_data:
+                return validated_data[field]
+            return getattr(instance, field, '') if instance is not None else ''
+
+        category = validated_data.get('category') or current('category')
         if category:
             validated_data['category_ref'] = Category.objects.filter(name=category).first()
-        style = (validated_data.get('style') or '').lower()
-        tag = (validated_data.get('cultural_tag') or '').lower()
+
+        style = (validated_data.get('style') or '').lower() or (getattr(instance, 'style', '') if instance else '')
+        tag = (validated_data.get('cultural_tag') or current('cultural_tag') or '').lower()
         if not style and tag:
             validated_data['style'] = {'eastern': 'eastern', 'regional': 'eastern', 'formal': 'formal'}.get(tag, 'casual')
+
+        name = validated_data.get('name') or current('name')
+        garment_type = validated_data.get('garment_type') if 'garment_type' in validated_data else (instance.garment_type if instance else '')
+        slot = validated_data.get('slot') if 'slot' in validated_data else (instance.slot if instance else None)
+
+        # The kind: commanded when given, else guessed from the words we can see.
+        kind = validated_data.get('kind') if 'kind' in validated_data else (instance.kind if instance else None)
+        if not kind:
+            guessed = infer_kind(name or '', category or '', garment_type or '', slot or '')
+            if guessed:
+                validated_data['kind'] = guessed
+                kind = guessed
+
+        # The slot: keep what is set; else the kind's slot; else the category's slot ('fullbody' maps to kurta).
+        if not slot and kind:
+            slot = slot_of_kind(kind)
+        if not slot:
+            category_row = validated_data.get('category_ref')
+            if category_row is None and instance is not None:
+                category_row = instance.category_ref
+            category_slot = getattr(category_row, 'slot', '')
+            if category_slot:
+                slot = 'kurta' if category_slot == 'fullbody' else category_slot
+        if slot and (instance is None or instance.slot != slot):
+            validated_data['slot'] = slot
+
+        # The shop section: keep what is set; else the category's section (Men/Women/Unisex).
+        gender = validated_data.get('gender') if 'gender' in validated_data else (instance.gender if instance else None)
+        if not gender:
+            category_row = validated_data.get('category_ref')
+            if category_row is None and instance is not None:
+                category_row = instance.category_ref
+            gender = getattr(category_row, 'gender', '') or ''
+        if gender and (instance is None or instance.gender != gender):
+            validated_data['gender'] = gender
+
         return validated_data
 
     def create(self, validated_data):
@@ -153,7 +208,7 @@ class ProductSerializer(serializers.ModelSerializer):
         return product
 
     def update(self, instance, validated_data):
-        validated_data = self._sync_sizes(self._sync_relations(validated_data), instance)
+        validated_data = self._sync_sizes(self._sync_relations(validated_data, instance), instance)
         product = super().update(instance, validated_data)
         self._sync_colour(product)
         return product

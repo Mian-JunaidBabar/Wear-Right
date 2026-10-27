@@ -22,6 +22,11 @@ W_HARMONY, W_PALETTE, W_FORMALITY = 0.5, 0.3, 0.2
 W_DRAWABLE = 0.1  # share of the score for a piece whose photo can be shown on the mannequin
 SWAPS = 2
 
+# Pieces a one-piece garment already covers, so the template must not fill them again: a kurta is
+# its own top and a dress covers top and bottom. Without this, look templates recomplement all the
+# "missing" slots around a one-piece anchor.
+COVERS = {"kurta": ("top",), "kameez": ("top",), "dress": ("top", "bottom")}
+
 
 def look_type(anchor, gender):
     styles = {s.lower() for s in anchor.styles}
@@ -39,8 +44,13 @@ def _formality_score(anchor, item):
 
 
 def _candidates(anchor, spec, items, gender):
+    covered = COVERS.get(anchor.kind or "", ())
     for item in items:
         if item.id == anchor.id or item.slot != spec.slot or not item.size_ok or not gender_ok(item.gender, gender):
+            continue
+        # A kids product never completes an adult look (and the other way round): sizes, colours
+        # and cut all differ, even when the category table would accept the pairing.
+        if item.is_kids != anchor.is_kids:
             continue
         if spec.kind and accessory_kind(item) != spec.kind:
             continue
@@ -71,6 +81,10 @@ def complete_look(anchor, items, palette, *, gender=""):
     for spec in LOOK_TEMPLATES[kind]:
         if spec.slot == anchor.slot and (not spec.kind or accessory_kind(anchor) == spec.kind):
             continue  # the anchor already fills this slot
+        # The anchor's garment kind can also cover a slot's pieces ("dress" covers top and bottom),
+        # even though its slot ('kurta') is not the same as the covered slot ('top').
+        if not spec.kind and spec.slot in COVERS.get(anchor.kind or "", ()):
+            continue
         references = [anchor] + chosen
         ranked = sorted(
             ((*_score(anchor, item, spec, references, palette, footwear), item) for item in _candidates(anchor, spec, items, gender)),
@@ -87,4 +101,7 @@ def complete_look(anchor, items, palette, *, gender=""):
             "swaps": [{"item": row[2], "score": row[0], "why": row[1]} for row in ranked[1:1 + SWAPS]],
         })
     missing = [s["slot"] if not s["kind"] else s["kind"] for s in slots if s["required"] and not s["pick"]]
-    return {"look_type": kind, "gender": gender, "slots": slots, "complete": not missing, "missing": missing}
+    return {
+        "look_type": kind, "gender": gender, "slots": slots, "complete": not missing, "missing": missing,
+        "anchor_slot": anchor.slot, "anchor_kind": anchor.kind or "",
+    }

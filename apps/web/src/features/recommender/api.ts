@@ -42,6 +42,9 @@ export type CompleteLookResponse = {
   complete: boolean;
   missing: string[];
   anchor: ApiItem;
+  // What the anchor actually is and the slot it covers, from catalog Product.kind.
+  anchor_kind: string;
+  anchor_slot: string;
   slots: LookSlot[];
 };
 

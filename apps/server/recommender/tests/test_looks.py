@@ -166,3 +166,47 @@ def test_a_better_colour_still_wins_over_the_ready_bonus():
     anchor = item("top", "Hot Pink")
     pool = [anchor, item("bottom", "Black", ready=False), item("bottom", "Yellow", ready=True), item("footwear", "Brown")]
     assert slots_by_name(complete_look(anchor, pool, NONE))["bottom"]["pick"]["item"].color_name == "Black"
+
+
+def test_a_kids_anchor_gets_kids_pieces_only():
+    anchor = item("top", "White", kids=True, name="White Kids Tee")
+    pool = [anchor, item("bottom", "Navy Blue", kids=True, name="Kids Denim Jeans"),
+            item("bottom", "Black", name="Adult Chino"), item("footwear", "Brown", name="Kids Sneakers", kids=True)]
+    look = complete_look(anchor, pool, NONE)
+    for slot in look["slots"]:
+        if slot["pick"]:
+            assert slot["pick"]["item"].is_kids is True
+
+
+def test_a_kids_piece_never_fills_an_adult_look():
+    anchor = item("top", "White")
+    pool = [anchor, item("bottom", "Navy Blue", kids=True, name="Kids Navy Jeans"), item("footwear", "Brown")]
+    look = complete_look(anchor, pool, NONE)
+    assert look["complete"] is False and look["missing"] == ["bottom"]
+    assert slots_by_name(look)["bottom"]["pick"] is None
+
+
+def test_a_shirt_covers_the_top_slot_so_the_template_does_not_recomplement_it():
+    # A shirt anchor uses the casual template but must not ask for another top;
+    # only what a shirt does not cover (bottom, footwear, accessory) is picked.
+    anchor = item("top", "White", kind="shirt")
+    look = complete_look(anchor, [anchor, item("top", "Navy Blue", kind="polo"), item("bottom", "Black"), item("footwear", "Brown")], NONE)
+    assert [s["slot"] for s in look["slots"]] == ["bottom", "footwear", "accessory"]
+    assert all(s["pick"]["item"].slot != "top" for s in look["slots"] if s["pick"])
+
+
+def test_a_dress_anchor_skips_both_top_and_bottom():
+    # A dress is a one-piece for the kurta slot that covers top AND bottom.
+    anchor = item("kurta", "Maroon", gender="women", formality=3, styles=("Eastern",), kind="dress")
+    look = complete_look(anchor, [anchor, item("bottom", "Beige", gender="women", formality=3),
+                                  item("dupatta", "Cream", gender="women", formality=3), item("footwear", "Tan", gender="women", formality=3)], NONE)
+    assert look["look_type"] == "eastern_women"
+    assert "top" not in [s["slot"] for s in look["slots"]]
+    assert [(s["slot"], s["required"]) for s in look["slots"]] == [("dupatta", True), ("footwear", True), ("accessory", False)]
+    assert look["complete"] and look["anchor_kind"] == "dress" and look["anchor_slot"] == "kurta"
+
+
+def test_a_bare_item_defaults_to_no_kind_and_no_kids():
+    plain = item("top")
+    assert plain.kind == "" and plain.is_kids is False
+    assert accessory_kind(item("accessory", name="Mystery Thing", kind="watch")) == "watch"

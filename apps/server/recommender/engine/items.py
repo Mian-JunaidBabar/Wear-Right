@@ -20,8 +20,10 @@ class Item:
     color_hex: str       # "" when unknown
     color_name: str
     category: str
+    kind: str = ""       # garment kind (tshirt, jeans, kurta...); "" when unknown
     size_ok: bool = True  # in stock in the shopper's size
     ready: bool = True    # its photo can be drawn on the mannequin
+    is_kids: bool = False  # a kids product never pairs into an adult look
 
 
 @dataclass(frozen=True)
@@ -36,7 +38,9 @@ class Profile:
 
 
 def accessory_kind(item):
-    """tie, watch, belt, cap or sunglasses, guessed from the product name; "" when it is none of them."""
+    """tie, watch, belt, cap or sunglasses, from the tagged kind or the product name; "" when none of them."""
+    if item.kind in ACCESSORY_KINDS.values():
+        return item.kind
     name = item.name.lower()
     return next((kind for word, kind in ACCESSORY_KINDS.items() if word in name), "")
 
