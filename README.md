@@ -56,4 +56,6 @@ apps/web      Next.js storefront (src/app routes, src/components, src/features, 
 docs/STATUS.md  current phase, decisions, deviations, open issues
 ```
 
+Detailed install, database, `.env`, development and production-style run instructions: [`docs/SETUP.md`](docs/SETUP.md).
+
 See `CLAUDE.md` for the architecture rules.
