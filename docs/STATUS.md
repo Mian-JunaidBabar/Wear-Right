@@ -44,6 +44,7 @@ Summaries: `docs/phases/phase-2.md` to `phase-5.md`; walkthrough: `docs/DEMO.md`
 ## Decisions and deviations
 
 - **Auth** uses dj-rest-auth + simplejwt with httpOnly `wr-access` / `wr-refresh` cookies and CSRF double-submit. There is a non-httpOnly `wr-session=1` hint cookie so guests do not trigger `/me/` 401s. Invalid tokens are treated as anonymous; protected endpoints still return 401. See `core/authentication.py`, `core/tests/test_csrf.py`.
+- **Admin sessions are separate from shop sessions.** The admin panel has its own app (`apps/server/staff/`), its own login at `/admin/login`, its own endpoints under `/api/admin/*` and its own JWT cookies (`wr-admin-access` / `wr-admin-refresh`, scoped to the `/api/admin/` path, plus a non-httpOnly `wr-admin-session` hint cookie for the `/admin` proxy redirect). Roles and permissions live in `staff` (`AdminRole`, `AdminMember`, `staff/permissions.py`, keys in `staff/catalog.py`); seeded roles are Super Admin, Manager, Inventory Staff and Order Handler, and every existing staff user was migrated onto Super Admin. Shop login (`/api/auth/login/`) now refuses staff accounts so the two session types cannot mix; admin login refuses users whose account has no admin member. The admin UI hides sections a role cannot use and gates manage buttons behind `products.manage` / `orders.manage` / `bookings.manage` / `catalog.manage` / `team.manage` — the server enforces the same keys.
 - **Catalogue keeps the legacy fields** (`category` text, `cultural_tag`, `garment_type`, per-size stock) beside the new `category_ref`, `style`, `primary_color`, `sizes` and `is_active`. A full destructive rewrite would have broken the recommender, mannequin and imported data. `category_ref` is the supported relation; serializers keep both sides in sync.
 - **Products API is paginated** (12 per page, `page_size` up to 500) and keeps the old `status`, `total_products`, `products` keys for existing callers, while adding `count`, `next`, `previous`, `results`, `page`, `page_size`, `total_pages`. The shop pages client-side over the full seeded catalogue; the server filters are implemented and tested and can be adopted incrementally.
 - **Colour** is a real table (`Color`: name, hex, family) plus `Product.primary_color`. Uploading an image can suggest a dominant colour with the existing OpenCV/Lab helper; staff can override it. A suggestion is a suggestion, not a measured label.
@@ -63,7 +64,6 @@ Summaries: `docs/phases/phase-2.md` to `phase-5.md`; walkthrough: `docs/DEMO.md`
 - Real face-scan accuracy is unmeasured; no labelled photo set has been run. Thresholds are the algorithm's starting values. This is Phase 7 work.
 - Recommendations use colour-theory rules, not measured user preference or sales data. The palette and look ranking need a user study (Phase 8).
 - The mannequin exists and places garment layers, but its bodies are procedural grey shapes and placement is box-based. Realistic bodies, drape and back photos are Phase 6.
-- Admin "Styles", "Skin Tone Matrix", "Outfit Rules", "Team Members" and "Settings" tabs still show legacy static demo content, though categories, colours and products are real.
 - Password reset, email verification, login rate limiting and customer-initiated order editing are not implemented.
 - Demo card payment is not a payment integration and must never be presented as one.
 - The product detail grid had an 8px horizontal overflow at 1280px in the legacy layout; the M1 mobile check covers 390px only.
@@ -78,6 +78,6 @@ make demo-data      # Postgres, migrations, catalogue, rules, demo customer + st
 npm run dev         # http://localhost:3000
 ```
 
-Demo logins: customer `demo@wearright.local` / `demo12345`; staff `admin@wearright.com` / `admin123` (legacy `admin@wearright.local` / `admin12345` still works).
+Demo logins: customer `demo@wearright.local` / `demo12345` (at `/login`); staff `admin@wearright.com` / `admin123` — staff sign in at the admin panel's own login, `/admin/login` (shop login refuses team accounts).
 
 Full gate: `make test && make build && make e2e`. The Playwright suite reuses running servers when present.

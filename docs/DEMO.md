@@ -9,13 +9,13 @@ make demo           # production build + both servers; open http://localhost:300
 
 Use Chrome. The camera works on `localhost` without HTTPS; allow the camera prompt once. Good light matters for the scanner — the manual tone picker is the reliable fallback. `Ctrl+C` stops the servers. If data looks stale, run `make demo-reset && make demo-data` for a fresh database.
 
-| Who | Email | Password |
-| --- | --- | --- |
-| Customer (seeded) | `demo@wearright.local` | `demo12345` |
-| Staff (seeded) | `admin@wearright.com` | `admin123` |
-| Staff (legacy alias) | `admin@wearright.local` (or `admin`) | `admin12345` |
+| Who | Email | Password | Where |
+| --- | --- | --- | --- |
+| Customer (seeded) | `demo@wearright.local` | `demo12345` | `/login` |
+| Staff (seeded) | `admin@wearright.com` | `admin123` | `/admin/login` |
+| Staff (legacy alias) | `admin@wearright.local` (or `admin`) | `admin12345` | `/admin/login` |
 
-New accounts can be created at `/register`.
+New accounts can be created at `/register`. Staff accounts are refused on the shop's `/login` ("team account" message); admin sessions are separate from shop sessions, so signing in on both is not a problem.
 
 ## Suggested walkthrough (about 8–10 minutes)
 
@@ -26,7 +26,7 @@ New accounts can be created at `/register`.
 5. **Complete the look.** From a product, open the complete-look strip. Show one pick per slot, swap an alternative, then **Add whole look to cart**.
 6. **Checkout.** `/cart` → edit quantities → Checkout. Enter name/phone/address/city. Choose **Cash on delivery**; show that **Card (demo)** only accepts demo data and never asks for card numbers. Place the order. The confirmation page appears and the cart empties.
 7. **Order history.** `/my-orders` → **View order** → status and items. While Pending/Confirmed, cancel it and show that stock is restored. (Place another order if you need one for the admin step.)
-8. **Staff.** In a second window log in as admin → `/admin`. Show dashboard stats, product create/edit (live image preview, **Suggest colour**, visible/hidden eye, delete confirmation), and Orders. Change the order to Confirmed/Shipped; the customer’s order detail then shows the new status. Open `/admin` as a normal customer: access is refused and the API returns 403.
+8. **Staff.** In a second window go to `/admin/login` and sign in as admin. Show dashboard stats, product create/edit (live image preview, **Suggest colour**, visible/hidden eye, delete confirmation), and Orders. Change the order to Confirmed/Shipped; the customer’s order detail then shows the new status. Show Team & Roles: add a member with the Order Handler role and sign in as them in a private window — they see Orders/Bookings only and no Team section. Open `/admin/login` with a customer account: it is refused ("no admin access"); shop `/login` refuses team accounts.
 
 ## If something goes wrong
 
@@ -44,4 +44,3 @@ New accounts can be created at `/register`.
 - Card payment is a **demo** only. There is no payment processor.
 - Demo prices are placeholders, not market prices.
 - Password reset, email verification and login rate limiting are not implemented.
-- Admin “Styles”, “Skin Tone Matrix”, “Outfit Rules”, “Team Members” and “Settings” tabs still contain legacy static demo content; products, categories, colours and orders are real.

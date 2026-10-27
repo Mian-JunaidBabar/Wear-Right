@@ -42,6 +42,7 @@ Domain apps in `apps/server`:
 | `scanner`     | FaceScanRecord, skin tone engine                                                           |
 | `recommender` | ToneColorRule (editable colour rules), ranker, look generation (engine in `recommender/engine/`) |
 | `orders`      | Cart, Order, OrderItem, Booking                                                            |
+| `staff`       | AdminRole, AdminMember, `/api/admin/*` endpoints, admin-only JWT cookies, RBAC permissions  |
 
 Frontend (`apps/web`, sources under `src/`), same idea:
 
@@ -58,6 +59,8 @@ The browser only talks to port 3000. `next.config.ts` rewrites `/api/*` and `/me
 ## Auth and permissions (Phase 1)
 
 Login is dj-rest-auth + simplejwt with httpOnly cookies `wr-access` / `wr-refresh`; endpoints live under `/api/auth/` (`login/`, `logout/`, `token/refresh/`, `register/`, `me/`). Unsafe requests also need Django's CSRF token in `X-CSRFToken` (done by `apps/web/src/lib/api.ts`). Default permission is `IsAuthenticatedOrReadOnly`; every view sets its own (`core/permissions.py` has `IsStaff` and `IsStaffOrReadOnly`). Customer data (orders, bookings, profiles, face scans) is always filtered by `request.user` in `selectors.py`; staff see all. Errors are `{"error": {"code", "message", "details"}}`. Full list and reasons: `docs/STATUS.md` (Decisions).
+
+**Admin sessions are separate from shop sessions** (`apps/server/staff/`). Admin sign-in happens at `/admin/login` against `/api/admin/auth/login/` and sets its own JWT cookies (`wr-admin-access` / `wr-admin-refresh` scoped to the `/api/admin/` path, plus a JS-readable `wr-admin-session` hint cookie the `/admin` proxy redirect uses). Shop login (`/api/auth/login/`) refuses staff accounts, so the two session types do not mix. Every admin endpoint under `/api/admin/*` checks RBAC permissions from `staff/permissions.py` (keys in `staff/catalog.py`); roles (`AdminRole`) and members (`AdminMember`) are managed in the Team & Roles section. Seeded roles: Super Admin, Manager, Inventory Staff, Order Handler.
 
 ## Commands
 
