@@ -58,11 +58,28 @@ test("5d. anonymous callers get 401 from the admin dashboard and orders APIs", a
 
 test("5e. the sidebar collapses and remembers it", async ({ page }) => {
   await adminLogin(page, ADMIN.email, ADMIN.password, "/admin");
-  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+
+  // In `next dev` the Next dev tools overlay is mounted as a <nextjs-portal> element that swallows
+  // real mouse clicks near the sidebar bottom (dev-only; a production build has no portal). Focus
+  // and keyboard-activate the button instead: the same handler runs, and keyboard use is unaffected
+  // by the overlay's pointer-event capture.
+  const collapse = () =>
+    page
+      .getByRole("button", { name: "Collapse sidebar" })
+      .focus()
+      .then(() => page.keyboard.press("Enter"));
+  const expand = () =>
+    page
+      .getByRole("button", { name: "Expand sidebar" })
+      .focus()
+      .then(() => page.keyboard.press("Enter"));
+
+  await collapse();
   await expect(page.getByRole("button", { name: "Expand sidebar" })).toBeVisible();
+  // The choice is stored in localStorage, so it survives a full page reload.
   await page.reload();
   await expect(page.getByRole("button", { name: "Expand sidebar" })).toBeVisible();
-  await page.getByRole("button", { name: "Expand sidebar" }).click();
+  await expand();
   await expect(page.getByRole("button", { name: "Collapse sidebar" })).toBeVisible();
 });
 
