@@ -17,7 +17,11 @@ class Order(TimeStampedModel):
     customer_email = models.EmailField(blank=True, null=True)
     customer_phone = models.CharField(max_length=30, blank=True, null=True)
     customer_address = models.TextField(blank=True, null=True)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='orders')
+    city = models.CharField(max_length=100, blank=True, default='')
+    payment_method = models.CharField(
+        max_length=20, choices=[('cod', 'Cash on delivery'), ('card_demo', 'Card (demo only)')], default='cod',
+    )
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
     quantity = models.PositiveIntegerField(default=1)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     profit_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -26,8 +30,11 @@ class Order(TimeStampedModel):
     order_date = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        self.total_amount = self.product.price * self.quantity
-        self.profit_amount = (self.product.price - self.product.cost_price) * self.quantity
+        # Legacy single-product orders recalculate from the product. Multi-item checkout orders have no
+        # legacy product and keep the totals calculated by the checkout service.
+        if self.product_id:
+            self.total_amount = self.product.price * self.quantity
+            self.profit_amount = (self.product.price - self.product.cost_price) * self.quantity
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -53,3 +60,46 @@ class Booking(TimeStampedModel):
 
     def __str__(self):
         return f"{self.booking_type} - {self.customer_name}"
+
+
+class Cart(TimeStampedModel):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='cart')
+
+    def __str__(self):
+        return f"Cart of {self.user}"
+
+
+class CartItem(TimeStampedModel):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='cart_items')
+    size = models.CharField(max_length=10, default='M')
+    quantity = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ['id']
+        constraints = [
+            models.UniqueConstraint(fields=['cart', 'product', 'size'], name='unique_cart_product_size'),
+        ]
+
+    def __str__(self):
+        return f"{self.product} x{self.quantity} ({self.size})"
+
+
+class OrderItem(TimeStampedModel):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_items')
+    name = models.CharField(max_length=255)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    size = models.CharField(max_length=10, default='M')
+    quantity = models.PositiveIntegerField(default=1)
+    line_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ['id']
+
+    def save(self, *args, **kwargs):
+        self.line_total = self.price * self.quantity
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} x{self.quantity}"
