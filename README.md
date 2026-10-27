@@ -19,8 +19,7 @@ Docker, Python 3.12, Node 20.9+ and `make`.
 ```bash
 make install      # venv at apps/server/venv, pip + npm installs, creates apps/server/.env
 make db-reset     # fresh Postgres in Docker (destroys data)
-make migrate
-make seed         # demo catalog + demo admin
+make demo-data    # migrate + catalogue + tone rules + demo customer and staff
 ```
 
 Optional, real catalog: `make import-catalog SOURCE=/path/to/kaggle-folder` imports products from the Kaggle "Fashion Product Images" dataset as drafts (hidden from shoppers until priced). Details and open items are in `docs/STATUS.md`.
@@ -31,7 +30,9 @@ Run everything:
 npm run dev       # or: make dev
 ```
 
-Open http://localhost:3000. Create an account at `/register`, or use the logins created by `make seed`: customer `demo@wearright.local` / `demo12345`, admin `admin@wearright.local` / `admin12345` (the username `admin` also works). Only admins see the Admin page.
+Open http://localhost:3000. Create an account at `/register`, or use the logins created by `make demo-data`: customer `demo@wearright.local` / `demo12345`, admin `admin@wearright.local` / `admin12345` (the username `admin` also works). Only admins see the Admin page.
+
+The functional M1 journey is: Shop → product → cart → register/login (guest cart merges) → `/scan` or the manual tone picker → `/recommended` → complete the look → `/checkout` (COD or demo card) → `/my-orders` → `/orders/<id>`. Staff manage products and order status at `/admin`.
 
 For a presentation use `make demo-reset && make demo` (fresh data, production build). The walkthrough is in `docs/DEMO.md`.
 

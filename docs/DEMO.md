@@ -1,44 +1,46 @@
-# Demo guide (Phase 1)
+# Demo guide — functional M1
 
 ## Before the demo (5 minutes)
 
 ```bash
-make install        # only if dependencies changed since you last ran it
-make demo-reset     # fresh database: 11 products, the admin and the demo customer
+make demo-data      # Postgres, migrations, catalogue, tone rules, demo customer + staff
 make demo           # production build + both servers; open http://localhost:3000
 ```
 
-Use Chrome. The camera works on `localhost` without HTTPS; allow the camera prompt once. Good light on the face matters for the scanner. `Ctrl+C` stops everything. If something looks stale, run `make demo-reset` again.
+Use Chrome. The camera works on `localhost` without HTTPS; allow the camera prompt once. Good light matters for the scanner — the manual tone picker is the reliable fallback. `Ctrl+C` stops the servers. If data looks stale, run `make demo-reset && make demo-data` for a fresh database.
 
 | Who | Email | Password |
 | --- | --- | --- |
 | Customer (seeded) | `demo@wearright.local` | `demo12345` |
-| Admin (seeded) | `admin@wearright.local` (or `admin`) | `admin12345` |
+| Staff (seeded) | `admin@wearright.local` (or `admin`) | `admin12345` |
 
-You can also create a new account at `/register`.
+New accounts can be created at `/register`.
 
-## Suggested walkthrough (about 8 minutes)
+## Suggested walkthrough (about 8–10 minutes)
 
-1. **Home and shop (guest).** Browse `Shop`, pick a category, open a product page (size, stock, "Complete This Outfit", related products). Add an item to the cart.
-2. **Guest checkout is protected.** Click Checkout: you are sent to login and the cart is kept.
-3. **Real accounts.** Register (try a weak password and a duplicate email to show validation), or log in as the demo customer. Reload the page: still signed in. Sign-in lives in httpOnly cookies, not in the page.
-4. **Face scan.** `Face Scan` then `Start Camera` (auto multi-frame scan) or `Upload Face Image`. The result shows skin tone, confidence and lighting; signed-in users get the tone saved to their profile.
-5. **Recommendations and complete the outfit.** `View Recommended Products`, change the style, click `Complete Outfit` on a product, add the full look to the cart.
-6. **Checkout.** Cart, Checkout, fill the form, Place Order. The confirmation page opens; `My Orders` lists the order and can download an invoice PDF.
-7. **Profile.** Edit name, gender, preferred style and sizes; they persist.
-8. **Admin (second window or log out first).** Log in as admin: dashboard, Orders (the order just placed), change its status, Products (add a product with an image), Face Scans. Log in as a normal customer and open `/admin`: access is refused, and the API answers 403.
+1. **Browse as a guest.** Home → Shop. Change category/gender/search/sort and page through results. Open a product: size picker, stock, related items, “Complete This Outfit”. Add an item to the cart.
+2. **Cart and auth.** Open the cart drawer → Checkout. A guest is sent to login and the guest cart is kept. Register a new account (show a weak password/duplicate email error if useful). After login the guest cart is merged into the server cart.
+3. **Skin tone.** `/scan` → Start Camera (multi-frame) or upload a photo. If no face is detected, show the rescan card and click **Skip, pick my tone**, choose depth/undertone, and continue. Signed-in scans are saved to the profile.
+4. **Recommendations.** “View Recommended Products” shows ranked picks with reason chips and best/avoid colour palettes. Change style and observe the ranking.
+5. **Complete the look.** From a product, open the complete-look strip. Show one pick per slot, swap an alternative, then **Add whole look to cart**.
+6. **Checkout.** `/cart` → edit quantities → Checkout. Enter name/phone/address/city. Choose **Cash on delivery**; show that **Card (demo)** only accepts demo data and never asks for card numbers. Place the order. The confirmation page appears and the cart empties.
+7. **Order history.** `/my-orders` → **View order** → status and items. While Pending/Confirmed, cancel it and show that stock is restored. (Place another order if you need one for the admin step.)
+8. **Staff.** In a second window log in as admin → `/admin`. Show dashboard stats, product create/edit (live image preview, **Suggest colour**, visible/hidden eye, delete confirmation), and Orders. Change the order to Confirmed/Shipped; the customer’s order detail then shows the new status. Open `/admin` as a normal customer: access is refused and the API returns 403.
 
 ## If something goes wrong
 
-- **Camera blocked or no webcam:** use `Upload Face Image`.
-- **"Rescan Required" result:** lighting was too dark or bright, or no skin was detected. Face a window, keep the face centred, scan again.
-- **Page shows an error after a long idle:** refresh. Sessions last 30 minutes and renew themselves for up to 7 days.
-- **Port already in use:** stop the old run (`Ctrl+C`), or free ports 3000 and 8000.
-- **Database refused connection:** `make db-up` (Docker must be running).
+- **Camera blocked / no webcam:** use upload, or “Skip, pick my tone”.
+- **“Rescan Needed”:** lighting is poor or no face was detected. Improve light/framing, or use the manual picker.
+- **Session expired after a long idle:** refresh; access tokens are short-lived and refresh automatically.
+- **Port in use:** stop the previous run, or free 3000/8000.
+- **Database refused:** `make db-up` (Docker must be running).
 
 ## Honest limits to mention if asked
 
-- Skin tone detection is the existing classical (LAB/ITA) method; the improved version is Phase 3.
-- Recommendations use the current colour rules and seed catalogue; the real catalogue import is Phase 2, the ranker is Phase 4, the layered mannequin is Phase 5.
-- The cart is stored in the browser for now (server cart is Phase 6). Payments are cash on delivery only.
-- Password reset by email is not implemented. Customers cannot cancel or edit an order after placing it.
+- Skin-tone detection is the existing classical LAB/ITA method; its accuracy is **unmeasured** (no labelled photo set). The algorithm is frozen until Phase 7.
+- Recommendations and complete-look rules come from colour theory and hand-written defaults, not user studies or sales data. Phase 8 is the user study.
+- The mannequin places garment layers, but its bodies are procedural grey shapes and pieces are box-positioned, not draped. Realism is Phase 6 work.
+- Card payment is a **demo** only. There is no payment processor.
+- Demo prices are placeholders, not market prices.
+- Password reset, email verification and login rate limiting are not implemented.
+- Admin “Styles”, “Skin Tone Matrix”, “Outfit Rules”, “Team Members” and “Settings” tabs still contain legacy static demo content; products, categories, colours and orders are real.

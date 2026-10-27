@@ -1,54 +1,66 @@
-# Phase 3: Skin tone v2
+# Phase 3: Server cart, checkout and orders
 
-Status: done with open items. The pipeline runs end to end on the real MediaPipe model; accuracy against labelled photos has not been measured because no labelled set exists yet.
+Status: done. Date: 2026-10-27. Branch: `agent/functional-m1`.
 
 ## Goal
-MediaPipe landmark regions, the white-balance fix, undertone, Monk Skin Tone, a confidence that is not hard-coded, and an evaluation script.
+
+Replace the browser-only single-product order flow with a real server cart, atomic multi-item checkout, stock handling, customer order history/detail/cancel, and staff status changes with enforced transitions.
 
 ## What changed
-- Engine (no Django), under [scanner/engine/](../../apps/server/scanner/engine/):
-  [landmarks.py](../../apps/server/scanner/engine/landmarks.py) (MediaPipe Face Landmarker, 478 points), [regions.py](../../apps/server/scanner/engine/regions.py) (left cheek, right cheek, forehead), [skin.py](../../apps/server/scanner/engine/skin.py) (CIELAB, ITA, hue angle, Monk swatches), [pipeline.py](../../apps/server/scanner/engine/pipeline.py) (one frame to a reading, plus multi-frame consensus), [evaluation.py](../../apps/server/scanner/engine/evaluation.py) (accuracy metrics).
-- Service and API: [scanner/services.py](../../apps/server/scanner/services.py) keeps one detector per process and saves `monk`, `undertone`, `ita`, `hue` on `FaceScanRecord` and `monk_tone`, `undertone` on `UserProfile`. The photo is never stored. `POST /api/scanner/analyze/` keeps every old key and adds `monk`, `undertone`, `ita`, `hue`, `agreement`, `reason`. A missing model file is a clear 503.
-- Command: `evaluate_skin_tone --dir DIR [--white-balance off|on|both] [--out report.md]` (accuracy, depth confusion matrix, per lighting group, confidence per depth).
-- Web: the result card shows depth, undertone and Monk, a "Rescan Needed" state replaces the old "Scan Successful" on a failed scan, and the two-question undertone override (gold or silver, burn or tan) is in place; the profile accepts `monk_tone` and `undertone`.
-- Migrations: `accounts 0003`, `scanner 0002`.
+
+- Models (`apps/server/orders/models.py`): `Cart`, `CartItem` (unique cart/product/size), `OrderItem` (name/price snapshots), nullable legacy `Order.product`, `city`, `payment_method`. Migration `orders/0003_phase3_cart_checkout.py`.
+- Services (`apps/server/orders/services.py`, now called through the view layer): cart add/update/remove/merge with size and stock validation; `checkout()` in one `transaction.atomic()` with `select_for_update`, price snapshots, stock decrement (total and per-size), cart clear and `WR-XXXXXXXX` code; `cancel_order()` restoring stock; `change_order_status()` with allowed transitions.
+- API: `GET/POST/DELETE /api/cart/`, `PATCH/DELETE /api/cart/items/<id>/`, `POST /api/cart/merge/`, `POST /api/checkout/`, `POST /api/orders/<id>/cancel/`, staff `PATCH /api/orders/<id>/status/`. Legacy `POST /api/orders/` and response keys remain.
+- Serializers validate that demo card payments never accept card numbers/CVV/expiry.
+- Frontend: server-backed cart with guest localStorage merge on login; `/cart`; `/checkout` with address, city, COD/demo-card and explicit “no card details” copy; `/orders/[id]`; cancel button; My Orders links to details; navbar checkout goes to the real page.
+- Tests: `orders/tests/test_phase3_api.py` (8 tests: cart CRUD/merge, size/stock, checkout snapshots/stock/clear, rollback, card rejection, owner/staff scoping, transitions, cancel).
 
 ## Decisions and why
-- **Sampling.** Only cheeks and forehead polygons are used, shrunk 12% toward their centre. Indices were checked on a rendered landmark overlay and by a test that no eye, brow, mouth or nose landmark falls inside a region, on a real face.
-- **Bugs removed from v1.** v1 ran gray-world white balance on the face crop (which pulls skin toward grey and erases undertone) and then gamma and CLAHE on L* before measuring. v2 measures L* untouched and rejects bad light with a retake prompt.
-- **Background white balance is OFF by default.** On the one real portrait tried, a teal background moved the hue from 55 to 99 degrees. It stays available (`white_balance=True`, `--white-balance both`) so the labelled set can decide.
-- **Depth.** Median Lab after trimming to the 10th to 90th L* percentile; ITA above 41 Fair, 10 to 41 Medium, below 10 Dark (PRD thresholds). **Undertone** from the hue angle: 58 degrees and up warm, below 50 cool. **Monk** is the nearest of Google's ten swatches by CIEDE2000.
-- **Confidence** is frame agreement times skin-pixel count times a lighting factor (1.0 / 0.9 / 0.85), not the old hard-coded 92. One frame earns 0.9 because it cannot show agreement.
-- **Lighting rejection:** nearly black ("Too Low", L* 95th percentile under 15) or over 15% clipped pixels ("Too Bright"). A first version rejected Monk 1 to 3 as too bright and Monk 9 to 10 as too dark; both rules were relaxed after painting each swatch into a synthetic face and checking.
+
+- **Server is the source of truth after login.** Guest carts are useful before sign-in, so localStorage remains for guests and is merged once. After that, quantities and stock cannot diverge between tabs/devices.
+- **One transaction for checkout.** A separate “reserve stock then create order” flow can leave orphaned reservations. Locking cart items and products, then snapshotting and decrementing in one transaction keeps failure atomic.
+- **Order items are snapshots.** Names and prices are copied so a later catalogue edit does not rewrite history.
+- **Cancellation is narrow.** Only Pending/Confirmed can be cancelled; shipped/delivered cannot. Cancelling restores the stock that was taken.
+- **Demo card is not a payment integration.** The field is named `card_demo`; the UI says no real card details, and the API rejects card data. This is safer than a fake “payment succeeded” flow.
+- **Legacy order endpoints stay.** Existing admin and tests still rely on them; new checkout writes multi-item orders with nullable product and nested items.
 
 ## Gates (real output)
+
+Cumulative at M1 freeze:
+
 ```
-make test:        297 passed (backend; scanner 79, of which 7 use the real model)   Tests 58 passed (web)
-make build:       passed
-make e2e:         23 passed (3 new scanner scenarios drive the real model through the browser)
-make test-models: 7 passed
+backend pytest     450 passed
+web vitest          99 passed
+tsc --noEmit        clean
+eslint              clean (2 warnings)
+next build          passed
+manage.py check     no issues
+makemigrations --check  no changes
 ```
+
+Phase-specific tests: 8 passed in `orders/tests/test_phase3_api.py`.
 
 ## Real-model checks
-- MediaPipe `face_landmarker.task` (3,758,596 bytes) in `apps/server/ml_models/`. On a real portrait: one face, 478 landmarks, sampling regions free of eyes, brows, mouth and nose, a valid reading, three identical frames agree fully, and a 8% brightness drop moves Monk by at most one swatch.
-- A face painted with each Monk swatch 1 to 9 is read back as exactly that swatch through the whole chain (detector stand-in, regions, Lab, ITA, nearest swatch).
-- Not verified: accuracy against labelled people. The one real portrait read Fair, neutral undertone, Monk 5 with balancing off, but it has no ground truth, so that is a smoke test and not an accuracy figure.
+
+None; this phase is business logic and HTTP. No model weights are involved.
 
 ## Known limitations
-- **Thresholds are uncalibrated.** On the Monk swatches the Medium depth band covers only about Monk 6, so most real users may split between Fair and Dark. The PRD's open question (3 buckets or 4) is the first thing the labelled set must answer.
-- **Lighting is judged from face luminance**, so well-lit dark skin can grade "Low" (confidence factor 0.85). `evaluate_skin_tone` reports mean confidence per depth bucket so any bias shows up.
-- Exposure changes depth (the real portrait was brightly lit and read light). Retake prompts reduce but do not remove this.
-- The browser-side face guidance (centred, lit) from the PRD is not built; the server rejects bad frames instead.
-- `mediapipe` installs `opencv-contrib-python` beside `opencv-python-headless` (same version). Both provide `cv2`; it works but is untidy.
-- The `palette` field of the PRD output arrives with the tone-colour rules in phase 4.
+
+- Concurrency is covered by transactional tests, not by a sustained load/race test with real parallel clients.
+- No payment gateway, refunds, shipping integration or tax calculation.
+- Customers can cancel but cannot edit an existing order.
+- The admin status dropdown still lists statuses the backend may reject; the API error is shown, but the UI could filter the choices to legal transitions.
 
 ## How to run it
+
+```bash
+make demo-data && npm run dev
 ```
-make models
-apps/server/venv/bin/python apps/server/manage.py evaluate_skin_tone --dir /path/to/photos --white-balance both --out report.md
-```
-`labels.csv` columns: `file, depth, monk, undertone, lighting` (monk, undertone and lighting optional).
+
+Guest: add to cart → register/login → cart merges → checkout. Staff: `/admin` → Orders → set status.
 
 ## Open items for later phases
-- Collect and label the 80 to 100 consented photos (Hammad's team), run the evaluation, then calibrate the ITA and hue thresholds and decide on white balance.
-- Phase 4 consumes `depth`, `undertone` and `monk` from the profile.
+
+- Surface only legal next statuses in the admin UI.
+- Add order editing (before confirmation) if the product requires it.
+- Load/race testing if this leaves a local-only demo.

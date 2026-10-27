@@ -5,7 +5,7 @@ VENV   := $(SERVER)/venv
 PY     := $(VENV)/bin/python
 PIP    := $(VENV)/bin/pip
 
-.PHONY: help demo demo-reset db-up db-down db-reset venv env install migrate seed models test-models mannequin mannequin-assets demo-catalog import-catalog process-images test test-api test-web e2e check build dev
+.PHONY: help demo demo-data demo-reset db-up db-down db-reset venv env install migrate seed models test-models mannequin mannequin-assets demo-catalog import-catalog process-images test test-api test-web e2e check build dev
 
 help:
 	@grep -E '^[a-z-]+:' Makefile | cut -d: -f1 | tr '\n' ' '; echo
@@ -40,6 +40,10 @@ migrate:
 
 seed:
 	$(PY) $(SERVER)/manage.py seed_products
+
+# Everything a reviewer needs for the functional M1 walkthrough: catalog,
+# colour rules, categories and the demo customer/staff logins. Safe to re-run.
+demo-data: db-up migrate seed
 
 # Downloads AI model weights into apps/server/ml_models (rembg, MediaPipe) once; they are gitignored.
 models:
