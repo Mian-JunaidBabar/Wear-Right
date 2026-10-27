@@ -28,10 +28,15 @@ def test_seed_is_idempotent_and_creates_demo_logins(settings, tmp_path):
     assert requested_admin.check_password("admin123")
     assert UserProfile.objects.filter(user=requested_admin).count() == 1
 
+    # Both demo admins can sign in to the admin panel (Super Admin role); the customer cannot.
+    from staff.models import AdminMember
+    assert AdminMember.objects.filter(user__in=[admin, requested_admin], role__slug="super-admin").count() == 2
+
     demo = User.objects.get(email="demo@wearright.local")
     assert not demo.is_staff and demo.check_password("demo12345")
     assert UserProfile.objects.filter(user=demo).count() == 1
     assert User.objects.filter(email="demo@wearright.local").count() == 1
+    assert not AdminMember.objects.filter(user=demo).exists()
 
 
 def test_seed_creates_no_logins_without_a_password_outside_debug(settings, tmp_path, monkeypatch):

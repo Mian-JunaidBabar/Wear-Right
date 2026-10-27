@@ -89,6 +89,14 @@ export async function login(page: Page, email: string, password: string, next?: 
   await page.getByRole("button", { name: /^login$/i }).last().click();
 }
 
+/** The admin panel has its own login page and session (separate from the shop's /login). */
+export async function adminLogin(page: Page, email: string, password: string, next?: string) {
+  await page.goto(next ? `/admin/login?next=${encodeURIComponent(next)}` : "/admin/login");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: /^sign in$/i }).click();
+}
+
 export async function logout(page: Page) {
   await page.getByTitle("Account Menu").click();
   await page.getByRole("button", { name: /logout/i }).first().click();

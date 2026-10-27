@@ -113,6 +113,29 @@ class ProductSerializer(serializers.ModelSerializer):
         row = Category.objects.filter(name=instance.category).first()
         return row.slug if row else None
 
+    SIZE_FIELDS = (('S', 'size_s_stock'), ('M', 'size_m_stock'), ('L', 'size_l_stock'),
+                   ('XL', 'size_xl_stock'), ('XXL', 'size_xxl_stock'))
+
+    def _sync_sizes(self, validated_data, instance=None):
+        """When per-size stock is edited, the offered sizes and the total follow it.
+
+        Product.save() only fills `sizes` when it is empty, so without this a size restocked from 0
+        stayed unbuyable and a size sold out stayed on offer. Products without per-size stock
+        (accessories) keep their own total.
+        """
+        if not any(field in validated_data for _, field in self.SIZE_FIELDS):
+            return validated_data
+        stock = {
+            size: validated_data.get(field, getattr(instance, field, 0) if instance else 0) or 0
+            for size, field in self.SIZE_FIELDS
+        }
+        if sum(stock.values()) > 0:
+            validated_data['sizes'] = [size for size, quantity in stock.items() if quantity > 0]
+            validated_data['stock_quantity'] = sum(stock.values())
+        elif 'sizes' not in validated_data:
+            validated_data['sizes'] = []
+        return validated_data
+
     def _sync_relations(self, validated_data):
         category = validated_data.get('category')
         if category:
@@ -124,13 +147,13 @@ class ProductSerializer(serializers.ModelSerializer):
         return validated_data
 
     def create(self, validated_data):
-        validated_data = self._sync_relations(validated_data)
+        validated_data = self._sync_sizes(self._sync_relations(validated_data))
         product = super().create(validated_data)
         self._sync_colour(product)
         return product
 
     def update(self, instance, validated_data):
-        validated_data = self._sync_relations(validated_data)
+        validated_data = self._sync_sizes(self._sync_relations(validated_data), instance)
         product = super().update(instance, validated_data)
         self._sync_colour(product)
         return product

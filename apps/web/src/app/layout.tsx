@@ -27,12 +27,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <Providers>
           <div className="min-h-screen bg-slate-50 flex flex-col justify-between text-slate-900 font-sans">
-            {/* usePathname() is runtime data, so the navbar streams in behind a same-height placeholder. */}
+            {/* usePathname() is runtime data, so the navbar streams in behind a same-height placeholder.
+                Navbar and Footer draw nothing under /admin, which has its own layout. */}
             <Suspense fallback={<div className="sticky top-0 z-50 h-20 w-full border-b border-slate-200 bg-white" />}>
               <Navbar />
             </Suspense>
             <main className="flex-1 w-full">{children}</main>
-            <Footer />
+            <Suspense fallback={null}>
+              <Footer />
+            </Suspense>
           </div>
         </Providers>
       </body>

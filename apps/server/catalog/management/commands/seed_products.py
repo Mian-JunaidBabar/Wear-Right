@@ -3,6 +3,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from catalog.models import Product
 from accounts.models import UserProfile
+from staff.services import ensure_member
 from django.conf import settings
 import os
 import shutil
@@ -46,6 +47,7 @@ class Command(BaseCommand):
                     defaults={'skin_tone': 'Medium', 'cultural_preference': 'Western'}
                 )
                 self.stdout.write(self.style.SUCCESS(f"Created admin user (admin / {password})"))
+            ensure_member(admin_user)  # admin panel access (Super Admin role)
 
         # Secondary demo admin. Kept separate from the legacy `admin` account so
         # existing walkthroughs keep working. Demo-only: never created with DEBUG=False.
@@ -65,6 +67,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(
                     "Created demo admin (admin@wearright.com / admin123)"
                 ))
+            ensure_member(requested_admin)
             UserProfile.objects.get_or_create(
                 user=requested_admin,
                 defaults={'skin_tone': 'Medium', 'cultural_preference': 'Western'},

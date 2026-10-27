@@ -22,6 +22,20 @@ describe("proxy", () => {
     expect(proxy(request("/my-orders", "wr-refresh=abc")).headers.get("location")).toBeNull();
   });
 
+  it("sends visitors without an admin session to the admin login, not the shop login", () => {
+    const response = proxy(request("/admin/orders"));
+    const location = new URL(response.headers.get("location")!);
+    expect(location.pathname).toBe("/admin/login");
+    expect(location.searchParams.get("next")).toBe("/admin/orders");
+    // a shopper's session does not open the admin panel
+    expect(new URL(proxy(request("/admin", "wr-access=abc")).headers.get("location")!).pathname).toBe("/admin/login");
+  });
+
+  it("lets an admin session into the panel and always shows the admin login", () => {
+    expect(proxy(request("/admin/products", "wr-admin-session=1")).headers.get("location")).toBeNull();
+    expect(proxy(request("/admin/login")).headers.get("location")).toBeNull();
+  });
+
   it("leaves public pages alone", () => {
     for (const path of ["/", "/shop", "/product/1", "/scanner", "/login", "/register"]) {
       expect(proxy(request(path)).headers.get("location")).toBeNull();

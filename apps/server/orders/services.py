@@ -269,7 +269,11 @@ def change_order_status(order, new_status):
 
 # ---- bookings ---------------------------------------------------------------------------------------------
 def create_booking(serializer, user):
-    return serializer.save(user=user)
+    # A customer asks for a booking; only staff decide whether it is confirmed.
+    extra = {'user': user}
+    if not user.is_staff:
+        extra['status'] = 'Pending'
+    return serializer.save(**extra)
 
 
 def update_booking(serializer):

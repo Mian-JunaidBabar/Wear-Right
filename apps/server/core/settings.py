@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'scanner',
     'recommender',
     'orders',
+    'staff',
 ]
 
 MIDDLEWARE = [

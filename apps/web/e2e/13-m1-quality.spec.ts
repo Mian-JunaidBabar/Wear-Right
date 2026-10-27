@@ -1,4 +1,4 @@
-import { ADMIN, expect, login, register, test } from "./fixtures";
+import { ADMIN, adminLogin, expect, register, test } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 const PUBLIC_ROUTES = [
@@ -57,7 +57,7 @@ test("13c. signed-in and admin routes do not overflow at 390px", async ({ page }
   for (const path of ["/profile", "/my-orders"]) await expectNoHorizontalOverflow(page, path);
 
   await page.context().clearCookies();
-  await login(page, ADMIN.email, ADMIN.password, "/admin");
+  await adminLogin(page, ADMIN.email, ADMIN.password, "/admin");
   await page.waitForURL("**/admin");
   await expectNoHorizontalOverflow(page, "/admin");
 });

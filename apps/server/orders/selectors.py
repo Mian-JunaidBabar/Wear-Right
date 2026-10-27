@@ -27,6 +27,8 @@ def get_booking(booking_id, user):
         return None
 
 def get_dashboard_stats():
+    from catalog.models import Style
+
     today = timezone.now()
     month_start = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
@@ -35,39 +37,32 @@ def get_dashboard_stats():
     bookings = Booking.objects.all()
     face_scans = FaceScanRecord.objects.all()
 
-    monthly_orders = orders.filter(order_date__gte=month_start)
+    # Cancelled orders never earned anything, so they stay out of revenue and profit.
+    monthly_orders = orders.filter(order_date__gte=month_start).exclude(order_status='Cancelled')
 
     monthly_revenue = monthly_orders.aggregate(total=Sum('total_amount'))['total'] or 0
     monthly_profit = monthly_orders.aggregate(total=Sum('profit_amount'))['total'] or 0
 
-    low_stock_products = products.filter(stock_quantity__lte=5).count()
+    # Low stock only matters for products shoppers can actually see.
+    low_stock_products = products.filter(is_active=True, status='Active', stock_quantity__lte=5).count()
 
-    style_counts = {
-        "Eastern": products.filter(cultural_tag="Eastern").count(),
-        "Western": products.filter(cultural_tag="Western").count(),
-        "Formal": products.filter(cultural_tag="Formal").count(),
-        "Casual": products.filter(cultural_tag="Casual").count(),
-    }
+    style_names = list(Style.objects.filter(is_active=True).values_list('name', flat=True)) or [
+        "Eastern", "Western", "Formal", "Casual",
+    ]
+    style_counts = {name: products.filter(cultural_tag__iexact=name).count() for name in style_names}
 
     skin_tone_counts = {
-        "Fair": products.filter(compatible_skin_tone="Fair").count(),
-        "Medium": products.filter(compatible_skin_tone="Medium").count(),
-        "Dark": products.filter(compatible_skin_tone="Dark").count(),
+        tone: products.filter(compatible_skin_tone=tone).count() for tone in ("Fair", "Medium", "Dark", "All")
     }
 
     order_status_counts = {
-        "Pending": orders.filter(order_status="Pending").count(),
-        "Confirmed": orders.filter(order_status="Confirmed").count(),
-        "Shipped": orders.filter(order_status="Shipped").count(),
-        "Delivered": orders.filter(order_status="Delivered").count(),
-        "Cancelled": orders.filter(order_status="Cancelled").count(),
+        name: orders.filter(order_status=name).count()
+        for name, _ in Order.ORDER_STATUS_CHOICES
     }
 
     booking_status_counts = {
-        "Pending": bookings.filter(status="Pending").count(),
-        "Confirmed": bookings.filter(status="Confirmed").count(),
-        "Completed": bookings.filter(status="Completed").count(),
-        "Cancelled": bookings.filter(status="Cancelled").count(),
+        name: bookings.filter(status=name).count()
+        for name, _ in Booking.BOOKING_STATUS_CHOICES
     }
 
     return {

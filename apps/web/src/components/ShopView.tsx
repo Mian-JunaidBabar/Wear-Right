@@ -80,7 +80,7 @@ const getCategoryPlaceholder = (category: string) => {
 export default function ShopView() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { addToCart } = useCart();
+  const { addToCart, addToCartAsync } = useCart();
   const { wishlistItems, toggleWishlist } = useWishlist();
   const [searchParams] = useSearchParams();
 
@@ -361,29 +361,29 @@ Please share more details.`;
     return false;
   };
 
-  const openOrderModal = () => {
+  // "Order now" goes through the real cart and checkout (size stock, one order with items). It used to post a
+  // separate single-product order that skipped size stock and left the item sitting in the cart as well.
+  const orderThroughCheckout = async (product: ShopProduct) => {
     if (!requireLoginToOrder()) return;
 
-    if (!selectedProduct) {
-      notify("Product is not selected.");
-      return;
-    }
-
-    if (isOutOfStock(selectedProduct)) {
+    if (isOutOfStock(product)) {
       notify("This product is currently out of stock.");
       return;
     }
 
-    setOrderForm({
-      customer_name: "",
-      customer_email: "",
-      customer_phone: "",
-      customer_address: "",
-      quantity: "1",
-      payment_status: "Cash on Delivery",
-    });
+    if (await addToCartAsync(product)) {
+      setIsPreviewModalOpen(false);
+      setSelectedProduct(null);
+      navigate("/checkout");
+    }
+  };
 
-    setIsOrderModalOpen(true);
+  const openOrderModal = () => {
+    if (!selectedProduct) {
+      notify("Product is not selected.");
+      return;
+    }
+    void orderThroughCheckout(selectedProduct);
   };
 
   const handleAddToCart = (product: ShopProduct) => {
@@ -396,26 +396,7 @@ Please share more details.`;
   };
 
   const handleBuyNow = (product: ShopProduct) => {
-    if (!requireLoginToOrder()) return;
-
-    if (isOutOfStock(product)) {
-      notify("This product is currently out of stock.");
-      return;
-    }
-
-    setSelectedProduct(product);
-    addToCart(product);
-
-    setOrderForm({
-      customer_name: "",
-      customer_email: "",
-      customer_phone: "",
-      customer_address: "",
-      quantity: "1",
-      payment_status: "Cash on Delivery",
-    });
-
-    setIsOrderModalOpen(true);
+    void orderThroughCheckout(product);
   };
 
   const closeOrderModal = () => {

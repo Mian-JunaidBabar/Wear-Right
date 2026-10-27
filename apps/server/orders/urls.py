@@ -1,12 +1,11 @@
 from django.urls import path
 from .views import (
-    AdminDashboardAPIView, BookingDetailAPIView, BookingListCreateAPIView, CartAPIView, CartItemAPIView,
+    BookingDetailAPIView, BookingListCreateAPIView, CartAPIView, CartItemAPIView,
     CartMergeAPIView, CheckoutAPIView, OrderCancelAPIView, OrderDetailAPIView, OrderListCreateAPIView,
     OrderStatusAPIView,
 )
 
 urlpatterns = [
-    path('admin/dashboard/', AdminDashboardAPIView.as_view(), name='api-admin-dashboard'),
     path('orders/', OrderListCreateAPIView.as_view(), name='api-orders-list-create'),
     path('orders/<int:order_id>/', OrderDetailAPIView.as_view(), name='api-order-detail'),
     path('orders/<int:order_id>/cancel/', OrderCancelAPIView.as_view(), name='api-order-cancel'),

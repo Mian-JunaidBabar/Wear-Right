@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.permissions import IsStaff
-from .selectors import get_booking, get_bookings, get_dashboard_stats, get_order, get_orders
+from .selectors import get_booking, get_bookings, get_order, get_orders
 from .serializers import (
     BookingSerializer, CartSerializer, CheckoutSerializer, OrderItemSerializer, OrderSerializer,
 )
@@ -12,14 +12,6 @@ from .services import (
     add_cart_item, cancel_order, cart_summary, change_order_status, checkout, create_booking, create_order,
     delete_booking, delete_order, get_cart, merge_cart, remove_cart_item, update_booking, update_cart_item, update_order,
 )
-
-
-class AdminDashboardAPIView(APIView):
-    permission_classes = [IsStaff]
-
-    def get(self, request):
-        stats = get_dashboard_stats()
-        return Response({"status": "success", "dashboard": stats}, status=status.HTTP_200_OK)
 
 
 class OrderListCreateAPIView(APIView):

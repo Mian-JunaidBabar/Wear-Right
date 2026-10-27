@@ -1,5 +1,5 @@
 import path from "node:path";
-import { ADMIN, alertBox, expect, login, logout, register, test } from "./fixtures";
+import { ADMIN, adminLogin, alertBox, expect, login, logout, register, test } from "./fixtures";
 
 test("7a. scanner: uploading an image returns a result (or a clear rescan message) without errors", async ({ page, problems }) => {
   await page.goto("/scanner");
@@ -54,7 +54,7 @@ test("7c. full purchase: cart, checkout, confirmation, my orders, then admin pro
   // The admin sees it and confirms it
   const adminPage = await browser.newPage();
   adminPage.on("dialog", (d) => d.accept());
-  await login(adminPage, ADMIN.email, ADMIN.password, "/admin");
+  await adminLogin(adminPage, ADMIN.email, ADMIN.password, "/admin");
   await adminPage.getByRole("button", { name: "Orders", exact: true }).click();
   await expect(adminPage.getByText("Demo Customer").first()).toBeVisible();
   await adminPage.close();
@@ -95,6 +95,7 @@ test("7f. the seeded demo customer can sign in, and is not an admin", async ({ p
   await login(page, "demo@wearright.local", "demo12345", "/profile");
   await expect(page).toHaveURL(/\/profile$/);
   await expect(page.getByRole("heading", { name: "Demo Customer" })).toBeVisible();
-  expect((await page.request.get("/api/admin/dashboard/")).status()).toBe(403);
+  // A shop session is never read by the admin API (separate logins), so it is simply not signed in there.
+  expect((await page.request.get("/api/admin/dashboard/")).status()).toBe(401);
   expect(problems).toEqual([]);
 });

@@ -107,6 +107,12 @@ export function useCart() {
         if (rows.length > 0) {
           data = await ordersApi.mergeCart(rows);
           cartStore.set([]);
+          // Items that went out of stock (or lost their size) while sitting in the guest cart are dropped by the
+          // server; say so instead of letting them silently disappear.
+          const skipped = data.skipped?.length ?? 0;
+          if (skipped > 0) {
+            notify(`${skipped} item${skipped === 1 ? " was" : "s were"} not added to your cart: ${data.skipped![0].reason}`, "error");
+          }
         } else {
           data = await ordersApi.getCart();
         }
@@ -128,9 +134,9 @@ export function useCart() {
     // The auth user id changes on login/logout; the guest cart is read at that moment.
   }, [loggedIn, auth?.user.id, applyIfLatest]);
 
-  const addToCart = useCallback(
-    (product: CartProduct) => {
-      notify(`${product.name} added to cart.`);
+  /** Adds one item. Resolves to true once it is really in the cart (for a signed-in user: on the server). */
+  const addToCartAsync = useCallback(
+    (product: CartProduct): Promise<boolean> => {
       if (!loggedIn) {
         const current = cartStore.getSnapshot();
         const size = product.size || "M";
@@ -146,16 +152,33 @@ export function useCart() {
               )
             : [...current, { product, quantity: 1, size: product.size }],
         );
-        return;
+        notify(`${product.name} added to cart.`);
+        return Promise.resolve(true);
       }
 
+      // Signed in: only say "added" once the server accepted it (it checks stock and size).
       const token = ++requestSeq.current;
-      void ordersApi
+      return ordersApi
         .addToCart(product.id, product.size || "M", 1)
-        .then((data) => applyIfLatest(token, data))
-        .catch((error) => notify(error instanceof Error ? error.message : "Could not add to cart.", "error"));
+        .then((data) => {
+          applyIfLatest(token, data);
+          notify(`${product.name} added to cart.`);
+          return true;
+        })
+        .catch((error) => {
+          notify(error instanceof Error ? error.message : "Could not add to cart.", "error");
+          return false;
+        });
     },
     [loggedIn, applyIfLatest],
+  );
+
+  /** Fire-and-forget version for buttons that do not need to wait. */
+  const addToCart = useCallback(
+    (product: CartProduct) => {
+      void addToCartAsync(product);
+    },
+    [addToCartAsync],
   );
 
   const removeFromCart = useCallback(
@@ -236,6 +259,7 @@ export function useCart() {
     cartCount,
     cartTotal,
     addToCart,
+    addToCartAsync,
     removeFromCart,
     updateCartQuantity,
     clearCart,

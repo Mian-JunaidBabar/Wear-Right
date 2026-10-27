@@ -9,7 +9,6 @@ import {
   Camera,
   ShoppingBag,
   ShoppingCart,
-  ShieldAlert,
   Menu,
   X,
   LogIn,
@@ -27,6 +26,7 @@ import { CartItem } from "@/features/cart/types";
 import { ADMIN_WHATSAPP_NUMBER, PLACEHOLDER_IMAGE } from "@/lib/config";
 import { notify } from "@/lib/notify";
 import { usePathname, useSetView, viewFromPath } from "@/lib/navigation";
+import { isAdminPath } from "@/lib/routes";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useCart } from "@/features/cart/useCart";
 import { useWishlist } from "@/features/wishlist/useWishlist";
@@ -46,7 +46,14 @@ function getCartImage(item: CartItem) {
   );
 }
 
+/** The shop's navbar. The admin panel (/admin) has its own chrome, so nothing is drawn there. */
 export default function Navbar() {
+  const pathname = usePathname();
+  if (isAdminPath(pathname)) return null;
+  return <ShopNavbar />;
+}
+
+function ShopNavbar() {
   const navigate = useNavigate();
   const setView = useSetView();
   const pathname = usePathname();
@@ -301,20 +308,6 @@ export default function Navbar() {
                 {cartCount}
               </span>
             </button>
-
-            {user.isStaff && (
-              <button
-                onClick={() => goToView("admin")}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-black transition-all shadow-sm cursor-pointer ${
-                  currentView === "admin"
-                    ? "bg-blue-600 text-white"
-                    : "bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white"
-                }`}
-              >
-                <ShieldAlert className="w-4 h-4" />
-                Admin
-              </button>
-            )}
 
             {/* Profile Dropdown */}
             <div className="relative" ref={profileRef}>
@@ -797,19 +790,6 @@ export default function Navbar() {
                   </>
                 )}
 
-                {user.isStaff && (
-                  <>
-                    <div className="h-px bg-slate-100 my-2" />
-
-                    <button
-                      onClick={() => goToView("admin")}
-                      className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-blue-50 text-blue-700 text-xs font-black uppercase tracking-wider cursor-pointer"
-                    >
-                      <ShieldAlert className="w-4 h-4" />
-                      Admin
-                    </button>
-                  </>
-                )}
               </div>
             </motion.div>
           )}

@@ -48,6 +48,9 @@ class LoginSerializer(serializers.Serializer):
         user = authenticate_credentials(identifier=identifier, password=attrs['password'])
         if user is None:
             raise serializers.ValidationError('Incorrect email or password.')
+        if user.is_staff or user.is_superuser:
+            # Team accounts have their own login and session (see staff/); they never shop as customers.
+            raise serializers.ValidationError('This is a team account. Sign in to the admin panel at /admin/login instead.')
         attrs['user'] = user
         return attrs
 

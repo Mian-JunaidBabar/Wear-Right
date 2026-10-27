@@ -1,4 +1,4 @@
-import { ADMIN, expect, login, register, test, type Problems } from "./fixtures";
+import { ADMIN, adminLogin, expect, register, test, type Problems } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 const PUBLIC_ROUTES = [
@@ -18,7 +18,18 @@ const PUBLIC_ROUTES = [
   "/register",
 ];
 const USER_ROUTES = ["/profile", "/my-orders", "/order-confirmation", "/checkout"];
-const ADMIN_ROUTES = ["/admin"];
+const ADMIN_ROUTES = [
+  "/admin",
+  "/admin/products",
+  "/admin/categories",
+  "/admin/skin-tones",
+  "/admin/outfit-rules",
+  "/admin/orders",
+  "/admin/bookings",
+  "/admin/face-scans",
+  "/admin/team",
+  "/admin/settings",
+];
 
 async function visit(page: Page, problems: Problems, path: string, failures: string[]) {
   problems.length = 0;
@@ -47,7 +58,7 @@ test("6b. every signed-in route loads cleanly", async ({ page, problems }) => {
 });
 
 test("6c. the admin route loads cleanly for an admin", async ({ page, problems }) => {
-  await login(page, ADMIN.email, ADMIN.password, "/admin");
+  await adminLogin(page, ADMIN.email, ADMIN.password, "/admin");
   await page.waitForURL("**/admin");
   const failures: string[] = [];
   for (const path of ADMIN_ROUTES) await visit(page, problems, path, failures);

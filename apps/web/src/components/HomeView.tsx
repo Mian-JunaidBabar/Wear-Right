@@ -128,8 +128,8 @@ export default function HomeView() {
               {/* Soft gradient overlay to blend image right edge with page background */}
               <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-50 to-transparent z-10 pointer-events-none" />
               <img
-                src="/brand/hero-models-v7.png"
-                alt="Wear Right couple models styled with AI"
+                src="/brand/hero.png"
+                alt="Wear Right models styled with AI"
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-101"
               />
             </div>

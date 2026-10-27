@@ -1,4 +1,4 @@
-import { ADMIN, expect, login, test, uniqueEmail } from "./fixtures";
+import { ADMIN, adminLogin, expect, test, uniqueEmail } from "./fixtures";
 
 test("11a. signup asks for the password twice and rejects a mismatch before sending anything", async ({ page, nativeDialogs }) => {
   const sent: string[] = [];
@@ -73,7 +73,7 @@ test("11e. products have different photos, not one placeholder", async ({ reques
 test("11f. staff can add and remove a category and a style from the admin screen", async ({ page, request }) => {
   const name = `E2E Category ${Date.now()}`;
   const styleName = `E2E Style ${Date.now()}`;
-  await login(page, ADMIN.email, ADMIN.password, "/admin");
+  await adminLogin(page, ADMIN.email, ADMIN.password, "/admin");
   await page.getByRole("button", { name: "Categories & Styles" }).click();
   const taxonomy = page.getByTestId("admin-taxonomy");
   await expect(taxonomy).toBeVisible();

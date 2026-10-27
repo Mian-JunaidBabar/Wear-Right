@@ -1,10 +1,4 @@
-import AdminView from "@/components/AdminView";
-import RequireAuth from "@/features/auth/RequireAuth";
-
+/** /admin : the dashboard. The panel itself is rendered by app/admin/layout.tsx so it persists between sections. */
 export default function Page() {
-  return (
-    <RequireAuth staffOnly>
-      <AdminView />
-    </RequireAuth>
-  );
+  return null;
 }

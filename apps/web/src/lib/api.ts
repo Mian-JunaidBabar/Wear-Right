@@ -8,6 +8,9 @@
  *   double-submit check, enforced because the session is cookie-authenticated).
  * - A 401 triggers one token refresh and one retry. If that fails we give up
  *   and tell listeners the session expired. There is never a second refresh.
+ * - Two separate sessions: the shop (wr-access / wr-refresh) and the admin panel
+ *   (wr-admin-*, only sent to /api/admin/). Each refreshes on its own endpoint
+ *   and has its own "session expired" listeners.
  */
 
 export type ApiErrorBody = {
@@ -76,14 +79,26 @@ export function parseApiError(status: number, body: unknown): ApiError {
   return new ApiError(status, "Error", fallback, body);
 }
 
-const REFRESH_PATH = "/api/auth/token/refresh/";
+type Scope = "shop" | "admin";
+
+const REFRESH_PATHS: Record<Scope, string> = {
+  shop: "/api/auth/token/refresh/",
+  admin: "/api/admin/auth/refresh/",
+};
 // These never trigger a refresh: a 401 from them is a real answer.
 const NO_REFRESH_PATHS = [
   "/api/auth/login/",
   "/api/auth/register/",
   "/api/auth/logout/",
-  REFRESH_PATH,
+  REFRESH_PATHS.shop,
+  "/api/admin/auth/login/",
+  "/api/admin/auth/logout/",
+  REFRESH_PATHS.admin,
 ];
+
+function scopeOf(path: string): Scope {
+  return path.startsWith("/api/admin/") ? "admin" : "shop";
+}
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -132,45 +147,55 @@ function buildInit(method: Method, body: unknown): RequestInit {
 // ---- session expiry notification -----------------------------------------------------------
 
 type Listener = () => void;
-const sessionExpiredListeners = new Set<Listener>();
+const sessionExpiredListeners: Record<Scope, Set<Listener>> = { shop: new Set(), admin: new Set() };
 
-/** Called when a 401 could not be fixed by refreshing the token. Returns an unsubscribe. */
-export function onSessionExpired(listener: Listener): () => void {
-  sessionExpiredListeners.add(listener);
+function subscribe(scope: Scope, listener: Listener): () => void {
+  sessionExpiredListeners[scope].add(listener);
   return () => {
-    sessionExpiredListeners.delete(listener);
+    sessionExpiredListeners[scope].delete(listener);
   };
 }
 
-// ---- refresh (shared so parallel 401s trigger a single refresh) -----------------------------
+/** Called when a shop 401 could not be fixed by refreshing the token. Returns an unsubscribe. */
+export function onSessionExpired(listener: Listener): () => void {
+  return subscribe("shop", listener);
+}
 
-let refreshInFlight: Promise<boolean> | null = null;
+/** Same, for the admin panel session. */
+export function onAdminSessionExpired(listener: Listener): () => void {
+  return subscribe("admin", listener);
+}
 
-function refreshSession(): Promise<boolean> {
-  if (!refreshInFlight) {
-    refreshInFlight = (async () => {
+// ---- refresh (shared so parallel 401s trigger a single refresh per session) -----------------
+
+const refreshInFlight: Record<Scope, Promise<boolean> | null> = { shop: null, admin: null };
+
+function refreshSession(scope: Scope): Promise<boolean> {
+  if (!refreshInFlight[scope]) {
+    refreshInFlight[scope] = (async () => {
       try {
-        const response = await fetch(REFRESH_PATH, buildInit("POST", undefined));
+        const response = await fetch(REFRESH_PATHS[scope], buildInit("POST", undefined));
         return response.ok;
       } catch {
         return false;
       } finally {
-        refreshInFlight = null;
+        refreshInFlight[scope] = null;
       }
     })();
   }
-  return refreshInFlight;
+  return refreshInFlight[scope]!;
 }
 
 async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
   let response = await fetch(path, buildInit(method, body));
 
   if (response.status === 401 && !NO_REFRESH_PATHS.includes(path)) {
-    if (await refreshSession()) {
+    const scope = scopeOf(path);
+    if (await refreshSession(scope)) {
       response = await fetch(path, buildInit(method, body)); // exactly one retry
     }
     if (response.status === 401) {
-      sessionExpiredListeners.forEach((listener) => listener());
+      sessionExpiredListeners[scope].forEach((listener) => listener());
     }
   }
 

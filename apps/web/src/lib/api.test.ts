@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, apiGet, apiSend, onSessionExpired, parseApiError } from "./api";
+import { ApiError, apiGet, apiSend, onAdminSessionExpired, onSessionExpired, parseApiError } from "./api";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -126,6 +126,25 @@ describe("refresh and retry", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(expired).toHaveBeenCalledTimes(1);
     unsubscribe();
+  });
+
+  it("admin requests refresh the admin session, and only admin listeners hear it expire", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(json(UNAUTH, 401))
+      .mockResolvedValueOnce(json(UNAUTH, 401));
+    vi.stubGlobal("fetch", fetchMock);
+    const shopExpired = vi.fn();
+    const adminExpired = vi.fn();
+    const offShop = onSessionExpired(shopExpired);
+    const offAdmin = onAdminSessionExpired(adminExpired);
+
+    await expect(apiGet("/api/admin/orders/")).rejects.toMatchObject({ status: 401 });
+    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual(["/api/admin/orders/", "/api/admin/auth/refresh/"]);
+    expect(adminExpired).toHaveBeenCalledTimes(1);
+    expect(shopExpired).not.toHaveBeenCalled();
+    offShop();
+    offAdmin();
   });
 
   it("never loops: a retry that is still 401 is not refreshed a second time", async () => {

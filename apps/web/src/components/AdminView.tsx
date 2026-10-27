@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   LayoutDashboard,
   Package,
@@ -22,21 +23,25 @@ import {
   Sparkles,
   Users,
   Settings,
-  Bell,
-  ShieldCheck,
-  KeyRound,
-  BadgeCheck,
   Eye,
   ArrowLeft,
   LogOut,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ExternalLink,
 } from "lucide-react";
 import { PLACEHOLDER_IMAGE } from "@/lib/config";
 import { ApiError } from "@/lib/api";
-import { catalogApi, type ApiCategory, type ApiStyle } from "@/features/catalog/api";
+import type { ApiCategory, ApiStyle } from "@/features/catalog/api";
 import AdminTaxonomy from "@/components/AdminTaxonomy";
-import { useNavigate } from "@/lib/navigation";
-import { useAuth } from "@/features/auth/AuthProvider";
+import SettingsSection from "@/components/admin/SettingsSection";
+import TeamSection from "@/components/admin/TeamSection";
+import ToneRulesPanel from "@/components/admin/ToneRulesPanel";
+import { useNavigate, usePathname } from "@/lib/navigation";
+import { useAdminAuth } from "@/features/admin/AdminAuthProvider";
 import { adminApi } from "@/features/admin/api";
+import { ADMIN_SECTIONS, sectionFromPath, type AdminSectionId } from "@/features/admin/sections";
 import { notify } from "@/lib/notify";
 
 type DashboardData = {
@@ -47,17 +52,8 @@ type DashboardData = {
   monthly_revenue: number;
   monthly_profit: number;
   low_stock_products: number;
-  style_counts: {
-    Eastern: number;
-    Western: number;
-    Formal: number;
-    Casual: number;
-  };
-  skin_tone_counts: {
-    Fair: number;
-    Medium: number;
-    Dark: number;
-  };
+  style_counts: Record<string, number>;
+  skin_tone_counts: Record<string, number>;
 };
 
 type Product = {
@@ -85,6 +81,17 @@ type Product = {
   created_at?: string;
 };
 
+type OrderItem = {
+  id: number;
+  product: number | null;
+  name: string;
+  price: string | number;
+  size: string;
+  quantity: number;
+  line_total: string | number;
+  image: string | null;
+};
+
 type Order = {
   id: number;
   order_code?: string | null;
@@ -92,16 +99,58 @@ type Order = {
   customer_email?: string;
   customer_phone?: string;
   customer_address?: string;
-  product: number;
-  product_name: string;
+  city?: string;
+  /** Legacy single-product orders only; checkout orders list their products in `items`. */
+  product: number | null;
+  product_name?: string | null;
   quantity: number;
   total_amount: string | number;
   profit_amount: string | number;
   order_status: string;
   payment_status: string;
   order_date: string;
-  items?: Order[];
+  items?: OrderItem[];
 };
+
+type OrderLine = {
+  key: string;
+  name: string;
+  productId: number | null;
+  price: string | number;
+  quantity: number;
+  size: string;
+  total: string | number;
+  image: string | null;
+};
+
+/** One shape for both order kinds: checkout orders (with items) and legacy single-product orders. */
+function orderLines(order: Order): OrderLine[] {
+  if (order.items && order.items.length > 0) {
+    return order.items.map((item) => ({
+      key: `item-${item.id}`,
+      name: item.name,
+      productId: item.product,
+      price: item.price,
+      quantity: item.quantity,
+      size: item.size,
+      total: item.line_total,
+      image: item.image,
+    }));
+  }
+  const quantity = Number(order.quantity || 0);
+  return [
+    {
+      key: `order-${order.id}`,
+      name: order.product_name || "Product removed",
+      productId: order.product,
+      price: quantity > 0 ? Number(order.total_amount || 0) / quantity : order.total_amount,
+      quantity,
+      size: "",
+      total: order.total_amount,
+      image: null,
+    },
+  ];
+}
 
 type Booking = {
   id: number;
@@ -125,18 +174,6 @@ type FaceScanRecord = {
   brightness: number;
   scan_date: string;
 };
-
-type ActiveTab =
-  | "dashboard"
-  | "products"
-  | "styles"
-  | "skinTone"
-  | "outfitRules"
-  | "orders"
-  | "bookings"
-  | "faceScans"
-  | "team"
-  | "settings";
 
 const skinTones = ["Fair", "Medium", "Dark"];
 const statuses = ["Active", "Inactive", "Out of Stock"];
@@ -230,16 +267,75 @@ function describeApiErrors(details: unknown): string {
     .join(" ");
 }
 
+const SIDEBAR_KEY = "wr-admin-sidebar-collapsed";
+
+const SECTION_ICONS: Record<AdminSectionId, React.ComponentType<{ className?: string }>> = {
+  dashboard: LayoutDashboard,
+  products: Package,
+  styles: Tags,
+  skinTone: Palette,
+  outfitRules: Sparkles,
+  orders: ShoppingCart,
+  bookings: CalendarCheck,
+  faceScans: ScanFace,
+  team: Users,
+  settings: Settings,
+};
+
+/** Order statuses an admin may move to from each status (mirrors orders/services.py ALLOWED_TRANSITIONS). */
+const NEXT_ORDER_STATUSES: Record<string, string[]> = {
+  Pending: ["Confirmed", "Cancelled"],
+  Confirmed: ["Shipped", "Cancelled"],
+  Shipped: ["Delivered"],
+  Delivered: [],
+  Cancelled: [],
+};
+
+function readCollapsed(): boolean {
+  try {
+    return window.localStorage.getItem(SIDEBAR_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function errorText(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 export default function AdminView() {
-  const { logout } = useAuth();
+  const { session, logout, can } = useAdminAuth();
   const navigate = useNavigate();
+  const pathname = usePathname();
+  const section: AdminSectionId | null = sectionFromPath(pathname);
+  const activeTab = section;
 
   const onLogout = async () => {
     await logout();
-    navigate("/");
+    navigate("/admin/login");
   };
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
+  const visibleSections = ADMIN_SECTIONS.filter((item) => item.permission === null || can(item.permission));
+  const allowed = section !== null && visibleSections.some((item) => item.id === section);
+
+  // Collapsible sidebar: remembered per browser. On small screens it is a drawer instead.
+  const [collapsed, setCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read the saved preference once after mount (no localStorage on the server)
+    setCollapsed(readCollapsed());
+  }, []);
+  const toggleCollapsed = () => {
+    setCollapsed((current) => {
+      const next = !current;
+      try {
+        window.localStorage.setItem(SIDEBAR_KEY, next ? "1" : "0");
+      } catch {
+        // storage unavailable: the toggle still works for this visit
+      }
+      return next;
+    });
+  };
 
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -249,52 +345,8 @@ export default function AdminView() {
   const styles = styleRows.filter((row) => row.is_active).map((row) => row.name);
   const [orders, setOrders] = useState<Order[]>([]);
 
-  const groupedOrders = useMemo(() => {
-    const groups: { [key: string]: Order[] } = {};
-
-    orders.forEach((order) => {
-      // If order_code is missing, group by customer, date, and status
-      const dateStr = new Date(order.order_date).toISOString().split("T")[0];
-      const key =
-        order.order_code ||
-        `group-${order.customer_phone}-${dateStr}-${order.order_status}`;
-
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      groups[key].push(order);
-    });
-
-    return Object.keys(groups).map((key) => {
-      const items = groups[key];
-      const firstItem = items[0];
-
-      const totalQty = items.reduce(
-        (sum, item) => sum + Number(item.quantity || 0),
-        0,
-      );
-      const totalRev = items.reduce(
-        (sum, item) => sum + Number(item.total_amount || 0),
-        0,
-      );
-      const totalProf = items.reduce(
-        (sum, item) => sum + Number(item.profit_amount || 0),
-        0,
-      );
-
-      return {
-        ...firstItem,
-        id: firstItem.id,
-        order_code: firstItem.order_code || `WR-${firstItem.id}`,
-        quantity: totalQty,
-        total_amount: totalRev,
-        profit_amount: totalProf,
-        items: items,
-      };
-    });
-  }, [orders]);
-
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const selectedOrder = orders.find((order) => order.id === selectedOrderId) ?? null;
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [faceScans, setFaceScans] = useState<FaceScanRecord[]>([]);
 
@@ -308,32 +360,31 @@ export default function AdminView() {
   const [productImagePreview, setProductImagePreview] = useState("");
   const [suggestingColour, setSuggestingColour] = useState(false);
 
-  const fetchAllData = async () => {
-    try {
-      const [dashboardData, productsData, ordersData, bookingsData, faceScansData, categoriesData, stylesData] =
-        await Promise.all([
-          adminApi.dashboard<{ dashboard: DashboardData }>(),
-          adminApi.products<{ products?: Product[] }>(),
-          adminApi.orders<{ orders?: Order[] }>(),
-          adminApi.bookings<{ bookings?: Booking[] }>(),
-          adminApi.faceScans<{ face_scan_records?: FaceScanRecord[] }>(),
-          catalogApi.categories(true),
-          catalogApi.getStyles(true),
-        ]);
+  const canProducts = can("products.view");
+  const manageProducts = can("products.manage");
+  const manageOrders = can("orders.manage");
+  const manageBookings = can("bookings.manage");
 
-      setDashboard(dashboardData.dashboard);
-      setProducts(productsData.products || []);
-      setOrders(ordersData.orders || []);
-      setBookings(bookingsData.bookings || []);
-      setFaceScans(faceScansData.face_scan_records || []);
-      setCategoryRows(categoriesData.categories);
-      setStyleRows(stylesData.styles);
-    } catch (error) {
-      console.error(error);
-      notify("Admin data could not be loaded. Check that the server is running.");
-    } finally {
-      setLoading(false);
+  const fetchAllData = async () => {
+    // Only ask for what this role may see, so a limited role never triggers 403s.
+    const tasks: Array<Promise<unknown>> = [];
+    if (can("dashboard.view")) tasks.push(adminApi.dashboard<{ dashboard: DashboardData }>().then((d) => setDashboard(d.dashboard)));
+    if (canProducts) {
+      tasks.push(adminApi.products<{ products?: Product[] }>().then((d) => setProducts(d.products || [])));
+      tasks.push(adminApi.categories().then((d) => setCategoryRows(d.categories)));
+      tasks.push(adminApi.styles().then((d) => setStyleRows(d.styles)));
     }
+    if (can("orders.view")) tasks.push(adminApi.orders<{ orders?: Order[] }>().then((d) => setOrders(d.orders || [])));
+    if (can("bookings.view")) tasks.push(adminApi.bookings<{ bookings?: Booking[] }>().then((d) => setBookings(d.bookings || [])));
+    if (can("scans.view")) {
+      tasks.push(adminApi.faceScans<{ face_scan_records?: FaceScanRecord[] }>().then((d) => setFaceScans(d.face_scan_records || [])));
+    }
+    const results = await Promise.allSettled(tasks);
+    if (results.some((result) => result.status === "rejected")) {
+      console.error(results.filter((result) => result.status === "rejected"));
+      notify("Some admin data could not be loaded. Check that the server is running.", "error");
+    }
+    setLoading(false);
   };
 
   const loadAllData = async () => {
@@ -344,7 +395,9 @@ export default function AdminView() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on mount: state is set after the request resolves
     void fetchAllData();
-  }, []);
+    // Permissions are fixed for the life of the session; reload when the admin changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user.id]);
 
   const filteredProducts = useMemo(() => {
     const lower = searchVal.toLowerCase().trim();
@@ -363,7 +416,7 @@ export default function AdminView() {
 
   const openAddProductModal = () => {
     setEditingProduct(null);
-    setProductForm(emptyProductForm);
+    setProductForm({ ...emptyProductForm, category: categories[0] || "", cultural_tag: styles[0] || "" });
     setProductImage(null);
     setProductImagePreview("");
     setIsProductModalOpen(true);
@@ -375,9 +428,10 @@ export default function AdminView() {
       name: product.name,
       category: product.category,
       cultural_tag: product.cultural_tag,
-      compatible_skin_tone: product.compatible_skin_tone,
-      color: product.color || "White",
-      garment_type: product.garment_type || "Top",
+      compatible_skin_tone: product.compatible_skin_tone || "All",
+      // Keep blanks blank: the old form filled them with White / Top and saved that over the real value.
+      color: product.color || "",
+      garment_type: product.garment_type || "",
       cost_price: String(product.cost_price),
       price: String(product.price),
       stock_quantity: String(product.stock_quantity),
@@ -403,6 +457,13 @@ export default function AdminView() {
     setProductImagePreview("");
   };
 
+  const sizeTotal =
+    Number(productForm.size_s_stock || 0) +
+    Number(productForm.size_m_stock || 0) +
+    Number(productForm.size_l_stock || 0) +
+    Number(productForm.size_xl_stock || 0) +
+    Number(productForm.size_xxl_stock || 0);
+
   const handleProductSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -417,18 +478,13 @@ export default function AdminView() {
     formData.append("category", productForm.category);
     formData.append("cultural_tag", productForm.cultural_tag);
     formData.append("compatible_skin_tone", productForm.compatible_skin_tone);
+    // Blank colour / garment type are sent as empty, which the API stores as "not set".
     formData.append("color", productForm.color);
     formData.append("garment_type", productForm.garment_type);
     formData.append("cost_price", productForm.cost_price || "0");
     formData.append("price", productForm.price);
-    const totalStock =
-      Number(productForm.size_s_stock || 0) +
-      Number(productForm.size_m_stock || 0) +
-      Number(productForm.size_l_stock || 0) +
-      Number(productForm.size_xl_stock || 0) +
-      Number(productForm.size_xxl_stock || 0);
-
-    formData.append("stock_quantity", String(totalStock));
+    // With per-size stock the total is their sum; products without sizes (watches, caps) keep a plain total.
+    formData.append("stock_quantity", String(sizeTotal > 0 ? sizeTotal : Number(productForm.stock_quantity || 0)));
     formData.append("size_s_stock", productForm.size_s_stock || "0");
     formData.append("size_m_stock", productForm.size_m_stock || "0");
     formData.append("size_l_stock", productForm.size_l_stock || "0");
@@ -446,13 +502,14 @@ export default function AdminView() {
       await adminApi.saveProduct(editingProduct ? editingProduct.id : null, formData);
 
       closeProductModal();
+      notify(editingProduct ? "Product saved." : "Product added.");
       await loadAllData();
     } catch (error) {
       console.error(error);
       notify(
         error instanceof ApiError && error.status === 400
           ? `The product was not saved: ${describeApiErrors(error.details)}`
-          : "The product could not be saved. Please try again.",
+          : errorText(error, "The product could not be saved. Please try again."),
         "error",
       );
     }
@@ -470,7 +527,7 @@ export default function AdminView() {
     }
     try {
       setSuggestingColour(true);
-      const response = await catalogApi.colourSuggestion(productImage);
+      const response = await adminApi.colourSuggestion(productImage);
       const suggestion = response.suggestion;
       setProductForm((current) => ({ ...current, color: suggestion.name }));
       notify(`Suggested colour: ${suggestion.name} (${suggestion.hex}).`);
@@ -491,202 +548,220 @@ export default function AdminView() {
       notify(product.is_active === false ? "Product is visible in the shop." : "Product hidden from the shop.");
     } catch (error) {
       console.error(error);
-      notify("Could not change product visibility.", "error");
+      notify(errorText(error, "Could not change product visibility."), "error");
     }
   };
 
-  const deleteProduct = async (productId: number) => {
-    const confirmDelete = confirm("Kya tum ye product delete karna chahte ho?");
-
-    if (!confirmDelete) return;
+  const deleteProduct = async (product: Product) => {
+    if (!window.confirm(`Delete "${product.name}"? This cannot be undone.`)) return;
 
     try {
-      await adminApi.deleteProduct(productId);
-
+      await adminApi.deleteProduct(product.id);
+      notify("Product deleted.");
       await loadAllData();
     } catch (error) {
       console.error(error);
-      notify("Could not delete. Please try again.");
+      notify(errorText(error, "Could not delete. Please try again."), "error");
     }
   };
 
   const updateBookingStatus = async (bookingId: number, newStatus: string) => {
     try {
       await adminApi.updateBooking(bookingId, { status: newStatus });
-
+      notify(`Booking ${newStatus.toLowerCase()}.`, "success");
       await loadAllData();
     } catch (error) {
       console.error(error);
-      notify("Could not update the booking status. Please try again.");
+      notify(errorText(error, "Could not update the booking status. Please try again."), "error");
     }
   };
 
   const deleteBooking = async (bookingId: number) => {
-    const confirmDelete = confirm("Kya tum ye booking delete karna chahte ho?");
-
-    if (!confirmDelete) return;
+    if (!window.confirm(`Delete booking #${bookingId}?`)) return;
 
     try {
       await adminApi.deleteBooking(bookingId);
-
+      notify("Booking deleted.");
       await loadAllData();
     } catch (error) {
       console.error(error);
-      notify("Could not delete the booking. Please try again.");
+      notify(errorText(error, "Could not delete the booking. Please try again."), "error");
     }
   };
 
-  const updateOrderStatus = async (
-    orderId: number,
-    newStatus: string,
-    itemsToUpdate?: Order[],
-  ) => {
+  const updateOrderStatus = async (orderId: number, newStatus: string) => {
     try {
-      const list =
-        itemsToUpdate ||
-        (selectedOrder &&
-          selectedOrder.id === orderId &&
-          selectedOrder.items) ||
-        [];
-
-      if (list.length > 0) {
-        for (const item of list) {
-          await adminApi.updateOrder(item.id, { order_status: newStatus });
-        }
-      } else {
-        await adminApi.updateOrder(orderId, { order_status: newStatus });
-      }
-
-      if (selectedOrder && selectedOrder.id === orderId) {
-        setSelectedOrder({
-          ...selectedOrder,
-          order_status: newStatus,
-          items: selectedOrder.items
-            ? selectedOrder.items.map((item) => ({
-                ...item,
-                order_status: newStatus,
-              }))
-            : undefined,
-        });
-      }
-
+      await adminApi.updateOrderStatus(orderId, newStatus);
+      notify(`Order moved to ${newStatus}.`, "success");
       await loadAllData();
     } catch (error) {
       console.error(error);
-      notify("Could not update the order status. Please try again.");
+      notify(errorText(error, "Could not update the order status."), "error");
     }
   };
 
-  const deleteOrder = async (orderId: number, itemsToDelete?: Order[]) => {
-    const confirmDelete = confirm("Kya tum ye order delete karna chahte ho?");
-
-    if (!confirmDelete) return;
+  const deleteOrder = async (order: Order) => {
+    const open = order.order_status === "Pending" || order.order_status === "Confirmed";
+    const message = open
+      ? `Delete order ${order.order_code || `#${order.id}`}? It is still open, so its items go back into stock first.`
+      : `Delete order ${order.order_code || `#${order.id}`}? This cannot be undone.`;
+    if (!window.confirm(message)) return;
 
     try {
-      const list =
-        itemsToDelete ||
-        (selectedOrder &&
-          selectedOrder.id === orderId &&
-          selectedOrder.items) ||
-        [];
-
-      if (list.length > 0) {
-        for (const item of list) {
-          await adminApi.deleteOrder(item.id);
-        }
-      } else {
-        await adminApi.deleteOrder(orderId);
-      }
-
-      if (selectedOrder && selectedOrder.id === orderId) {
-        setSelectedOrder(null);
-      }
-
+      await adminApi.deleteOrder(order.id);
+      if (selectedOrderId === order.id) setSelectedOrderId(null);
+      notify("Order deleted.");
       await loadAllData();
     } catch (error) {
       console.error(error);
-      notify("Could not delete the order. Please try again.");
+      notify(errorText(error, "Could not delete the order. Please try again."), "error");
     }
   };
 
-  const navItems = [
-    { id: "dashboard" as ActiveTab, label: "Dashboard", icon: LayoutDashboard },
-    { id: "products" as ActiveTab, label: "Products", icon: Package },
-    { id: "styles" as ActiveTab, label: "Categories & Styles", icon: Tags },
-    { id: "skinTone" as ActiveTab, label: "Skin Tone Matrix", icon: Palette },
-    { id: "outfitRules" as ActiveTab, label: "Outfit Rules", icon: Sparkles },
-    { id: "orders" as ActiveTab, label: "Orders", icon: ShoppingCart },
-    { id: "bookings" as ActiveTab, label: "Bookings", icon: CalendarCheck },
-    { id: "faceScans" as ActiveTab, label: "Face Scans", icon: ScanFace },
-    { id: "team" as ActiveTab, label: "Team Members", icon: Users },
-    { id: "settings" as ActiveTab, label: "Settings", icon: Settings },
-  ];
+  const goTo = (path: string) => {
+    setSelectedOrderId(null);
+    setDrawerOpen(false);
+    navigate(path);
+  };
+
+  const sidebar = (isDrawer: boolean) => {
+    const narrow = collapsed && !isDrawer;
+    return (
+      <>
+        <div className={`border-b border-slate-100 ${narrow ? "px-3 py-5" : "px-6 py-6"}`}>
+          <div className={`flex items-center ${narrow ? "justify-center" : "gap-3"}`}>
+            <div className="w-11 h-11 shrink-0 rounded-xl bg-white border border-brand-border/60 shadow-sm flex items-center justify-center overflow-hidden">
+              <img
+                src="/brand/wr-icon.png"
+                alt="Wear Right"
+                className="w-10 h-10 object-contain"
+                onError={(event) => {
+                  event.currentTarget.src = "/brand/wr-monogram.png";
+                }}
+              />
+            </div>
+            {!narrow && (
+              <div className="min-w-0">
+                <h1 className="text-lg font-black text-brand-dark leading-tight">Wear Right</h1>
+                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Admin Panel</p>
+              </div>
+            )}
+            {isDrawer && (
+              <button type="button" onClick={() => setDrawerOpen(false)} aria-label="Close menu" className="ml-auto p-2 rounded-lg hover:bg-cream-base">
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <nav className={`flex-1 overflow-y-auto space-y-1 ${narrow ? "p-2" : "p-4"}`} aria-label="Admin sections">
+          {visibleSections.map((item) => {
+            const Icon = SECTION_ICONS[item.id];
+            const isActive = section === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                title={narrow ? item.label : undefined}
+                aria-current={isActive ? "page" : undefined}
+                onClick={() => goTo(item.path)}
+                className={`w-full flex items-center rounded-xl text-sm font-bold transition-all ${
+                  narrow ? "justify-center p-3" : "gap-3 px-4 py-3"
+                } ${isActive ? "bg-sage-green/10 text-sage-green" : "text-slate-500 hover:bg-cream-base hover:text-brand-dark"}`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                {!narrow && <span className="truncate">{item.label}</span>}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className={`border-t border-slate-100 space-y-2 ${narrow ? "p-2" : "p-4"}`}>
+          <button
+            type="button"
+            onClick={loadAllData}
+            title="Refresh data"
+            className={`w-full flex items-center justify-center gap-2 rounded-xl bg-slate-900 text-white text-xs font-bold uppercase tracking-wider ${narrow ? "p-3" : "px-4 py-3"}`}
+          >
+            <RefreshCcw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            {!narrow && "Refresh data"}
+          </button>
+          {!isDrawer && (
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className={`w-full flex items-center justify-center gap-2 rounded-xl border border-brand-border/60 text-slate-500 hover:text-brand-dark hover:bg-cream-base text-xs font-bold uppercase tracking-wider ${narrow ? "p-3" : "px-4 py-2.5"}`}
+            >
+              {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+              {!narrow && "Collapse"}
+            </button>
+          )}
+        </div>
+      </>
+    );
+  };
+
+  const currentLabel = selectedOrder
+    ? `Order ${selectedOrder.order_code || `#${selectedOrder.id}`}`
+    : ADMIN_SECTIONS.find((item) => item.id === section)?.label ?? "Not found";
 
   return (
     <div className="min-h-screen bg-cream-base text-left font-sans">
       <div className="flex min-h-screen">
-        <aside className="w-72 bg-white border-r border-brand-border/60 hidden lg:flex flex-col">
-          <div className="px-6 py-6 border-b border-slate-100">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-white border border-brand-border/60 shadow-sm flex items-center justify-center overflow-hidden">
-                <img
-                  src="/brand/wr-icon.png"
-                  alt="Wear Right Icon"
-                  className="w-11 h-11 object-contain"
-                  onError={(event) => {
-                    event.currentTarget.src = "/brand/wr-monogram.png";
-                  }}
-                />
-              </div>
+        <aside
+          className={`hidden lg:flex flex-col bg-white border-r border-brand-border/60 sticky top-0 h-screen transition-[width] duration-200 ${
+            collapsed ? "w-20" : "w-72"
+          }`}
+        >
+          {sidebar(false)}
+        </aside>
 
-              <div>
-                <h1 className="text-lg font-black text-brand-dark">
-                  Wear Right
-                </h1>
-                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
-                  Admin Panel
-                </p>
+        {drawerOpen && (
+          <div className="lg:hidden fixed inset-0 z-50 flex">
+            <button type="button" aria-label="Close menu" className="absolute inset-0 bg-slate-950/40" onClick={() => setDrawerOpen(false)} />
+            <aside className="relative w-72 max-w-[85vw] bg-white h-full flex flex-col shadow-2xl">{sidebar(true)}</aside>
+          </div>
+        )}
+
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-brand-border/60 px-4 sm:px-8 h-16 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+              className="lg:hidden p-2 rounded-lg border border-brand-border/60 text-slate-600"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <p className="text-sm font-black text-brand-dark truncate">{currentLabel}</p>
+            <div className="ml-auto flex items-center gap-2 sm:gap-3">
+              <Link
+                href="/"
+                target="_blank"
+                className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-brand-dark px-3 py-2 rounded-lg hover:bg-cream-base"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> View shop
+              </Link>
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-black text-brand-dark leading-tight">{session?.user.name}</p>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{session?.role.name}</p>
               </div>
+              <div className="w-9 h-9 rounded-full bg-sage-green/10 text-sage-green flex items-center justify-center font-black">
+                {(session?.user.name || "A").charAt(0).toUpperCase()}
+              </div>
+              <button
+                type="button"
+                onClick={onLogout}
+                title="Sign out"
+                aria-label="Sign out"
+                className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
           </div>
-
-          <nav className="p-4 space-y-1 flex-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    setSelectedOrder(null);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
-                    isActive
-                      ? "bg-sage-green/10 text-sage-green"
-                      : "text-slate-500 hover:bg-cream-base hover:text-brand-dark"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="p-4 border-t border-slate-100">
-            <button
-              onClick={loadAllData}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-900 text-white text-xs font-bold uppercase tracking-wider"
-            >
-              <RefreshCcw
-                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
-              />
-              Refresh Data
-            </button>
-          </div>
-        </aside>
 
         <main className="flex-1 p-4 sm:p-8 overflow-x-hidden">
           <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -695,30 +770,35 @@ export default function AdminView() {
                 AI Clothing Recommendation System
               </p>
 
-              <h2 className="text-3xl font-black text-brand-dark mt-1">
-                {selectedOrder
-                  ? `Order #${selectedOrder.id}`
-                  : navItems.find((item) => item.id === activeTab)?.label}
-              </h2>
-
-              <p className="text-sm text-slate-500 mt-2">
-                Manage products, orders, bookings, skin tone records and
-                outfit recommendation data.
-              </p>
+              <h2 className="text-3xl font-black text-brand-dark mt-1">{currentLabel}</h2>
             </div>
 
             <button
               onClick={loadAllData}
               className="flex items-center justify-center gap-2 bg-white border border-brand-border/60 px-5 py-3 rounded-xl text-sm font-bold text-slate-700 hover:bg-cream-card/60"
             >
-              <RefreshCcw
-                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
-              />
+              <RefreshCcw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
               Refresh
             </button>
           </header>
 
-          {activeTab === "dashboard" && (
+          {section === null && (
+            <Panel title="Page not found">
+              <p className="text-sm text-slate-500 font-semibold">This admin page does not exist.</p>
+            </Panel>
+          )}
+
+          {section !== null && !allowed && (
+            <div role="alert">
+              <Panel title="Not allowed">
+                <p className="text-sm text-slate-500 font-semibold">
+                  Your role ({session?.role.name}) does not include this section. Ask a Super Admin if you need it.
+                </p>
+              </Panel>
+            </div>
+          )}
+
+          {allowed && activeTab === "dashboard" && (
             <section className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
                 <MetricCard
@@ -782,9 +862,7 @@ export default function AdminView() {
                         key={style}
                         label={style}
                         value={
-                          dashboard?.style_counts?.[
-                            style as keyof DashboardData["style_counts"]
-                          ] || 0
+                          dashboard?.style_counts?.[style] || 0
                         }
                         total={dashboard?.total_products || 1}
                       />
@@ -794,15 +872,11 @@ export default function AdminView() {
 
                 <Panel title="Products by Skin Tone">
                   <div className="space-y-4">
-                    {skinTones.map((tone) => (
+                    {[...skinTones, "All"].map((tone) => (
                       <ProgressRow
                         key={tone}
-                        label={tone}
-                        value={
-                          dashboard?.skin_tone_counts?.[
-                            tone as keyof DashboardData["skin_tone_counts"]
-                          ] || 0
-                        }
+                        label={tone === "All" ? "All tones" : tone}
+                        value={dashboard?.skin_tone_counts?.[tone] || 0}
                         total={dashboard?.total_products || 1}
                       />
                     ))}
@@ -812,7 +886,7 @@ export default function AdminView() {
             </section>
           )}
 
-          {activeTab === "products" && (
+          {allowed && activeTab === "products" && (
             <section className="bg-white rounded-2xl border border-brand-border/60 shadow-sm overflow-hidden">
               <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="relative w-full md:w-96">
@@ -826,13 +900,15 @@ export default function AdminView() {
                   />
                 </div>
 
-                <button
-                  onClick={openAddProductModal}
-                  className="bg-brand-gold hover:opacity-90 text-white px-5 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Product
-                </button>
+                {manageProducts && (
+                  <button
+                    onClick={openAddProductModal}
+                    className="bg-brand-gold hover:opacity-90 text-white px-5 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Product
+                  </button>
+                )}
               </div>
 
               <div className="overflow-x-auto">
@@ -940,10 +1016,12 @@ export default function AdminView() {
                         </td>
 
                         <td className="p-4">
+                          {manageProducts ? (
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={() => toggleProductActive(product)}
                               title={product.is_active === false ? "Show in shop" : "Hide from shop"}
+                              aria-label={product.is_active === false ? `Show ${product.name} in shop` : `Hide ${product.name} from shop`}
                               className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200"
                             >
                               <Eye className={`w-4 h-4 ${product.is_active === false ? "opacity-40" : ""}`} />
@@ -951,18 +1029,25 @@ export default function AdminView() {
 
                             <button
                               onClick={() => openEditProductModal(product)}
+                              title="Edit"
+                              aria-label={`Edit ${product.name}`}
                               className="p-2 rounded-lg bg-cream-card/60 text-slate-600 hover:text-sage-green"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
 
                             <button
-                              onClick={() => deleteProduct(product.id)}
+                              onClick={() => deleteProduct(product)}
+                              title="Delete"
+                              aria-label={`Delete ${product.name}`}
                               className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
+                          ) : (
+                            <p className="text-right text-xs text-slate-400 font-semibold">View only</p>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -978,29 +1063,27 @@ export default function AdminView() {
             </section>
           )}
 
-          {activeTab === "styles" && <AdminTaxonomy />}
+          {allowed && activeTab === "styles" && <AdminTaxonomy canManage={can("catalog.manage")} />}
 
-          {activeTab === "skinTone" && (
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {skinTones.map((tone) => (
-                <Panel key={tone} title={`${tone} Skin Tone`}>
-                  <p className="text-3xl font-black text-brand-dark mb-2">
-                    {
-                      products.filter(
-                        (item) => item.compatible_skin_tone === tone,
-                      ).length
-                    }
-                  </p>
-
-                  <p className="text-sm text-slate-500 font-semibold">
-                    Products compatible with {tone} skin tone.
-                  </p>
-                </Panel>
-              ))}
+          {allowed && activeTab === "skinTone" && (
+            <section className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                {[...skinTones, "All"].map((tone) => (
+                  <Panel key={tone} title={tone === "All" ? "Suits every tone" : `${tone} Skin Tone`}>
+                    <p className="text-3xl font-black text-brand-dark mb-2">
+                      {products.filter((item) => item.compatible_skin_tone === tone).length}
+                    </p>
+                    <p className="text-sm text-slate-500 font-semibold">
+                      {tone === "All" ? "Products marked for every skin tone." : `Products marked for ${tone} skin tone.`}
+                    </p>
+                  </Panel>
+                ))}
+              </div>
+              <ToneRulesPanel canManage={can("catalog.manage")} />
             </section>
           )}
 
-          {activeTab === "outfitRules" && (
+          {allowed && activeTab === "outfitRules" && (
             <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <Panel title="Smart Outfit Completion Engine">
                 <div className="space-y-4 text-sm text-slate-600 font-semibold">
@@ -1036,24 +1119,25 @@ export default function AdminView() {
                   <LogicItem text="Same Style: Eastern, Western, Formal, Casual" />
                   <LogicItem text="Same Skin Tone: Fair, Medium, Dark" />
                   <LogicItem text="Missing categories are recommended, leaving out the selected item" />
-                  <LogicItem text="Reverse recommendation supported: Shoes/Pant/Accessory select karne par bhi outfit complete hota hai" />
+                  <LogicItem text="Reverse recommendation: picking shoes, trousers or an accessory first still completes the outfit" />
+                  <LogicItem text="These pairings are built into the recommender engine and shown here for reference" />
                 </div>
               </Panel>
             </section>
           )}
 
-          {activeTab === "orders" && (
+          {allowed && activeTab === "orders" && (
             <>
               {!selectedOrder ? (
                 <DataPanel title="Customer Orders">
-                  <table className="w-full min-w-[1050px] text-sm">
+                  <table className="w-full min-w-[1000px] text-sm">
                     <thead className="bg-cream-base border-b border-slate-100">
                       <tr className="text-[11px] uppercase tracking-widest text-slate-400 font-black">
                         <th className="p-4 text-left">Order</th>
                         <th className="p-4 text-left">Customer</th>
-                        <th className="p-4 text-left">Product</th>
+                        <th className="p-4 text-left">Items</th>
                         <th className="p-4 text-left">Qty</th>
-                        <th className="p-4 text-left">Revenue</th>
+                        <th className="p-4 text-left">Total</th>
                         <th className="p-4 text-left">Profit</th>
                         <th className="p-4 text-left">Status</th>
                         <th className="p-4 text-left">Payment</th>
@@ -1062,96 +1146,86 @@ export default function AdminView() {
                     </thead>
 
                     <tbody className="divide-y divide-slate-100">
-                      {groupedOrders.map((order) => (
-                        <tr key={order.id} className="hover:bg-cream-base">
-                          <td className="p-4 font-black text-sage-green">
-                            {order.order_code || `#${order.id}`}
-                          </td>
+                      {orders.map((order) => {
+                        const lines = orderLines(order);
+                        return (
+                          <tr key={order.id} className="hover:bg-cream-base">
+                            <td className="p-4">
+                              <p className="font-black text-sage-green">{order.order_code || `#${order.id}`}</p>
+                              <p className="text-xs text-slate-400 font-semibold">{new Date(order.order_date).toLocaleDateString()}</p>
+                            </td>
 
-                          <td className="p-4">
-                            <p className="font-black text-brand-dark">
-                              {order.customer_name || "N/A"}
-                            </p>
-                            <p className="text-xs text-slate-400">
-                              {order.customer_phone || "No phone"}
-                            </p>
-                          </td>
+                            <td className="p-4">
+                              <p className="font-black text-brand-dark">{order.customer_name || "N/A"}</p>
+                              <p className="text-xs text-slate-400">{order.customer_phone || "No phone"}</p>
+                            </td>
 
-                          <td className="p-4 font-bold text-slate-700">
-                            {order.items && order.items.length > 1
-                              ? `${order.items[0].product_name} + ${order.items.length - 1} more`
-                              : order.product_name}
-                          </td>
+                            <td className="p-4 font-bold text-slate-700">
+                              {lines.length > 1 ? `${lines[0].name} + ${lines.length - 1} more` : lines[0]?.name || "N/A"}
+                            </td>
 
-                          <td className="p-4 font-bold">{order.quantity}</td>
+                            <td className="p-4 font-bold">{lines.reduce((sum, line) => sum + line.quantity, 0)}</td>
 
-                          <td className="p-4 font-black">
-                            {formatPKR(order.total_amount)}
-                          </td>
+                            <td className="p-4 font-black">{formatPKR(order.total_amount)}</td>
 
-                          <td
-                            className={`p-4 font-black ${
-                              Number(order.profit_amount) < 0
-                                ? "text-red-600"
-                                : "text-emerald-600"
-                            }`}
-                          >
-                            {formatPKR(order.profit_amount)}
-                          </td>
+                            <td className={`p-4 font-black ${Number(order.profit_amount) < 0 ? "text-red-600" : "text-emerald-600"}`}>
+                              {formatPKR(order.profit_amount)}
+                            </td>
 
-                          <td className="p-4">
-                            <StatusBadge status={order.order_status} />
-                          </td>
+                            <td className="p-4">
+                              <StatusBadge status={order.order_status} />
+                            </td>
 
-                          <td className="p-4 font-bold text-slate-600">
-                            {order.payment_status}
-                          </td>
+                            <td className="p-4 font-bold text-slate-600">{order.payment_status}</td>
 
-                          <td className="p-4">
-                            <div className="flex justify-end gap-2">
-                              <button
-                                onClick={() => setSelectedOrder(order)}
-                                className="w-10 h-10 rounded-xl bg-sage-green/10 text-sage-green hover:bg-sage-green/20 flex items-center justify-center"
-                                title="View order details"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
+                            <td className="p-4">
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => setSelectedOrderId(order.id)}
+                                  className="w-10 h-10 rounded-xl bg-sage-green/10 text-sage-green hover:bg-sage-green/20 flex items-center justify-center"
+                                  title="View order details"
+                                  aria-label={`View order ${order.order_code || order.id}`}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
 
-                              <button
-                                onClick={() => deleteOrder(order.id)}
-                                className="w-10 h-10 rounded-xl bg-red-50 text-red-700 hover:bg-red-100 flex items-center justify-center"
-                                title="Delete order"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                                {manageOrders && (
+                                  <button
+                                    onClick={() => deleteOrder(order)}
+                                    className="w-10 h-10 rounded-xl bg-red-50 text-red-700 hover:bg-red-100 flex items-center justify-center"
+                                    title="Delete order"
+                                    aria-label={`Delete order ${order.order_code || order.id}`}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
 
                   {orders.length === 0 && (
-                    <div className="p-10 text-center text-slate-400 font-bold">
-                      No orders found.
-                    </div>
+                    <div className="p-10 text-center text-slate-400 font-bold">No orders found.</div>
                   )}
                 </DataPanel>
               ) : (
                 <section className="space-y-6">
                   <div className="flex items-center gap-4">
                     <button
-                      onClick={() => setSelectedOrder(null)}
+                      onClick={() => setSelectedOrderId(null)}
+                      aria-label="Back to orders"
                       className="w-10 h-10 rounded-xl bg-white border border-brand-border/60 hover:bg-cream-base flex items-center justify-center"
                     >
                       <ArrowLeft className="w-4 h-4" />
                     </button>
 
                     <div>
-                      <h3 className="text-3xl font-black text-brand-dark">
-                        Order #{selectedOrder.id}
+                      <h3 className="text-2xl font-black text-brand-dark">
+                        {selectedOrder.order_code || `Order #${selectedOrder.id}`}
                       </h3>
-
                       <p className="text-sm text-slate-500 font-semibold mt-1">
                         {new Date(selectedOrder.order_date).toLocaleString()}
                       </p>
@@ -1160,46 +1234,36 @@ export default function AdminView() {
 
                   <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6">
                     <div className="bg-white rounded-2xl border border-brand-border/60 shadow-sm p-6">
-                      <h4 className="text-lg font-black text-brand-dark mb-5">
-                        Order Items
-                      </h4>
+                      <h4 className="text-lg font-black text-brand-dark mb-5">Order Items</h4>
 
                       <div className="space-y-4">
-                        {(selectedOrder.items && selectedOrder.items.length > 0
-                          ? selectedOrder.items
-                          : [selectedOrder]
-                        ).map((item, index) => (
+                        {orderLines(selectedOrder).map((line) => (
                           <div
-                            key={item.id || index}
+                            key={line.key}
                             className="bg-cream-base rounded-2xl border border-slate-100 p-5 flex items-center justify-between gap-4"
                           >
-                            <div>
-                              <p className="font-black text-brand-dark">
-                                {item.product_name}
-                              </p>
-
-                              <p className="text-sm text-slate-500 font-semibold mt-1">
-                                {formatPKR(item.total_amount)} × {item.quantity}
-                              </p>
-
-                              <p className="text-xs text-slate-400 font-bold mt-1">
-                                Product ID: {item.product}
-                              </p>
+                            <div className="flex items-center gap-4 min-w-0">
+                              {line.image && (
+                                <img src={line.image} alt="" className="w-12 h-14 rounded-xl object-cover border border-brand-border/60 bg-cream-card/60" />
+                              )}
+                              <div className="min-w-0">
+                                <p className="font-black text-brand-dark truncate">{line.name}</p>
+                                <p className="text-sm text-slate-500 font-semibold mt-1">
+                                  {formatPKR(line.price)} × {line.quantity}
+                                  {line.size ? ` · Size ${line.size}` : ""}
+                                </p>
+                                {line.productId && (
+                                  <p className="text-xs text-slate-400 font-bold mt-1">Product ID: {line.productId}</p>
+                                )}
+                              </div>
                             </div>
 
-                            <p className="font-black text-brand-dark">
-                              {formatPKR(item.total_amount)}
-                            </p>
+                            <p className="font-black text-brand-dark">{formatPKR(line.total)}</p>
                           </div>
                         ))}
                       </div>
 
                       <div className="mt-6 border-t border-slate-100 pt-5 space-y-3">
-                        <div className="flex justify-between text-sm font-bold text-slate-500">
-                          <span>Subtotal</span>
-                          <span>{formatPKR(selectedOrder.total_amount)}</span>
-                        </div>
-
                         <div className="flex justify-between text-xl font-black text-brand-dark">
                           <span>Total</span>
                           <span>{formatPKR(selectedOrder.total_amount)}</span>
@@ -1207,13 +1271,7 @@ export default function AdminView() {
 
                         <div className="flex justify-between text-sm font-black">
                           <span className="text-slate-500">Profit</span>
-                          <span
-                            className={
-                              Number(selectedOrder.profit_amount) < 0
-                                ? "text-red-600"
-                                : "text-emerald-600"
-                            }
-                          >
+                          <span className={Number(selectedOrder.profit_amount) < 0 ? "text-red-600" : "text-emerald-600"}>
                             {formatPKR(selectedOrder.profit_amount)}
                           </span>
                         </div>
@@ -1222,58 +1280,51 @@ export default function AdminView() {
 
                     <div className="space-y-6">
                       <div className="bg-white rounded-2xl border border-brand-border/60 shadow-sm p-6">
-                        <h4 className="text-lg font-black text-brand-dark mb-5">
-                          Order Status
-                        </h4>
+                        <h4 className="text-lg font-black text-brand-dark mb-5">Order Status</h4>
 
                         <div className="space-y-4">
                           <StatusBadge status={selectedOrder.order_status} />
 
-                          <select
-                            value={selectedOrder.order_status}
-                            onChange={(event) =>
-                              updateOrderStatus(
-                                selectedOrder.id,
-                                event.target.value,
-                              )
-                            }
-                            className="w-full bg-cream-base border border-brand-border/60 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-sage-green/20 focus:border-sage-green"
-                          >
-                            <option value="Pending">Pending</option>
-                            <option value="Confirmed">Confirmed</option>
-                            <option value="Shipped">Shipped</option>
-                            <option value="Delivered">Delivered</option>
-                            <option value="Cancelled">Cancelled</option>
-                          </select>
+                          {manageOrders && (NEXT_ORDER_STATUSES[selectedOrder.order_status] || []).length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {(NEXT_ORDER_STATUSES[selectedOrder.order_status] || []).map((next) => (
+                                <button
+                                  key={next}
+                                  type="button"
+                                  onClick={() => updateOrderStatus(selectedOrder.id, next)}
+                                  className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider ${
+                                    next === "Cancelled"
+                                      ? "bg-red-50 text-red-700 hover:bg-red-100"
+                                      : "bg-slate-900 text-white hover:opacity-90"
+                                  }`}
+                                >
+                                  {next === "Cancelled" ? "Cancel order" : `Mark ${next}`}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-400 font-semibold">
+                              {manageOrders ? "This order is final." : "Your role can view orders but not change them."}
+                            </p>
+                          )}
+                          {selectedOrder.order_status !== "Cancelled" && manageOrders && (
+                            <p className="text-xs text-slate-400 font-semibold">Cancelling puts the items back into stock.</p>
+                          )}
                         </div>
                       </div>
 
                       <div className="bg-white rounded-2xl border border-brand-border/60 shadow-sm p-6">
-                        <h4 className="text-lg font-black text-brand-dark mb-5">
-                          Customer Information
-                        </h4>
+                        <h4 className="text-lg font-black text-brand-dark mb-5">Customer Information</h4>
 
                         <div className="space-y-4">
-                          <InfoRow
-                            label="Name"
-                            value={selectedOrder.customer_name || "N/A"}
-                          />
-                          <InfoRow
-                            label="Phone"
-                            value={selectedOrder.customer_phone || "N/A"}
-                          />
-                          <InfoRow
-                            label="Email"
-                            value={selectedOrder.customer_email || "N/A"}
-                          />
+                          <InfoRow label="Name" value={selectedOrder.customer_name || "N/A"} />
+                          <InfoRow label="Phone" value={selectedOrder.customer_phone || "N/A"} />
+                          <InfoRow label="Email" value={selectedOrder.customer_email || "N/A"} />
                           <InfoRow
                             label="Address"
-                            value={selectedOrder.customer_address || "N/A"}
+                            value={[selectedOrder.customer_address, selectedOrder.city].filter(Boolean).join(", ") || "N/A"}
                           />
-                          <InfoRow
-                            label="Payment"
-                            value={selectedOrder.payment_status || "N/A"}
-                          />
+                          <InfoRow label="Payment" value={selectedOrder.payment_status || "N/A"} />
                         </div>
                       </div>
                     </div>
@@ -1283,7 +1334,7 @@ export default function AdminView() {
             </>
           )}
 
-          {activeTab === "bookings" && (
+          {allowed && activeTab === "bookings" && (
             <DataPanel title="Bookings">
               <table className="w-full min-w-[1100px] text-sm">
                 <thead className="bg-cream-base border-b border-slate-100">
@@ -1331,40 +1382,42 @@ export default function AdminView() {
                       </td>
 
                       <td className="p-4 w-[320px]">
-                        <div className="flex justify-end items-center gap-2 flex-nowrap whitespace-nowrap">
-                          <button
-                            onClick={() =>
-                              updateBookingStatus(booking.id, "Confirmed")
-                            }
-                            className="px-3 py-2 rounded-lg bg-sage-green/10 text-sage-green text-xs font-black hover:bg-sage-green/20 whitespace-nowrap"
-                          >
-                            Confirm
-                          </button>
-
-                          <button
-                            onClick={() =>
-                              updateBookingStatus(booking.id, "Completed")
-                            }
-                            className="px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-black hover:bg-emerald-100 whitespace-nowrap"
-                          >
-                            Complete
-                          </button>
-
-                          <button
-                            onClick={() =>
-                              updateBookingStatus(booking.id, "Cancelled")
-                            }
-                            className="px-3 py-2 rounded-lg bg-amber-50 text-amber-700 text-xs font-black hover:bg-amber-100 whitespace-nowrap"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => deleteBooking(booking.id)}
-                            className="px-3 py-2 rounded-lg bg-red-50 text-red-700 text-xs font-black hover:bg-red-100 whitespace-nowrap"
-                          >
-                            Delete
-                          </button>
-                        </div>
+                        {manageBookings ? (
+                          <div className="flex justify-end items-center gap-2 flex-nowrap whitespace-nowrap">
+                            {booking.status === "Pending" && (
+                              <button
+                                onClick={() => updateBookingStatus(booking.id, "Confirmed")}
+                                className="px-3 py-2 rounded-lg bg-sage-green/10 text-sage-green text-xs font-black hover:bg-sage-green/20"
+                              >
+                                Confirm
+                              </button>
+                            )}
+                            {(booking.status === "Pending" || booking.status === "Confirmed") && (
+                              <>
+                                <button
+                                  onClick={() => updateBookingStatus(booking.id, "Completed")}
+                                  className="px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-black hover:bg-emerald-100"
+                                >
+                                  Complete
+                                </button>
+                                <button
+                                  onClick={() => updateBookingStatus(booking.id, "Cancelled")}
+                                  className="px-3 py-2 rounded-lg bg-amber-50 text-amber-700 text-xs font-black hover:bg-amber-100"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => deleteBooking(booking.id)}
+                              className="px-3 py-2 rounded-lg bg-red-50 text-red-700 text-xs font-black hover:bg-red-100"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-right text-xs text-slate-400 font-semibold">View only</p>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -1379,7 +1432,7 @@ export default function AdminView() {
             </DataPanel>
           )}
 
-          {activeTab === "faceScans" && (
+          {allowed && activeTab === "faceScans" && (
             <DataPanel title="Face Scan Records">
               <table className="w-full min-w-[850px] text-sm">
                 <thead className="bg-cream-base border-b border-slate-100">
@@ -1428,241 +1481,18 @@ export default function AdminView() {
                   ))}
                 </tbody>
               </table>
+
+              {faceScans.length === 0 && (
+                <div className="p-10 text-center text-slate-400 font-bold">No face scans yet.</div>
+              )}
             </DataPanel>
           )}
 
-          {activeTab === "team" && (
-            <section className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-                <MetricCard
-                  title="Total Members"
-                  value={4}
-                  icon={<Users className="w-5 h-5" />}
-                  note="Admin panel access"
-                />
+          {allowed && activeTab === "team" && <TeamSection />}
 
-                <MetricCard
-                  title="Active"
-                  value={3}
-                  icon={<Users className="w-5 h-5" />}
-                  note="Currently active"
-                />
-
-                <MetricCard
-                  title="Admins"
-                  value={1}
-                  icon={<ShieldCheck className="w-5 h-5" />}
-                  note="Full access"
-                />
-
-                <MetricCard
-                  title="Staff"
-                  value={3}
-                  icon={<Users className="w-5 h-5" />}
-                  note="Limited access"
-                />
-              </div>
-
-              <DataPanel title="Team Members">
-                <table className="w-full min-w-[850px] text-sm">
-                  <thead className="bg-cream-base border-b border-slate-100">
-                    <tr className="text-[11px] uppercase tracking-widest text-slate-400 font-black">
-                      <th className="p-4 text-left">Member</th>
-                      <th className="p-4 text-left">Email</th>
-                      <th className="p-4 text-left">Role</th>
-                      <th className="p-4 text-left">Access</th>
-                      <th className="p-4 text-left">Status</th>
-                      <th className="p-4 text-left">Last Active</th>
-                    </tr>
-                  </thead>
-
-                  <tbody className="divide-y divide-slate-100">
-                    {[
-                      {
-                        name: "Hammad Ahmad",
-                        email: "hammadahmadch17@gmail.com",
-                        role: "Admin",
-                        access: "Full Access",
-                        status: "Active",
-                        last: "Today",
-                      },
-                      {
-                        name: "Ali Tariq",
-                        email: "ali@example.com",
-                        role: "Manager",
-                        access: "Products + Orders",
-                        status: "Active",
-                        last: "1 day ago",
-                      },
-                      {
-                        name: "Sameer Ahmad",
-                        email: "sameer@example.com",
-                        role: "Inventory Staff",
-                        access: "Products Only",
-                        status: "Active",
-                        last: "2 days ago",
-                      },
-                      {
-                        name: "Order Handler",
-                        email: "staff@example.com",
-                        role: "Order Handler",
-                        access: "Orders + Bookings",
-                        status: "Inactive",
-                        last: "1 week ago",
-                      },
-                    ].map((member) => (
-                      <tr key={member.email}>
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-sage-green/10 text-sage-green flex items-center justify-center font-black">
-                              {member.name.charAt(0)}
-                            </div>
-
-                            <p className="font-black text-brand-dark">
-                              {member.name}
-                            </p>
-                          </div>
-                        </td>
-
-                        <td className="p-4 font-bold text-slate-600">
-                          {member.email}
-                        </td>
-
-                        <td className="p-4">
-                          <Badge>{member.role}</Badge>
-                        </td>
-
-                        <td className="p-4 font-bold text-slate-600">
-                          {member.access}
-                        </td>
-
-                        <td className="p-4">
-                          <StatusBadge status={member.status} />
-                        </td>
-
-                        <td className="p-4 font-bold text-slate-500">
-                          {member.last}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </DataPanel>
-            </section>
-          )}
-
-          {activeTab === "settings" && (
-            <section className="space-y-6">
-              <Panel title="Admin Profile">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-5 items-center">
-                  <div className="md:col-span-1">
-                    <div className="w-24 h-24 rounded-3xl bg-sage-green/10 text-sage-green flex items-center justify-center text-4xl font-black border border-brand-border/40">
-                      H
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <ReadOnlyBox label="Full Name" value="Hammad Ahmad" />
-                    <ReadOnlyBox
-                      label="Email Address"
-                      value="hammadahmadch17@gmail.com"
-                    />
-                    <ReadOnlyBox label="Role" value="Super Admin" />
-
-                    <button className="w-full bg-blue-600 text-white rounded-xl px-4 py-3 text-sm font-black flex items-center justify-center gap-2">
-                      <KeyRound className="w-4 h-4" />
-                      Change Password
-                    </button>
-                  </div>
-                </div>
-              </Panel>
-
-              <Panel title="Notifications">
-                <div className="space-y-3">
-                  <SettingToggle
-                    title="New Order Alert"
-                    description="Jab customer new order place kare"
-                    enabled
-                  />
-                  <SettingToggle
-                    title="New Booking Alert"
-                    description="Jab customer booking request create kare"
-                    enabled
-                  />
-                  <SettingToggle
-                    title="Low Stock Alert"
-                    description="Jab product stock 5 ya us se kam ho"
-                    enabled
-                  />
-                  <SettingToggle
-                    title="Face Scan Alert"
-                    description="Jab user face scan complete kare"
-                    enabled
-                  />
-                  <SettingToggle
-                    title="Order Status Change"
-                    description="Jab order pending se delivered/cancelled ho"
-                    enabled
-                  />
-                </div>
-              </Panel>
-
-              <Panel title="Booking Configuration">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <BookingBox
-                    title="Virtual Mannequin Preview"
-                    status="Active"
-                  />
-                  <BookingBox title="Styling Consultation" status="Active" />
-                  <BookingBox title="Outfit Trial Request" status="Active" />
-                </div>
-              </Panel>
-
-              <Panel title="Product Badges">
-                <div className="flex flex-wrap gap-3">
-                  {[
-                    "Best Seller",
-                    "New Arrival",
-                    "Highly Recommended",
-                    "Low Stock",
-                    "Formal",
-                    "Casual",
-                    "Eastern",
-                    "Western",
-                  ].map((badge) => (
-                    <span
-                      key={badge}
-                      className="px-4 py-2 rounded-xl bg-sage-green/10 text-sage-green text-xs font-black border border-brand-border/40 flex items-center gap-2"
-                    >
-                      <BadgeCheck className="w-3.5 h-3.5" />
-                      {badge}
-                    </span>
-                  ))}
-                </div>
-              </Panel>
-
-              <Panel title="Session Management">
-                <div className="bg-red-50/10 border border-red-200/45 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div>
-                    <h4 className="text-sm font-bold text-red-600">
-                      Sign Out of Admin Panel
-                    </h4>
-                    <p className="text-xs text-slate-400 font-sans mt-0.5">
-                      End your administrative session on this device.
-                    </p>
-                  </div>
-                  <button
-                    onClick={onLogout}
-                    className="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md cursor-pointer border-none"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Logout Admin
-                  </button>
-                </div>
-              </Panel>
-            </section>
-          )}
+          {allowed && activeTab === "settings" && <SettingsSection onLogout={onLogout} />}
         </main>
+        </div>
       </div>
 
       {isProductModalOpen && (
@@ -1701,7 +1531,7 @@ export default function AdminView() {
                 <Select
                   label="Category"
                   value={productForm.category}
-                  options={categories}
+                  options={Array.from(new Set([...categories, productForm.category].filter(Boolean)))}
                   onChange={(value) =>
                     setProductForm({ ...productForm, category: value })
                   }
@@ -1710,7 +1540,7 @@ export default function AdminView() {
                 <Select
                   label="Style"
                   value={productForm.cultural_tag}
-                  options={styles}
+                  options={Array.from(new Set([...styles, productForm.cultural_tag].filter(Boolean)))}
                   onChange={(value) =>
                     setProductForm({ ...productForm, cultural_tag: value })
                   }
@@ -1719,7 +1549,7 @@ export default function AdminView() {
                 <Select
                   label="Compatible Skin Tone"
                   value={productForm.compatible_skin_tone}
-                  options={skinTones}
+                  options={[...skinTones, "All"]}
                   onChange={(value) =>
                     setProductForm({
                       ...productForm,
@@ -1731,6 +1561,7 @@ export default function AdminView() {
                 <Select
                   label="Color"
                   value={productForm.color}
+                  emptyLabel="Not set"
                   options={Array.from(new Set([productForm.color, ...colors].filter(Boolean)))}
                   onChange={(value) =>
                     setProductForm({ ...productForm, color: value })
@@ -1740,6 +1571,7 @@ export default function AdminView() {
                 <Select
                   label="Garment Type"
                   value={productForm.garment_type}
+                  emptyLabel="Not set"
                   options={garmentTypes}
                   onChange={(value) =>
                     setProductForm({ ...productForm, garment_type: value })
@@ -1823,25 +1655,31 @@ export default function AdminView() {
                     />
                   </div>
 
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-xs font-black uppercase text-slate-500">
-                      Calculated Total Stock
-                    </span>
-                    <span className="text-sm font-black text-brand-dark bg-cream-card px-3 py-1 rounded-xl">
-                      {Number(productForm.size_s_stock || 0) +
-                        Number(productForm.size_m_stock || 0) +
-                        Number(productForm.size_l_stock || 0) +
-                        Number(productForm.size_xl_stock || 0) +
-                        Number(productForm.size_xxl_stock || 0)}{" "}
-                      items
-                    </span>
-                  </div>
+                  {sizeTotal > 0 ? (
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                      <span className="text-xs font-black uppercase text-slate-500">Calculated Total Stock</span>
+                      <span className="text-sm font-black text-brand-dark bg-cream-card px-3 py-1 rounded-xl">{sizeTotal} items</span>
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                      <Input
+                        label="Total stock (no sizes)"
+                        type="number"
+                        value={productForm.stock_quantity}
+                        onChange={(value) => setProductForm({ ...productForm, stock_quantity: value })}
+                        placeholder="0"
+                      />
+                      <p className="text-xs text-slate-400 font-semibold pb-3">
+                        For one-size items such as watches and caps. Add per-size stock above for clothing.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <Select
                   label="Status"
                   value={productForm.status}
-                  options={statuses}
+                  options={Array.from(new Set([...statuses, productForm.status]))}
                   onChange={(value) =>
                     setProductForm({ ...productForm, status: value })
                   }
@@ -2127,11 +1965,14 @@ function Select({
   value,
   options,
   onChange,
+  emptyLabel,
 }: {
   label: string;
   value: string;
   options: string[];
   onChange: (value: string) => void;
+  /** Adds a first option with value "" (shown with this label) for fields that may be blank. */
+  emptyLabel?: string;
 }) {
   return (
     <div>
@@ -2144,83 +1985,13 @@ function Select({
         onChange={(event) => onChange(event.target.value)}
         className="w-full bg-cream-base border border-brand-border/60 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-sage-green/20 focus:border-sage-green"
       >
+        {emptyLabel !== undefined && <option value="">{emptyLabel}</option>}
         {options.map((option) => (
           <option key={option} value={option}>
             {option}
           </option>
         ))}
       </select>
-    </div>
-  );
-}
-
-function SettingToggle({
-  title,
-  description,
-  enabled,
-}: {
-  title: string;
-  description: string;
-  enabled: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 p-4 bg-cream-base rounded-xl border border-slate-100">
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-xl bg-sage-green/10 text-sage-green flex items-center justify-center">
-          <Bell className="w-4 h-4" />
-        </div>
-
-        <div>
-          <p className="font-black text-brand-dark">{title}</p>
-          <p className="text-xs text-slate-500 font-semibold mt-1">
-            {description}
-          </p>
-        </div>
-      </div>
-
-      <div
-        className={`w-12 h-6 rounded-full p-1 ${
-          enabled ? "bg-blue-600" : "bg-slate-300"
-        }`}
-      >
-        <div
-          className={`w-4 h-4 bg-white rounded-full transition-all ${
-            enabled ? "ml-6" : "ml-0"
-          }`}
-        />
-      </div>
-    </div>
-  );
-}
-
-function BookingBox({ title, status }: { title: string; status: string }) {
-  return (
-    <div className="p-5 rounded-xl bg-cream-base border border-slate-100">
-      <p className="font-black text-brand-dark">{title}</p>
-
-      <p className="text-xs text-slate-500 font-semibold mt-2">
-        Booking type available for customers
-      </p>
-
-      <div className="mt-4">
-        <StatusBadge status={status} />
-      </div>
-    </div>
-  );
-}
-
-function ReadOnlyBox({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
-        {label}
-      </label>
-
-      <input
-        value={value}
-        readOnly
-        className="w-full bg-cream-base border border-brand-border/60 rounded-xl px-4 py-3 text-sm font-bold text-slate-700"
-      />
     </div>
   );
 }

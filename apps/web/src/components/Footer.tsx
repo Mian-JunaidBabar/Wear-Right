@@ -1,9 +1,19 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+import { isAdminPath } from "@/lib/routes";
+
 import React from "react";
 import { useNavigate } from "@/lib/navigation";
 
+/** The shop's footer; hidden inside the admin panel. */
 export default function Footer() {
+  const pathname = usePathname();
+  if (isAdminPath(pathname)) return null;
+  return <ShopFooter />;
+}
+
+function ShopFooter() {
   const navigate = useNavigate();
 
   return (

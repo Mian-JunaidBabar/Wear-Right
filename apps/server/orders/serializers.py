@@ -22,6 +22,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    # Legacy single-product orders name their product here; checkout orders list theirs in `items`.
+    product_name = serializers.CharField(source='product.name', read_only=True, default=None)
 
     class Meta:
         model = Order

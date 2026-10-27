@@ -5,6 +5,8 @@ from django.urls import include, path
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Admin panel API first: its own login, cookies and RBAC (see staff/).
+    path('api/admin/', include('staff.urls')),
     path('api/', include('accounts.urls')),
     path('api/', include('catalog.urls')),
     path('api/', include('scanner.urls')),

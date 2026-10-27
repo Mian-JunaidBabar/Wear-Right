@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { isPrivatePath, safeNextPath } from "./routes";
+import { isPrivateAdminPath, isPrivatePath, safeNextPath } from "./routes";
 
 describe("isPrivatePath", () => {
-  it.each(["/profile", "/my-orders", "/orders", "/order-confirmation", "/checkout", "/bookings", "/admin", "/admin/anything"])(
+  it.each(["/profile", "/my-orders", "/orders", "/order-confirmation", "/checkout", "/bookings"])(
     "%s is private",
     (path) => expect(isPrivatePath(path)).toBe(true),
   );
@@ -11,6 +11,16 @@ describe("isPrivatePath", () => {
     "%s is public",
     (path) => expect(isPrivatePath(path)).toBe(false),
   );
+});
+
+describe("isPrivateAdminPath", () => {
+  it.each(["/admin", "/admin/products", "/admin/team"])("%s needs an admin session", (path) =>
+    expect(isPrivateAdminPath(path)).toBe(true),
+  );
+
+  it.each(["/admin/login", "/administrator", "/shop"])("%s does not", (path) => expect(isPrivateAdminPath(path)).toBe(false));
+
+  it("the shop guard does not cover the admin panel", () => expect(isPrivatePath("/admin")).toBe(false));
 });
 
 describe("safeNextPath", () => {
