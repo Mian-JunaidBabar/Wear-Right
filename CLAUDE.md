@@ -99,15 +99,20 @@ npm run dev       # Next.js + Django together (root package.json)
 
 ## Phase map
 
-| Phase | Prompt                  | Goal                                                                                   |
-| ----- | ----------------------- | -------------------------------------------------------------------------------------- |
-| 0     | `docs/agent/phase-0.md` | Postgres, layered backend skeleton, Next.js scaffold with rewrites, one-command dev    |
-| 1     | `docs/agent/phase-1.md` | Port UI to Next.js, real auth with httpOnly JWT cookies, permissions                   |
-| 2     | `docs/agent/phase-2.md` | Catalog schema, Kaggle import, rembg cutouts, color extraction                         |
-| 3     | `docs/agent/phase-3.md` | Skin tone v2: MediaPipe regions, white-balance fix, undertone, Monk, evaluation script |
-| 4     | `docs/agent/phase-4.md` | Tone-color rules, ranker, complete-the-look                                            |
-| 5     | `docs/agent/phase-5.md` | Layered mannequin                                                                      |
-| 6     | `docs/agent/phase-6.md` | Cart + multi-item orders, FashionCLIP auto-tagging                                     |
-| 7     | `docs/agent/phase-7.md` | Evaluation scripts, demo hardening                                                     |
+The roadmap is `docs/agent/ROADMAP.md`: a complete, working shop first (Phases 1 to 5, milestone M1), then the two USPs (Phases 6 and 7). Phase 0 is already done.
+
+| Phase | Prompt                    | Goal                                                                                          |
+| ----- | ------------------------- | --------------------------------------------------------------------------------------------- |
+| 0     | `docs/agent/phase-0.md`   | Postgres, layered backend skeleton, Next.js scaffold with rewrites, one-command dev (done)     |
+| 1     | `docs/agent/phase-1.md`   | Next.js port, real auth with httpOnly JWT cookies, permissions                                 |
+| 2     | `docs/agent/phase-2.md`   | Catalog and admin panel with full product CRUD, import, colour suggestion, filters/pagination   |
+| 3     | `docs/agent/phase-3.md`   | Server cart, checkout, orders, stock and status rules                                          |
+| 4     | `docs/agent/phase-4.md`   | Functional scan to recommendations to complete the look                                        |
+| 5     | `docs/agent/phase-5.md`   | Functional freeze (milestone M1): full journey, states, mobile, demo data, tag `v0.1-functional` |
+| 6     | written after M1          | 2D mannequin (USP), simplest version first                                                     |
+| 7     | written after M1          | Skin tone v2 (USP) and `evaluate_scanner` with real numbers                                    |
+| 8     | written after M1          | User study scripts, demo hardening, offline models, backup recording                           |
+
+Stop at the end of Phase 5 (M1) and wait. Do not start Phase 6 or later.
 
 - Every phase ends with test gates. make test must be green (backend + frontend), the app must build, and make e2e must pass once it exists. Report real command output, never a summary of it. Never skip, delete or weaken a test to make it pass. New code ships with tests in the same commit.
