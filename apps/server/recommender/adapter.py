@@ -1,5 +1,5 @@
 """Turns catalog Products into the engine's plain Items, filling gaps for products that were never tagged."""
-from .engine.items import Item, Profile
+from .engine.items import COLOUR_HEX, Item, Profile
 
 SIZE_FIELDS = {'S': 'size_s_stock', 'M': 'size_m_stock', 'L': 'size_l_stock', 'XL': 'size_xl_stock', 'XXL': 'size_xxl_stock'}
 GARMENT_TO_SLOT = {'Top': 'top', 'Bottom': 'bottom', 'Footwear': 'footwear', 'Accessory': 'accessory'}
@@ -41,7 +41,10 @@ def product_to_item(product, size=''):
     return Item(
         id=product.id, name=product.name, slot=slot, gender=infer_gender(product),
         formality=product.formality or STYLE_FORMALITY.get(product.cultural_tag, 0),
-        styles=styles, color_hex=product.color_hex or '', color_name=product.color_name or product.color or '',
+        styles=styles,
+        color_hex=(product.color_hex or (product.primary_color.hex if getattr(product, 'primary_color', None) else '')
+                   or COLOUR_HEX.get(product.color_name or product.color or '', '')),
+        color_name=product.color_name or product.color or '',
         category=product.category or '', size_ok=size_in_stock(product, slot, size),
         ready=bool(product.mannequin_ready),
     )

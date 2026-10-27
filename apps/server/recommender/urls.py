@@ -7,7 +7,9 @@ from .views import (
 urlpatterns = [
     path('products/recommendations/', CuratedRecommendationAPIView.as_view(), name='api-curated-shop'),
     path('outfit/generate/', OutfitGenerationAPIView.as_view(), name='api-outfit-generate'),
+    path('recommendations/', TopPicksAPIView.as_view(), name='api-recommendations'),
     path('recommendations/top/', TopPicksAPIView.as_view(), name='api-top-picks'),
+    path('looks/', CompleteLookAPIView.as_view(), name='api-looks'),
     path('looks/complete/', CompleteLookAPIView.as_view(), name='api-complete-look'),
     path('tone-rules/palette/', PaletteAPIView.as_view(), name='api-tone-palette'),
     path('tone-rules/', ToneRuleListCreateAPIView.as_view(), name='api-tone-rules'),

@@ -97,8 +97,8 @@ class CompleteLookAPIView(APIView):
     permission_classes = [_AllowAny]
 
     def get(self, request):
-        product_id = request.query_params.get('product_id')
-        if not product_id or not product_id.isdigit():
+        product_id = request.query_params.get('product_id') or request.query_params.get('product')
+        if not product_id or not str(product_id).isdigit():
             return Response({"status": "error", "message": "product_id is required"}, status=status.HTTP_400_BAD_REQUEST)
         product = Product.objects.exclude(status='Draft').filter(id=int(product_id)).first()
         if product is None:
