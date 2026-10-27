@@ -22,6 +22,12 @@ def test_seed_is_idempotent_and_creates_demo_logins(settings, tmp_path):
 
     admin = User.objects.get(username="admin")
     assert admin.is_staff and admin.email == "admin@wearright.local" and admin.check_password("admin12345")
+    requested_admin = User.objects.get(username="admin@wearright.com")
+    assert requested_admin.is_staff and requested_admin.is_superuser
+    assert requested_admin.email == "admin@wearright.com"
+    assert requested_admin.check_password("admin123")
+    assert UserProfile.objects.filter(user=requested_admin).count() == 1
+
     demo = User.objects.get(email="demo@wearright.local")
     assert not demo.is_staff and demo.check_password("demo12345")
     assert UserProfile.objects.filter(user=demo).count() == 1
@@ -36,4 +42,4 @@ def test_seed_creates_no_logins_without_a_password_outside_debug(settings, tmp_p
 
     call_command("seed_products")
 
-    assert not User.objects.filter(username__in=["admin", "demo@wearright.local"]).exists()
+    assert not User.objects.filter(username__in=["admin", "admin@wearright.com", "demo@wearright.local"]).exists()

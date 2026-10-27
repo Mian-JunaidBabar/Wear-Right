@@ -47,6 +47,29 @@ class Command(BaseCommand):
                 )
                 self.stdout.write(self.style.SUCCESS(f"Created admin user (admin / {password})"))
 
+        # Secondary demo admin. Kept separate from the legacy `admin` account so
+        # existing walkthroughs keep working. Demo-only: never created with DEBUG=False.
+        if settings.DEBUG:
+            requested_admin, created = User.objects.get_or_create(
+                username='admin@wearright.com',
+                defaults={
+                    'email': 'admin@wearright.com',
+                    'first_name': 'Admin',
+                    'is_staff': True,
+                    'is_superuser': True,
+                },
+            )
+            if created:
+                requested_admin.set_password('admin123')
+                requested_admin.save()
+                self.stdout.write(self.style.SUCCESS(
+                    "Created demo admin (admin@wearright.com / admin123)"
+                ))
+            UserProfile.objects.get_or_create(
+                user=requested_admin,
+                defaults={'skin_tone': 'Medium', 'cultural_preference': 'Western'},
+            )
+
         # Demo customer for walkthroughs (same rule as the admin: only with a password).
         demo_password = os.environ.get('DEMO_USER_PASSWORD')
         if not demo_password and settings.DEBUG:

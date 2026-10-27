@@ -12,7 +12,8 @@ Use Chrome. The camera works on `localhost` without HTTPS; allow the camera prom
 | Who | Email | Password |
 | --- | --- | --- |
 | Customer (seeded) | `demo@wearright.local` | `demo12345` |
-| Staff (seeded) | `admin@wearright.local` (or `admin`) | `admin12345` |
+| Staff (seeded) | `admin@wearright.com` | `admin123` |
+| Staff (legacy alias) | `admin@wearright.local` (or `admin`) | `admin12345` |
 
 New accounts can be created at `/register`.
 

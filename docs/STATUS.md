@@ -78,6 +78,6 @@ make demo-data      # Postgres, migrations, catalogue, rules, demo customer + st
 npm run dev         # http://localhost:3000
 ```
 
-Demo logins: customer `demo@wearright.local` / `demo12345`; staff `admin@wearright.local` (or `admin`) / `admin12345`.
+Demo logins: customer `demo@wearright.local` / `demo12345`; staff `admin@wearright.com` / `admin123` (legacy `admin@wearright.local` / `admin12345` still works).
 
 Full gate: `make test && make build && make e2e`. The Playwright suite reuses running servers when present.

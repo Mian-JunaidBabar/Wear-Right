@@ -97,7 +97,7 @@ python3 -c 'import secrets; print(secrets.token_urlsafe(50))'
 | `DEBUG` | Yes | `True` locally. Set `False` for a production-style run. |
 | `ALLOWED_HOSTS` | Yes | Comma-separated Django hosts. `localhost,127.0.0.1` locally; `*` only for throwaway demos. |
 | `DATABASE_URL` | Yes | Must match `docker-compose.yml`. Default uses port **5433**. |
-| `DEMO_ADMIN_PASSWORD` | No | Password for the seeded `admin` user. Falls back to `admin12345` when `DEBUG=True`. Only applied when the user is first created. |
+| `DEMO_ADMIN_PASSWORD` | No | Password for the legacy seeded `admin` user. Falls back to `admin12345` when `DEBUG=True`. Only applied when that user is first created. The primary demo admin (`admin@wearright.com` / `admin123`) is created only when `DEBUG=True` and is not controlled by this variable. |
 | `DEMO_USER_PASSWORD` | No | Password for the seeded customer. Falls back to `demo12345` when `DEBUG=True`. |
 | `CSRF_TRUSTED_ORIGINS` | No | Defaults to `http://localhost:3000,http://127.0.0.1:3000`. Change this if the web app runs on another origin. |
 | `ML_MODELS_DIR` | No | Defaults to `apps/server/ml_models`. |
@@ -230,9 +230,35 @@ Useful logins after seeding (with `DEBUG=True`):
 | Role | Login | Password |
 | --- | --- | --- |
 | Customer | `demo@wearright.local` | `demo12345` |
-| Staff/admin | `admin@wearright.local` or `admin` | `admin12345` |
+| Staff/admin (primary demo) | `admin@wearright.com` | `admin123` |
+| Staff/admin (legacy alias) | `admin@wearright.local` or `admin` | `admin12345` |
 
 Create additional accounts at `/register`. Staff-only screens live at `/admin`.
+
+### Admin panel data
+
+`make demo-data` (or `make migrate && make seed`) creates the data the admin screens need:
+
+| Area | Seeded / available after setup |
+| --- | --- |
+| Products | 11 demo products with images, prices, stock and sizes. They are real rows in the database, so edits are persistent. |
+| Categories and styles | The taxonomy rows used by the shop and the product form. Category and style CRUD is real. |
+| Colours | Colour rows used by the product form and filters. |
+| Tone rules | The recommender's colour rules and palettes. |
+| Users | The demo staff accounts above plus the demo customer. |
+| Orders | **Empty initially.** They appear when a customer checks out (or you create one through the API). |
+| Bookings | **Empty initially.** The booking APIs exist, but the storefront does not create bookings yet. |
+| Face scans | **Empty initially.** A signed-in scan or manual tone choice adds a record. |
+
+What the real admin screens can do:
+
+- **Dashboard:** totals for products, orders, bookings, scans, revenue/profit, low stock and status charts.
+- **Products:** search, create/edit with image upload and live preview, request a dominant-colour suggestion, change price/stock/sizes, hide/show with the eye toggle, and delete with confirmation.
+- **Orders:** list/search orders, open details, and move an order through the allowed statuses (Pending → Confirmed → Shipped → Delivered, or cancel while Pending/Confirmed).
+- **Bookings and face scans:** read the records created by the app.
+- **Categories and styles:** create, rename and remove taxonomy values.
+
+The **Skin Tone Matrix**, **Outfit Rules**, **Team Members** and **Settings** tabs still show legacy static demo content. They are not backed by editable data yet. Django's own admin is also available at <http://127.0.0.1:8000/admin/> for staff users, but the Next.js `/admin` screen is the supported interface.
 
 ### Run the servers separately
 

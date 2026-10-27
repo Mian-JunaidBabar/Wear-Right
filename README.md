@@ -30,7 +30,7 @@ Run everything:
 npm run dev       # or: make dev
 ```
 
-Open http://localhost:3000. Create an account at `/register`, or use the logins created by `make demo-data`: customer `demo@wearright.local` / `demo12345`, admin `admin@wearright.local` / `admin12345` (the username `admin` also works). Only admins see the Admin page.
+Open http://localhost:3000. Create an account at `/register`, or use the logins created by `make demo-data`: customer `demo@wearright.local` / `demo12345`, admin `admin@wearright.com` / `admin123` (the legacy `admin@wearright.local` / `admin12345` still works). Only admins see the Admin page.
 
 The functional M1 journey is: Shop → product → cart → register/login (guest cart merges) → `/scan` or the manual tone picker → `/recommended` → complete the look → `/checkout` (COD or demo card) → `/my-orders` → `/orders/<id>`. Staff manage products and order status at `/admin`.
 
