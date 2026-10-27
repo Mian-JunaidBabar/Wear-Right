@@ -1,20 +1,63 @@
+from django.db.models import Q
 from .models import Product
 
-# Draft products (imported, not yet priced) are only visible to staff.
+# Draft products (imported, not yet priced) and switched-off products are only visible to staff.
 def get_products(*, include_drafts=False):
     products = Product.objects.all()
     if not include_drafts:
-        products = products.exclude(status='Draft')
+        products = products.filter(is_active=True).exclude(status='Draft')
     return products.order_by('-id')
 
 def get_product(product_id, *, include_drafts=False):
     products = Product.objects.all()
     if not include_drafts:
-        products = products.exclude(status='Draft')
+        products = products.filter(is_active=True).exclude(status='Draft')
     try:
         return products.get(id=product_id)
     except Product.DoesNotExist:
         return None
+
+
+def filter_products(products, params):
+    """Apply the public shop filters. Unknown values are ignored rather than raising, so a stale URL still works."""
+    category = (params.get('category') or '').strip()
+    if category:
+        products = products.filter(Q(category__iexact=category) | Q(category_ref__slug__iexact=category))
+    slot = (params.get('slot') or '').strip().lower()
+    if slot:
+        products = products.filter(slot=slot)
+    gender = (params.get('gender') or '').strip().lower()
+    if gender:
+        products = products.filter(gender=gender)
+    style = (params.get('style') or '').strip().lower()
+    if style:
+        products = products.filter(Q(style=style) | Q(cultural_tag__iexact=style))
+    colour = (params.get('color') or '').strip()
+    if colour:
+        products = products.filter(
+            Q(primary_color__name__iexact=colour) | Q(color_name__iexact=colour) | Q(color__iexact=colour)
+        )
+    for key, lookup in (('min_price', 'price__gte'), ('max_price', 'price__lte')):
+        try:
+            products = products.filter(**{lookup: params[key]})
+        except (KeyError, TypeError, ValueError):
+            pass
+    in_stock = (params.get('in_stock') or '').strip().lower()
+    if in_stock in ('1', 'true', 'yes'):
+        products = products.filter(stock_quantity__gt=0)
+    search = (params.get('search') or params.get('q') or '').strip()
+    if search:
+        products = products.filter(
+            Q(name__icontains=search) | Q(description__icontains=search) | Q(category__icontains=search)
+            | Q(color_name__icontains=search) | Q(primary_color__name__icontains=search)
+        )
+    ordering = (params.get('ordering') or '-id').strip()
+    allowed = {
+        'price': 'price', '-price': '-price', 'name': 'name', '-name': '-name',
+        'newest': '-created_at', '-created_at': '-created_at', 'oldest': 'created_at',
+        '-id': '-id', 'id': 'id',
+    }
+    return products.order_by(allowed.get(ordering, '-id'))
 
 
 def get_categories(*, include_inactive=False):
@@ -23,10 +66,11 @@ def get_categories(*, include_inactive=False):
     from .models import Category
 
     counts = dict(
-        Product.objects.filter(status='Active', stock_quantity__gt=0).values_list('category').annotate(n=Count('id'))
+        Product.objects.filter(status='Active', stock_quantity__gt=0, is_active=True)
+        .values_list('category').annotate(n=Count('id'))
     )
     covers = {}
-    for product in Product.objects.filter(status='Active', stock_quantity__gt=0).order_by('-mannequin_ready', '-id'):
+    for product in Product.objects.filter(status='Active', stock_quantity__gt=0, is_active=True).order_by('-mannequin_ready', '-id'):
         if product.category not in covers:
             photo = product.mannequin_image or product.image
             covers[product.category] = photo.url if photo else None
@@ -41,3 +85,8 @@ def get_categories(*, include_inactive=False):
 def get_styles(*, include_inactive=False):
     from .models import Style
     return Style.objects.all() if include_inactive else Style.objects.filter(is_active=True)
+
+
+def get_colors():
+    from .models import Color
+    return Color.objects.all()

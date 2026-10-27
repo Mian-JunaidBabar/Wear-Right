@@ -88,7 +88,7 @@ MATRIX = {
     "GET products/recommendations/": ("GET", "/api/products/recommendations/", None, "json", row(200, 200, 200, 200)),
     # recommender and scanner analysis are public
     "GET outfit/generate/": ("GET", "/api/outfit/generate/?product_id={product}", None, "json", row(200, 200, 200, 200)),
-    "POST scanner/analyze/": ("POST", "/api/scanner/analyze/", lambda w: {"images": _frame()}, "multipart", row(200, 200, 200, 200)),
+    "POST scanner/analyze/": ("POST", "/api/scanner/analyze/", lambda w: {"images": _frame()}, "multipart", row(422, 422, 422, 422)),
     # profiles: authenticated, scoped
     "GET profiles/": ("GET", "/api/profiles/", None, "json", row(401, 200, 200, 200)),
     "POST profiles/": ("POST", "/api/profiles/", lambda w: {"gender": "female"}, "json", row(401, 201, 201, 201)),

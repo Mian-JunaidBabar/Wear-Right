@@ -17,6 +17,20 @@ def delete_product(product):
     product.delete()
 
 
+def suggest_colour(image):
+    """Dominant colour of an uploaded photo, for the admin form. Returns hex/name/family/palette."""
+    from PIL import Image
+    from .engine.families import family_of_hex
+    if not hasattr(image, 'convert'):
+        image = Image.open(image)
+        image.load()
+    palette = palette_from_image(image)
+    if not palette:
+        return None
+    top = palette[0]
+    return {"hex": top["hex"], "name": top["name"], "family": family_of_hex(top["hex"]), "palette": palette}
+
+
 def _png_bytes(image):
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")

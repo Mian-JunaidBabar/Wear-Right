@@ -34,10 +34,20 @@ def test_scanner_analyze(staff_client):
     image = _jpeg_bytes()
     image.name = "frame.jpg"
     r = staff_client.post("/api/scanner/analyze/", {"images": image}, format="multipart")
-    assert r.status_code == 200
+    # A solid skin-coloured patch has no face; that is a 422 with the standard error shape.
+    assert r.status_code == 422
     body = r.json()
+    assert body["error"]["code"] == "no_face"
     assert {"status", "detected_skin_tone", "confidence_score", "lighting_quality",
             "brightness", "message", "all_frame_results"} <= set(body)
+
+
+def test_manual_tone_returns_palette_and_never_needs_a_face(api_client):
+    r = api_client.post("/api/scanner/manual/", {"depth": "Medium", "undertone": "warm"}, format="json")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["depth"] == "Medium" and body["undertone"] == "warm"
+    assert {"palette", "confidence"} <= set(body)
 
 
 def test_scanner_analyze_requires_image(staff_client):
@@ -49,7 +59,7 @@ def test_products_list_and_create(staff_client):
     ProductFactory()
     r = staff_client.get("/api/products/")
     assert r.status_code == 200
-    assert set(r.json()) == {"status", "total_products", "products"}
+    assert {"status", "total_products", "products", "count", "next", "previous", "results"} <= set(r.json())
     payload = {
         "name": "New Shirt", "category": "Men Shirt", "cultural_tag": "Casual",
         "compatible_skin_tone": "All", "price": "1500", "stock_quantity": 5,
