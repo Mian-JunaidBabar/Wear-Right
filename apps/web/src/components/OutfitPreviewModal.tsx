@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { ShoppingBag, X } from "lucide-react";
+import { ShoppingBag, Sparkles, X } from "lucide-react";
 import Mannequin from "@/components/Mannequin";
+import TryOnModel from "@/components/tryon/TryOnModel";
+import { useNavigate } from "@/lib/navigation";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { layoutLook, type BodyGender, type Preset } from "@/features/mannequin/layout";
 import { recommenderApi, type ApiItem, type CompleteLookResponse } from "@/features/recommender/api";
@@ -25,6 +27,7 @@ const SLOT_TITLES: Record<string, string> = {
 /** Quick look at a product's outfit on the mannequin, opened from the shop. */
 export default function OutfitPreviewModal({ productId, outOfStock, onClose, onOrder, onFullLook }: Props) {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const depth = normalizeSkinTone(user.contrastType || "medium");
   const undertone = profile?.undertone || "";
   const shopperGender = profile?.gender === "female" ? "women" : "men";
@@ -66,7 +69,13 @@ export default function OutfitPreviewModal({ productId, outOfStock, onClose, onO
           <div className="bg-slate-50 p-6 flex items-start justify-center">
             {look ? (
               <div className="w-full max-w-xs">
-                <Mannequin layout={layout} gender={bodyGender} preset={preset} onPreset={setPresetChoice} />
+                <TryOnModel
+                  items={[look.anchor, ...picks]}
+                  gender={bodyGender}
+                  preset={preset}
+                  onPreset={setPresetChoice}
+                  fallback={<Mannequin layout={layout} gender={bodyGender} preset={preset} onPreset={setPresetChoice} />}
+                />
               </div>
             ) : (
               <p className="py-24 text-sm font-bold text-slate-600">{failed ? "We could not build a preview for this product." : "Dressing the mannequin..."}</p>
@@ -96,7 +105,16 @@ export default function OutfitPreviewModal({ productId, outOfStock, onClose, onO
               )}
             </div>
 
-            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+            <div className="mt-6 space-y-3">
+              <button
+                onClick={() => navigate(`/try-on?items=${[look?.anchor.id, ...picks.map((item) => item.id)].filter(Boolean).join(",")}&body=${bodyGender}-${preset}`)}
+                disabled={!look}
+                className="w-full bg-slate-900 disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider py-3.5 rounded-xl hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Try it on
+              </button>
+              <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={onFullLook}
                 className="flex-1 border-2 border-slate-900 text-slate-900 text-xs font-bold uppercase tracking-wider py-3.5 rounded-xl hover:bg-slate-900 hover:text-white transition-colors cursor-pointer"
@@ -113,6 +131,7 @@ export default function OutfitPreviewModal({ productId, outOfStock, onClose, onO
                 <ShoppingBag className="w-4 h-4 text-white/80" />
                 {outOfStock ? "Out of Stock" : "Continue to Order"}
               </button>
+              </div>
             </div>
           </div>
         </div>
