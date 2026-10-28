@@ -4,7 +4,7 @@
 
 **Phase 5 (functional freeze M1) is complete.** The storefront journey works end to end: browse and filter the catalogue, create an account, pick a skin tone (scan or manual fallback), get recommendations, complete a look, use a server-backed cart, check out with cash on delivery or demo card, see order history/detail, cancel while pending, and manage products and order status as staff.
 
-The next milestone is not started: Phase 6 (layered mannequin), Phase 7 (skin-tone algorithm v2 + `evaluate_scanner`), Phase 8 (user study and demo hardening). Per the roadmap, stop here.
+Phase 6's first step shipped early: the web app now draws a flat 2D SVG mannequin instead of the grey statue and photo layers (see `docs/phases/phase-6.md`). Phase 7 (skin-tone algorithm v2 + `evaluate_scanner`) and Phase 8 (user study and demo hardening) are not started.
 
 `docs/agent/phase-1.md` (the step-by-step Phase 1 prompt) is not present in this checkout or anywhere on disk. `docs/agent/` is gitignored. Phase 1 was therefore verified from the roadmap and the existing code/tests rather than followed step by step; there was no Step 0 to run. This is recorded honestly rather than reconstructed.
 
@@ -26,6 +26,17 @@ models tests        10 passed (real MediaPipe/rembg, 41.23s)
 
 The exact Playwright count and any skipped model-dependent scenarios are in the Phase 5 summary and the final report. Model tests (`make test-models`) still require downloaded weights and were not part of the functional M1 gate.
 
+Gates on the plans 00–03 branch, run on 2026-10-28:
+
+```
+backend pytest     531 passed, 9 skipped
+web vitest         117 passed (13 files)
+tsc --noEmit       clean
+eslint             0 errors, 2 warnings
+next build         passed (after the 16.4.0 security-advisory retry)
+Playwright         not run by this agent; the lead runs it after review
+```
+
 ## Roadmap phase map
 
 | Phase | Scope | Status |
@@ -35,11 +46,11 @@ The exact Playwright count and any skipped model-dependent scenarios are in the 
 | 3 | Server cart, checkout, multi-item orders, stock, status | done |
 | 4 | Functional scan → recommendations → complete look | done with open items |
 | 5 | Functional freeze M1, full journey, mobile, docs, tag | done |
-| 6 | Layered mannequin | not started (flat 2D SVG mannequin shipped early; see Decisions) |
+| 6 | Layered mannequin | done (basic flat 2D SVG mannequin; later phases can add drape/back view) |
 | 7 | Skin tone v2 + scanner evaluation | not started |
 | 8 | User study, demo hardening | not started |
 
-Summaries: `docs/phases/phase-2.md` to `phase-5.md`; walkthrough: `docs/DEMO.md`.
+Summaries: `docs/phases/phase-2.md` to `phase-6.md`; walkthrough: `docs/DEMO.md`.
 
 ## Decisions and deviations
 
@@ -49,7 +60,8 @@ Summaries: `docs/phases/phase-2.md` to `phase-5.md`; walkthrough: `docs/DEMO.md`
 - **Products know what they are, not just where they go.** `Product.kind` (`catalog/engine/kinds.py`, migration `0008_product_kind` backfills) is the garment type guessed from the name/category words (tshirt, shirt, kurta, jeans, sandals, dupatta, ..., 24 kinds); the serializer also fills a blank `slot` from the kind and a blank `gender` from the category, without ever clobbering already-set values on partial updates. The look engine uses it: a one-piece anchor (kurta/kameez/dress) covers its own slots (COVERS map in `recommender/engine/looks.py`), so a shirt anchor no longer lets the template re-fill the "Top" slot, kids-named products never pair into adult looks (and never appear in top picks), and the complete-look API reports `anchor_slot` / `anchor_kind`. The mislabelled import row "Heavy Shirt" (garment_type=Accessory) is now correctly a men's top. E2e regression: `e2e/09` test 9f.
 - **Products API is paginated** (12 per page, `page_size` up to 500) and keeps the old `status`, `total_products`, `products` keys for existing callers, while adding `count`, `next`, `previous`, `results`, `page`, `page_size`, `total_pages`. The shop pages client-side over the full seeded catalogue; the server filters are implemented and tested and can be adopted incrementally.
 - **The mannequin is a flat 2D SVG ("fashion flat"), not photos.** `apps/web/src/features/mannequin/` (`geometry.ts` key points, `garments.ts` one vector shape per garment kind, `layout.ts` layering) draws every product in its colour on one `<svg viewBox="0 0 400 800">` body — shoes are a left/right pair, the watch sits on the wrist, no photos on the body, no per-item screenshots. clothing layers follow the z order bottom → top → outerwear → shoes → accessories; a product with no drawable shape (bags) is listed under the body. `Product.display_hex` (`catalog/engine/color.py`) gives the serializer and adapter one colour fallback chain. The web no longer uses `mannequin_image` / `anchors.json` (both removed from `public/`); the backend mannequin-image pipeline and its tests stay, unused. See Plan 02.
-
+- **There is one order path, and only staff can use the legacy one.** The web app's dead checkout/order modals were removed; shoppers add to the cart and finish at `/checkout`. `POST /api/orders/` (the single-product order creator that skipped size stock and created no `OrderItem` rows) is staff-only, while `GET /api/orders/` stays available to signed-in customers. The service function remains for staff smoke tests. See Plan 03.
+- **Responsive fixes from Plan 03.** The product detail grid uses `minmax(0, 45fr) / minmax(0, 55fr)` so its gap no longer pushes the page 8px past a 1280px viewport; the admin product table pins its product name/photo column while the table scrolls sideways. Both are covered by checks (the overflow spec now includes 1280px).
 - **Colour** is a real table (`Color`: name, hex, family) plus `Product.primary_color`. Uploading an image can suggest a dominant colour with the existing OpenCV/Lab helper; staff can override it. A suggestion is a suggestion, not a measured label.
 - **Cart** is server-backed for signed-in users and localStorage for guests. On login the guest cart is merged into `/api/cart/merge/`; the server then owns quantity, size and stock checks. The navbar and pages share one server-cart snapshot so the badge updates immediately.
 - **Checkout** is one transaction with `select_for_update`: it validates stock and size, snapshots name/price into `OrderItem`, decrements stock (including per-size stock), clears the cart and generates `WR-XXXXXXXX`. Failure leaves the cart and stock untouched.
@@ -66,10 +78,9 @@ Summaries: `docs/phases/phase-2.md` to `phase-5.md`; walkthrough: `docs/DEMO.md`
 
 - Real face-scan accuracy is unmeasured; no labelled photo set has been run. Thresholds are the algorithm's starting values. This is Phase 7 work.
 - Recommendations use colour-theory rules, not measured user preference or sales data. The palette and look ranking need a user study (Phase 8).
-- The mannequin speaks in flat 2D vector shapes now: no back view, no draping, no poses, and the pictures-like realism of the original PRD is still Phase 6.
+- The mannequin is deliberately basic: flat 2D front view only, no back view, draping or poses. The photo-like realism in the original PRD remains future work.
 - Password reset, email verification, login rate limiting and customer-initiated order editing are not implemented.
 - Demo card payment is not a payment integration and must never be presented as one.
-- The product detail grid had an 8px horizontal overflow at 1280px in the legacy layout; the M1 mobile check covers 390px only.
 - The shared Postgres database may contain migrations from other checkouts; merge the branch before switching checkouts. Migrations added in this work: catalog `0005`–`0007`, orders `0003`.
 - `docs/agent/` stays local/gitignored, so phase prompts are not shipped. Only `docs/phases/` summaries are tracked.
 

@@ -112,7 +112,7 @@ The roadmap is `docs/agent/ROADMAP.md`: a complete, working shop first (Phases 1
 | 3     | `docs/agent/phase-3.md`   | Server cart, checkout, orders, stock and status rules                                          |
 | 4     | `docs/agent/phase-4.md`   | Functional scan to recommendations to complete the look                                        |
 | 5     | `docs/agent/phase-5.md`   | Functional freeze (milestone M1): full journey, states, mobile, demo data, tag `v0.1-functional` |
-| 6     | written after M1          | 2D mannequin (USP), simplest version first                                                     |
+| 6     | written after M1          | Basic flat 2D SVG mannequin (USP) — shipped early; done with open items                          |
 | 7     | written after M1          | Skin tone v2 (USP) and `evaluate_scanner` with real numbers                                    |
 | 8     | written after M1          | User study scripts, demo hardening, offline models, backup recording                           |
 
