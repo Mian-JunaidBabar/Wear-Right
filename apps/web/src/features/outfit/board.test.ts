@@ -133,6 +133,6 @@ describe("buildOutfitBoardTiles", () => {
 
     expect(boardImageFor(ready)).toBe("/media/products/mannequin/1.png");
     expect(boardImageFor(notReady)).toBe("/media/products/2.jpg");
-    expect(boardImageFor(item(3))).toBeNull();
+    expect(boardImageFor(item(3, { image: null }))).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { PLACEHOLDER_IMAGE } from "@/lib/config";
+import ProductImage from "@/components/ProductImage";
 import React from "react";
 import { useNavigate } from "@/lib/navigation";
 import { ArrowLeft, Heart, ShoppingBag, ShoppingCart } from "lucide-react";
@@ -102,14 +103,10 @@ export default function WishlistView() {
                 className="bg-white border border-brand-border/60 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col justify-between"
               >
                 <div className="relative aspect-[3/4] bg-cream-card/60 overflow-hidden">
-                  <img
+                  <ProductImage
                     src={getProductImage(product)}
                     alt={product.name}
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-                    onError={(event) => {
-                      event.currentTarget.src =
-                        PLACEHOLDER_IMAGE;
-                    }}
                   />
 
                   {/* Remove from Wishlist button (heart icon) */}

@@ -16,6 +16,17 @@ describe("ProductImage", () => {
     expect(screen.getByAltText("Missing")).toHaveAttribute("src", PLACEHOLDER_IMAGE);
   });
 
+  it("lets object-cover override the default object-contain", () => {
+    const { rerender } = render(<ProductImage src="/media/products/a.jpg" alt="Tile" />);
+
+    expect(screen.getByAltText("Tile")).toHaveClass("object-contain");
+
+    rerender(<ProductImage src="/media/products/a.jpg" alt="Tile" className="w-full h-full object-cover" />);
+
+    expect(screen.getByAltText("Tile")).toHaveClass("object-cover");
+    expect(screen.getByAltText("Tile")).not.toHaveClass("object-contain");
+  });
+
   it("swaps a broken image to the placeholder exactly once", () => {
     render(<ProductImage src="/media/products/gone.jpg" alt="Broken" />);
     const img = screen.getByAltText("Broken") as HTMLImageElement;

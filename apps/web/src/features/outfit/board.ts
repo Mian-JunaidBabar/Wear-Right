@@ -93,7 +93,9 @@ export function buildOutfitBoardTiles(
       area,
       item: current ?? null,
       isAnchor: false,
-      skipped: current === null,
+      // "Not included" is only for a piece the shopper dropped themselves; a slot whose
+      // pick is simply out of stock stays "No match in stock" so the gap stays honest.
+      skipped: key in chosen && chosen[key] === null,
       overlaps: false,
     };
   };

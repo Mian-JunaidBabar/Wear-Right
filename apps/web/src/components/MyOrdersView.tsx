@@ -13,6 +13,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { PLACEHOLDER_IMAGE } from "@/lib/config";
+import ProductImage from "@/components/ProductImage";
 import { ordersApi } from "@/features/orders/api";
 
 type ApiOrder = {
@@ -722,18 +723,10 @@ export default function MyOrdersView() {
                         key={idx}
                         className="flex items-center gap-4 min-w-0 pb-4 border-b border-slate-100 last:border-0 last:pb-0"
                       >
-                        <img
-                          src={
-                            item.image ||
-                            item.product_image_url ||
-                            PLACEHOLDER_IMAGE
-                          }
+                        <ProductImage
+                          src={item.image || item.product_image_url}
                           alt={item.name || item.product_name}
                           className="w-20 h-24 rounded-2xl object-cover bg-cream-card/60 border border-brand-border/60 flex-shrink-0"
-                          onError={(event) => {
-                            event.currentTarget.src =
-                              PLACEHOLDER_IMAGE;
-                          }}
                         />
 
                         <div className="min-w-0">

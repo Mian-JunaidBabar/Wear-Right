@@ -18,6 +18,8 @@ type Props = {
 export default function ProductImage({ src, alt, className }: Props) {
   const [failed, setFailed] = useState(false);
   const url = failed || !src ? PLACEHOLDER_IMAGE : getProductImageUrl(src);
+  // Callers that need cropped tiles pass object-cover; otherwise photos stay whole.
+  const fit = className?.includes("object-cover");
 
   return (
     <img
@@ -27,7 +29,7 @@ export default function ProductImage({ src, alt, className }: Props) {
       onError={() => {
         if (!failed) setFailed(true);
       }}
-      className={`object-contain ${className ?? ""}`}
+      className={fit ? className : `object-contain ${className ?? ""}`}
     />
   );
 }

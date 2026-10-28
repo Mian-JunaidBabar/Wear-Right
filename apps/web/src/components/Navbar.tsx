@@ -22,26 +22,18 @@ import {
   Phone,
 } from "lucide-react";
 import { ViewType } from "@/lib/types";
-import { CartItem } from "@/features/cart/types";
-import { ADMIN_WHATSAPP_NUMBER, PLACEHOLDER_IMAGE } from "@/lib/config";
+import { ADMIN_WHATSAPP_NUMBER } from "@/lib/config";
 import { notify } from "@/lib/notify";
 import { usePathname, useSetView, viewFromPath } from "@/lib/navigation";
 import { isAdminPath } from "@/lib/routes";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useCart } from "@/features/cart/useCart";
 import { useWishlist } from "@/features/wishlist/useWishlist";
+import ProductImage from "@/components/ProductImage";
 
 function formatPKR(value: string | number | undefined) {
   const num = Number(value || 0);
   return `Rs. ${num.toLocaleString("en-PK")}`;
-}
-
-function getCartImage(item: CartItem) {
-  return (
-    item.product.image_url ||
-    item.product.image ||
-    PLACEHOLDER_IMAGE
-  );
 }
 
 /** The shop's navbar. The admin panel (/admin) has its own chrome, so nothing is drawn there. */
@@ -407,14 +399,10 @@ function ShopNavbar() {
                       <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-100">
                         {cartItems.map((item) => (
                           <div key={item.product.id} className="p-4 flex gap-3">
-                            <img
-                              src={getCartImage(item)}
+                            <ProductImage
+                              src={item.product.image_url || item.product.image}
                               alt={item.product.name}
                               className="w-16 h-20 rounded-xl object-cover bg-slate-100 border border-slate-200"
-                              onError={(event) => {
-                                event.currentTarget.src =
-                                  PLACEHOLDER_IMAGE;
-                              }}
                             />
 
                             <div className="flex-1 min-w-0">

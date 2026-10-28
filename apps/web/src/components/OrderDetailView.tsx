@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { PLACEHOLDER_IMAGE } from "@/lib/config";
+import ProductImage from "@/components/ProductImage";
 import { ordersApi, orderErrorMessage, type ApiOrder } from "@/features/orders/api";
 import { notify } from "@/lib/notify";
 
@@ -118,8 +118,8 @@ export default function OrderDetailView({ orderId }: { orderId: string }) {
             <ul className="divide-y divide-slate-100 mt-2">
               {items.map((item) => (
                 <li key={item.id} className="py-3 flex items-center gap-3">
-                  <img
-                    src={item.image || PLACEHOLDER_IMAGE}
+                  <ProductImage
+                    src={item.image}
                     alt={item.name}
                     className="w-14 h-16 rounded-lg object-cover bg-slate-100"
                   />

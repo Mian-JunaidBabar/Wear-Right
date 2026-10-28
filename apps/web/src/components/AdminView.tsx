@@ -32,6 +32,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { PLACEHOLDER_IMAGE } from "@/lib/config";
+import ProductImage from "@/components/ProductImage";
 import { ApiError } from "@/lib/api";
 import type { ApiCategory, ApiStyle } from "@/features/catalog/api";
 import AdminTaxonomy from "@/components/AdminTaxonomy";
@@ -965,7 +966,7 @@ export default function AdminView() {
                       <tr key={product.id} className="hover:bg-cream-base">
                         <td className="p-4 sticky left-0 z-10 bg-white">
                           <div className="flex items-center gap-3">
-                            <img
+                            <ProductImage
                               src={getImage(product)}
                               alt={product.name}
                               className="w-12 h-14 rounded-xl object-cover bg-cream-card/60 border border-brand-border/60"
@@ -1276,7 +1277,7 @@ export default function AdminView() {
                           >
                             <div className="flex items-center gap-4 min-w-0">
                               {line.image && (
-                                <img src={line.image} alt="" className="w-12 h-14 rounded-xl object-cover border border-brand-border/60 bg-cream-card/60" />
+                                <ProductImage src={line.image} alt={line.name} className="w-12 h-14 rounded-xl object-cover border border-brand-border/60 bg-cream-card/60" />
                               )}
                               <div className="min-w-0">
                                 <p className="font-black text-brand-dark truncate">{line.name}</p>

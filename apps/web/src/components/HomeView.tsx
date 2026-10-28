@@ -17,8 +17,8 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useNavigate, useSetView } from "@/lib/navigation";
-import { getProductImageUrl } from "@/lib/config";
 import { catalogApi } from "@/features/catalog/api";
+import ProductImage from "@/components/ProductImage";
 
 type FeaturedProduct = {
   id: number | string;
@@ -49,8 +49,6 @@ export default function HomeView() {
     };
     fetchProducts();
   }, []);
-
-  const getProductImage = (imagePath?: string | null) => getProductImageUrl(imagePath);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -384,8 +382,8 @@ export default function HomeView() {
                   className="group flex flex-col p-4 bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 cursor-pointer text-left"
                 >
                   <div className="w-full aspect-[4/5] rounded-xl overflow-hidden bg-slate-50 relative mb-4">
-                    <img
-                      src={getProductImage(product.image)}
+                    <ProductImage
+                      src={product.image}
                       alt={product.name}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-103"
                     />

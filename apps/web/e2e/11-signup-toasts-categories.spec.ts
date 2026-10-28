@@ -96,10 +96,10 @@ test("11f. staff can add and remove a category and a style from the admin screen
   await expect(taxonomy.getByTestId("style-row").filter({ hasText: styleName })).toHaveCount(0);
 });
 
-test("11g. the shop's outfit preview is the real mannequin, not the grey placeholder", async ({ page, request, problems }) => {
+test("11g. the shop's outfit preview is the outfit board", async ({ page, request, problems }) => {
   const { products } = await (await request.get("/api/products/?page_size=200")).json();
-  const shirt = products.find((p: { slot: string; mannequin_ready: boolean; stock_quantity: number; gender: string }) => p.slot === "top" && p.gender === "men" && p.mannequin_ready && p.stock_quantity > 0);
-  test.skip(!shirt, "no mannequin-ready shirt: run `make mannequin-assets`");
+  const shirt = products.find((p: { slot: string; stock_quantity: number; gender: string }) => p.slot === "top" && p.gender === "men" && p.stock_quantity > 0);
+  test.skip(!shirt, "no in-stock men shirt");
 
   await page.goto("/shop");
   await page.getByRole("button", { name: /Men Shirt/ }).first().click();
@@ -108,9 +108,11 @@ test("11g. the shop's outfit preview is the real mannequin, not the grey placeho
 
   const dialog = page.getByRole("dialog", { name: "Outfit preview" });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByTestId("mannequin-panel")).toBeVisible({ timeout: 20_000 });
+  // The preview shows the real photos arranged as an outfit board, not a mannequin.
+  await expect(dialog.getByTestId("outfit-board")).toBeVisible({ timeout: 20_000 });
+  await expect(dialog.getByTestId("board-anchor-badge")).toHaveText("Your pick");
+  await expect(dialog.getByTestId("board-tile-footwear")).toBeVisible();
   await expect(dialog.getByText("Advanced AI")).toHaveCount(0);
-  await expect(dialog.getByText("Your pick")).toBeVisible();
   await dialog.getByRole("button", { name: "Close preview" }).click();
   await expect(dialog).toHaveCount(0);
   expect(problems).toEqual([]);

@@ -25,6 +25,7 @@ import {
   StyleKey,
 } from "@/features/recommender/recommendationRules";
 import { PLACEHOLDER_IMAGE } from "@/lib/config";
+import ProductImage from "@/components/ProductImage";
 
 type RecommendationProduct = CartProduct & {
   style: string;
@@ -268,13 +269,10 @@ export default function RecommendedProductsView() {
                 }`}
               >
                 <div className="aspect-[3/4] bg-cream-card/60 relative overflow-hidden">
-                  <img
+                  <ProductImage
                     src={String(product.image || placeholderImage)}
                     alt={product.name}
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-                    onError={(event) => {
-                      event.currentTarget.src = placeholderImage;
-                    }}
                   />
 
                   <div className="absolute top-3 left-3 bg-emerald-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1">

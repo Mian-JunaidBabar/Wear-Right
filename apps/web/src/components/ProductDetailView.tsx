@@ -27,6 +27,7 @@ import { useCart } from "@/features/cart/useCart";
 import { useWishlist } from "@/features/wishlist/useWishlist";
 import { catalogApi } from "@/features/catalog/api";
 import { notify } from "@/lib/notify";
+import ProductImage from "@/components/ProductImage";
 
 type ApiProduct = {
   id: number | string;
@@ -431,14 +432,10 @@ Please share more details.`;
               className="aspect-[4/5] bg-cream-card/60 relative group cursor-zoom-in"
               onClick={() => setShowZoom(true)}
             >
-              <img
+              <ProductImage
                 src={getProductImage(product)}
                 alt={product.name}
-                className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
-                onError={(event) => {
-                  event.currentTarget.src =
-                    PLACEHOLDER_IMAGE;
-                }}
+                className="w-full h-full transition-transform duration-500 group-hover:scale-105"
               />
 
               {/* Stock Badge */}
@@ -732,14 +729,10 @@ Please share more details.`;
                         className="aspect-square bg-cream-card/60 relative overflow-hidden cursor-pointer"
                         onClick={() => navigate(`/product/${outfitProduct.id}`)}
                       >
-                        <img
+                        <ProductImage
                           src={getProductImage(outfitProduct)}
                           alt={outfitProduct.name}
-                          className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
-                          onError={(event) => {
-                            event.currentTarget.src =
-                              PLACEHOLDER_IMAGE;
-                          }}
+                          className="w-full h-full transition-transform duration-500 group-hover:scale-110"
                         />
 
                         <div className="absolute top-2 left-2 bg-emerald-600 text-white px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">
@@ -825,14 +818,10 @@ Please share more details.`;
                       className="aspect-square bg-cream-card/60 relative overflow-hidden cursor-pointer"
                       onClick={() => navigate(`/product/${relProduct.id}`)}
                     >
-                      <img
+                      <ProductImage
                         src={getProductImage(relProduct)}
                         alt={relProduct.name}
-                        className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
-                        onError={(event) => {
-                          event.currentTarget.src =
-                            PLACEHOLDER_IMAGE;
-                        }}
+                        className="w-full h-full transition-transform duration-500 group-hover:scale-110"
                       />
                     </div>
 
@@ -909,20 +898,19 @@ Please share more details.`;
             </div>
 
             {/* Zoomed Image */}
-            <motion.img
+            <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              src={getProductImage(product)}
-              alt={product.name}
-              className="max-w-[90vw] max-h-[85vh] object-contain rounded-2xl shadow-2xl"
               onClick={(e) => e.stopPropagation()}
-              onError={(event) => {
-                event.currentTarget.src =
-                  PLACEHOLDER_IMAGE;
-              }}
-            />
+            >
+              <ProductImage
+                src={getProductImage(product)}
+                alt={product.name}
+                className="max-w-[90vw] max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+              />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Minus, Plus, ShoppingBag, Trash2, ArrowRight } from "lucide-react";
-import { PLACEHOLDER_IMAGE } from "@/lib/config";
+import ProductImage from "@/components/ProductImage";
 import { useCart } from "@/features/cart/useCart";
 import { notify } from "@/lib/notify";
 
@@ -55,8 +55,8 @@ export default function CartView() {
                 className="p-4 sm:p-5 flex gap-4"
                 data-testid="cart-row"
               >
-                <img
-                  src={item.product.image_url || item.product.image || PLACEHOLDER_IMAGE}
+                <ProductImage
+                  src={item.product.image_url || item.product.image}
                   alt={item.product.name}
                   className="w-24 h-28 object-cover rounded-xl bg-slate-100"
                 />

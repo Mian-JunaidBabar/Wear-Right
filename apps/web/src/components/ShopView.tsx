@@ -17,13 +17,14 @@ import {
   Heart,
 } from "lucide-react";
 import { Product } from "@/lib/types";
-import { ADMIN_WHATSAPP_NUMBER, PLACEHOLDER_IMAGE } from "@/lib/config";
+import { ADMIN_WHATSAPP_NUMBER, getProductImageUrl } from "@/lib/config";
 import { notify } from "@/lib/notify";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useCart } from "@/features/cart/useCart";
 import { useWishlist } from "@/features/wishlist/useWishlist";
 import { catalogApi, type ApiCategory, type ApiStyle } from "@/features/catalog/api";
 import OutfitPreviewModal from "@/components/OutfitPreviewModal";
+import ProductImage from "@/components/ProductImage";
 
 interface ApiProduct {
   id: number | string;
@@ -115,21 +116,12 @@ export default function ShopView() {
 
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
-  const placeholderImage = PLACEHOLDER_IMAGE;
-
   const normalizeCategory = (category?: string) => category || "";
 
   const normalizeStyle = (style?: string) => style || "Casual";
 
-  const getProductImage = (item: ApiProduct) => {
-    const image = item.image_url || item.image || placeholderImage;
-
-    if (image.includes("?")) {
-      return `${image}&v=${Date.now()}`;
-    }
-
-    return `${image}?v=${Date.now()}`;
-  };
+  const getProductImage = (item: ApiProduct) =>
+    getProductImageUrl(item.image_url || item.image);
 
   const isOutOfStock = (product: ShopProduct) => {
     return (
@@ -698,14 +690,10 @@ Please share more details.`;
                     }`}
                   >
                     <div className="aspect-[3/4] bg-cream-base relative overflow-hidden flex-shrink-0">
-                      <img
+                      <ProductImage
                         src={prod.image}
                         alt={prod.name}
                         className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-in-out"
-                        referrerPolicy="no-referrer"
-                        onError={(event) => {
-                          event.currentTarget.src = placeholderImage;
-                        }}
                       />
 
                       <div className="absolute top-3 right-3 bg-slate-900/90 backdrop-blur-sm border border-slate-750 text-emerald-400 px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide flex items-center gap-1 z-10 shadow-sm">
@@ -866,14 +854,10 @@ Please share more details.`;
 
               <div className="grid grid-cols-1 lg:grid-cols-[45%_55%]">
                 <div className="h-[520px] bg-cream-base relative overflow-hidden">
-                  <img
+                  <ProductImage
                     src={selectedProduct.image}
                     alt={selectedProduct.name}
-                    className="w-full h-full object-contain bg-cream-card/60"
-                    referrerPolicy="no-referrer"
-                    onError={(event) => {
-                      event.currentTarget.src = placeholderImage;
-                    }}
+                    className="w-full h-full bg-cream-card/60"
                   />
 
                   <div className="absolute top-4 left-4 bg-slate-900/95 text-sage-green border border-slate-800 font-mono text-xs px-2.5 py-1.5 font-bold rounded-lg shadow-md">
