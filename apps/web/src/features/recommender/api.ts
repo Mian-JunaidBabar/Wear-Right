@@ -21,6 +21,8 @@ export type ApiItem = {
   back_image?: string | null;
   mannequin_ready?: boolean;
   mannequin_note?: string;
+  tryon_ready?: boolean;
+  tryon_anchors?: Record<string, unknown>;
   price: string | number;
   image?: string | null;
   stock_quantity?: number;
