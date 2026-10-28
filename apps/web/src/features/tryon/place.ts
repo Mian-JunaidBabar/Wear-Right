@@ -10,7 +10,7 @@ import { POSE, type Landmark } from "./pose";
 export type Point = { x: number; y: number };
 export type Matrix = [number, number, number, number, number, number];
 export type AnchorPoint = [number, number];
-export type GarmentAnchors = Record<string, AnchorPoint | number | number[] | undefined | null>;
+export type GarmentAnchors = Record<string, AnchorPoint | number | AnchorPoint[] | undefined | null>;
 
 export type Garment = {
   id: number;
@@ -62,6 +62,11 @@ function point(anchors: GarmentAnchors, key: string): AnchorPoint | null {
   if (!Array.isArray(value) || value.length !== 2) return null;
   const [x, y] = value;
   return typeof x === "number" && typeof y === "number" ? [x, y] : null;
+}
+
+function number(anchors: GarmentAnchors, key: string): number | null {
+  const value = anchors[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 /** MediaPipe normalised point in canvas pixels. */
@@ -192,7 +197,7 @@ function shoePlacements({ garment, landmarks, canvas }: PlacementInput): Placeme
   const box = garment.anchors.shoe_box;
   if (!heel || !toe || !Array.isArray(box) || box.length !== 4) return [];
   if (!visible(landmarks, POSE.leftHeel, POSE.rightHeel, POSE.leftFoot, POSE.rightFoot)) return [];
-  const [bx, by, bw, bh] = box as number[];
+  const [bx, by, bw, bh] = box as [number, number, number, number];
   if (bw <= 0 || bh <= 0) return [];
   const localHeel = { x: heel[0] - bx, y: heel[1] - by };
   const localToe = { x: toe[0] - bx, y: toe[1] - by };

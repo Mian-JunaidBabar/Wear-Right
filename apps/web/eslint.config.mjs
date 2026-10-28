@@ -19,8 +19,6 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // MediaPipe wasm is downloaded by `make models`, not source we own.
-    "public/mediapipe/**",
   ]),
 ]);
 

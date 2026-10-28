@@ -6,7 +6,7 @@ import { LandmarkSmoother } from "./smooth";
 const canvas = { width: 400, height: 800 };
 
 function landmark(x: number, y: number, visibility = 1): Landmark {
-  return { x, y, z: 0, visibility };
+  return { x, y, visibility };
 }
 
 function body(): Landmark[] {
