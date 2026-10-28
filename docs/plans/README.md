@@ -14,6 +14,8 @@ Each plan is a self-contained task for one agent session. Give the agent `CLAUDE
 | 05 | [05-virtual-try-on.md](05-virtual-try-on.md) | — | **Superseded by 08** (was already superseded by 07; diffusion try-on needs a GPU we don't have). Kept as thesis future work. |
 | 06 | [06-skin-tone-basic.md](06-skin-tone-basic.md) | small | Skin tone scaled down to an honest, correctable estimate plus a small real evaluation. |
 | 04 | [04-password-reset-and-email.md](04-password-reset-and-email.md) | medium | Forgot password for shoppers and admins, Mailpit as the local mail server, a few basic emails (welcome, order placed, order status). Keeps Django auth; explains why not better-auth. |
+| 09 | [09-cloud-tryon-test.md](09-cloud-tryon-test.md) | small | Review of the Gemini "try-on upgrade" package; test of running FASHN/CatVTON on Hugging Face's free GPUs on our real product photos. Test only. |
+| 10 | [10-alpha-mannequin.md](10-alpha-mannequin.md) | medium | "Mannequin (alpha)": pre-made aligned garment layers for ~24 curated products on one fixed base image, stacked in the browser. Outfit board stays the default. Depends on 09's result for the HF route; the manual Gemini-app route works without it. |
 | 08 | [08-outfit-board-and-media.md](08-outfit-board-and-media.md) | large | **The new USP: skin-tone-aware outfit completion shown as an outfit board** — the look's real product photos arranged top over bottom over shoes, accessories alongside, swappable tile by tile, one-click add to cart. Also moves product media out of the repo (`MEDIA_ROOT`, `SERVE_MEDIA`, `check_media`, `make media-backup`) and sends every photo through a placeholder-falling-back component. |
 
 ## Rules for every plan

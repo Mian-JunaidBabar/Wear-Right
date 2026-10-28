@@ -136,6 +136,46 @@ Report: files per commit, real test/build output, how many demo products are try
 
 ---
 
+## Prompt 10: outfit board + local media storage (DONE, see plan 08)
+
+---
+
+## Prompt 11: test the cloud try-on from the Gemini package
+
+```
+You are working on Wear Right (FYP). Read /home/jb/Projects/Wear-Right/docs/plans/09-cloud-tryon-test.md. Do only "The test" section. Do not change apps/server or apps/web and do not copy the package into the app.
+
+The package is in /home/jb/Projects/Wear-Right/apps/web/wear_right_tryon_upgrade/. Its cached images and HERO_LOOKS are not real outputs; ignore them. The only thing under test is calling FASHN VTON v1.5 (and CatVTON as fallback) on Hugging Face Spaces with gradio_client, on our real product photos.
+
+Steps 1 to 6 exactly as the plan says. Ask me for an HF_TOKEN if none is set (a free Hugging Face account token, read access). Stop as soon as the daily quota message appears and report how many renders you got.
+
+Commit only apps/tryon_test/REPORT.md and the output images, plus a .gitignore for the venv. Never write into /home/jb/Projects/Wear-Right/docs/plans/ (that folder is the lead's; copy from it, never back to it).
+
+Report: view_api output, corrected call code, the results table, the images side by side, and your honest verdict.
+```
+
+---
+
+## Prompt 12: Mannequin (alpha) for curated products
+
+```
+You are working on Wear Right (FYP). Copy /home/jb/Projects/Wear-Right/docs/plans/ into this worktree's docs/plans/ (never the other way round). Read CLAUDE.md, docs/STATUS.md, docs/plans/08-outfit-board-and-media.md (what exists now), docs/plans/10-alpha-mannequin.md and, if present, apps/tryon_test/REPORT.md. Do only plan 10.
+
+Order, one commit each, tests in the same commit:
+1. tools/alpha_mannequin/: PROMPT.md (the fixed prompt), extract_layer.py (cloth mask x changed pixels x slot region, clean-up, alignment check), render_hf.py (only if plan 09's report says the HF route works; quota-aware, resumable). pytest on synthetic pairs.
+2. catalog.MannequinLayer + migration, import_alpha_layers command, serializer field alpha_layer (approved only).
+3. Admin: layer upload, composite preview on the base image, Approve.
+4. Web: AlphaMannequin component, "Outfit board | Mannequin (alpha)" tabs in CompleteOutfitView and OutfitPreviewModal, "Try on (alpha)" badge and shop filter. vitest.
+5. Produce the alpha set: pick the ~24 products listed in the plan from the catalogue (send me the list first and wait for OK), render them (HF route or tell me which ones to do by hand in the Gemini app, with the exact files to upload), extract, import, review in the admin.
+6. Docs: STATUS.md, DEMO.md, docs/phases/phase-6.md with the "approaches tried" table and the thesis wording from the plan.
+
+Testing: `make test` and the web build. No Playwright. Manual checks from the plan, screenshots to docs/phases/phase-6-screens/alpha/.
+
+Report: commits, real test/build output, the product list, how each layer was made, rejected renders and why, screenshots.
+```
+
+---
+
 ## Prompt 08: skin tone, basic
 
 ```
