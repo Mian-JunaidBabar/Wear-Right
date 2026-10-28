@@ -947,7 +947,7 @@ export default function AdminView() {
                 <table className="w-full min-w-[1150px] text-sm">
                   <thead className="bg-cream-base border-b border-slate-100">
                     <tr className="text-[11px] uppercase tracking-widest text-slate-400 font-black">
-                      <th className="p-4 text-left min-w-[250px]">Product</th>
+                      <th className="p-4 text-left min-w-[250px] sticky left-0 z-10 bg-cream-base">Product</th>
                       <th className="p-4 text-left min-w-[130px]">Category</th>
                       <th className="p-4 text-left min-w-[100px]">Style</th>
                       <th className="p-4 text-left min-w-[110px]">Skin Tone</th>
@@ -963,7 +963,7 @@ export default function AdminView() {
                   <tbody className="divide-y divide-slate-100">
                     {filteredProducts.map((product) => (
                       <tr key={product.id} className="hover:bg-cream-base">
-                        <td className="p-4">
+                        <td className="p-4 sticky left-0 z-10 bg-white">
                           <div className="flex items-center gap-3">
                             <img
                               src={getImage(product)}
