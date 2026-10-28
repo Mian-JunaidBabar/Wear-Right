@@ -62,7 +62,14 @@ test("13c. signed-in and admin routes do not overflow at 390px", async ({ page }
   await expectNoHorizontalOverflow(page, "/admin");
 });
 
-test("13d. forms are labelled and reachable with the keyboard", async ({ page }) => {
+test("13d. product detail does not overflow at 1280px", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const list = await (await page.request.get("/api/products/?page_size=200")).json();
+  const product = list.products[0];
+  await expectNoHorizontalOverflow(page, `/product/${product.id}`);
+});
+
+test("13e. forms are labelled and reachable with the keyboard", async ({ page }) => {
   await page.goto("/register");
   await page.getByLabel(/full name/i).focus();
   await expect(page.getByLabel(/full name/i)).toBeFocused();

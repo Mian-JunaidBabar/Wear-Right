@@ -424,7 +424,7 @@ Please share more details.`;
         </button>
 
         {/* ─── Product Grid: Image + Details ─── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[45%_55%] gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)] gap-8">
           {/* ═══ LEFT: Product Image with Zoom ═══ */}
           <div className="bg-white border border-brand-border/60 rounded-3xl overflow-hidden shadow-sm">
             <div
