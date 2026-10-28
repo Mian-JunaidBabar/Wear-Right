@@ -14,6 +14,9 @@ export type ApiItem = {
   color_hex?: string | null;
   slot?: string | null;
   gender?: string | null;
+  // What the garment actually is (catalog Product.kind) and the colour the mannequin paints it with.
+  kind?: string | null;
+  display_hex?: string | null;
   mannequin_image?: string | null;
   back_image?: string | null;
   mannequin_ready?: boolean;

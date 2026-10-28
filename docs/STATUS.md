@@ -35,7 +35,7 @@ The exact Playwright count and any skipped model-dependent scenarios are in the 
 | 3 | Server cart, checkout, multi-item orders, stock, status | done |
 | 4 | Functional scan → recommendations → complete look | done with open items |
 | 5 | Functional freeze M1, full journey, mobile, docs, tag | done |
-| 6 | Layered mannequin | not started |
+| 6 | Layered mannequin | not started (flat 2D SVG mannequin shipped early; see Decisions) |
 | 7 | Skin tone v2 + scanner evaluation | not started |
 | 8 | User study, demo hardening | not started |
 
@@ -48,6 +48,7 @@ Summaries: `docs/phases/phase-2.md` to `phase-5.md`; walkthrough: `docs/DEMO.md`
 - **Catalogue keeps the legacy fields** (`category` text, `cultural_tag`, `garment_type`, per-size stock) beside the new `category_ref`, `style`, `primary_color`, `sizes` and `is_active`. A full destructive rewrite would have broken the recommender, mannequin and imported data. `category_ref` is the supported relation; serializers keep both sides in sync.
 - **Products know what they are, not just where they go.** `Product.kind` (`catalog/engine/kinds.py`, migration `0008_product_kind` backfills) is the garment type guessed from the name/category words (tshirt, shirt, kurta, jeans, sandals, dupatta, ..., 24 kinds); the serializer also fills a blank `slot` from the kind and a blank `gender` from the category, without ever clobbering already-set values on partial updates. The look engine uses it: a one-piece anchor (kurta/kameez/dress) covers its own slots (COVERS map in `recommender/engine/looks.py`), so a shirt anchor no longer lets the template re-fill the "Top" slot, kids-named products never pair into adult looks (and never appear in top picks), and the complete-look API reports `anchor_slot` / `anchor_kind`. The mislabelled import row "Heavy Shirt" (garment_type=Accessory) is now correctly a men's top. E2e regression: `e2e/09` test 9f.
 - **Products API is paginated** (12 per page, `page_size` up to 500) and keeps the old `status`, `total_products`, `products` keys for existing callers, while adding `count`, `next`, `previous`, `results`, `page`, `page_size`, `total_pages`. The shop pages client-side over the full seeded catalogue; the server filters are implemented and tested and can be adopted incrementally.
+- **The mannequin is a flat 2D SVG ("fashion flat"), not photos.** `apps/web/src/features/mannequin/` (`geometry.ts` key points, `garments.ts` one vector shape per garment kind, `layout.ts` layering) draws every product in its colour on one `<svg viewBox="0 0 400 800">` body — shoes are a left/right pair, the watch sits on the wrist, no photos on the body, no per-item screenshots. clothing layers follow the z order bottom → top → outerwear → shoes → accessories; a product with no drawable shape (bags) is listed under the body. `Product.display_hex` (`catalog/engine/color.py`) gives the serializer and adapter one colour fallback chain. The web no longer uses `mannequin_image` / `anchors.json` (both removed from `public/`); the backend mannequin-image pipeline and its tests stay, unused. See Plan 02.
 
 - **Colour** is a real table (`Color`: name, hex, family) plus `Product.primary_color`. Uploading an image can suggest a dominant colour with the existing OpenCV/Lab helper; staff can override it. A suggestion is a suggestion, not a measured label.
 - **Cart** is server-backed for signed-in users and localStorage for guests. On login the guest cart is merged into `/api/cart/merge/`; the server then owns quantity, size and stock checks. The navbar and pages share one server-cart snapshot so the badge updates immediately.
@@ -65,7 +66,7 @@ Summaries: `docs/phases/phase-2.md` to `phase-5.md`; walkthrough: `docs/DEMO.md`
 
 - Real face-scan accuracy is unmeasured; no labelled photo set has been run. Thresholds are the algorithm's starting values. This is Phase 7 work.
 - Recommendations use colour-theory rules, not measured user preference or sales data. The palette and look ranking need a user study (Phase 8).
-- The mannequin exists and places garment layers, but its bodies are procedural grey shapes and placement is box-based. Realistic bodies, drape and back photos are Phase 6.
+- The mannequin speaks in flat 2D vector shapes now: no back view, no draping, no poses, and the pictures-like realism of the original PRD is still Phase 6.
 - Password reset, email verification, login rate limiting and customer-initiated order editing are not implemented.
 - Demo card payment is not a payment integration and must never be presented as one.
 - The product detail grid had an 8px horizontal overflow at 1280px in the legacy layout; the M1 mobile check covers 390px only.

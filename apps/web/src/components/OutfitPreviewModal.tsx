@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ShoppingBag, X } from "lucide-react";
 import Mannequin from "@/components/Mannequin";
 import { useAuth } from "@/features/auth/AuthProvider";
-import { layoutLook, type Angle, type BodyGender, type Preset } from "@/features/mannequin/layout";
+import { layoutLook, type BodyGender, type Preset } from "@/features/mannequin/layout";
 import { recommenderApi, type ApiItem, type CompleteLookResponse } from "@/features/recommender/api";
 import { normalizeSkinTone } from "@/features/recommender/recommendationRules";
 import { PLACEHOLDER_IMAGE } from "@/lib/config";
@@ -29,7 +29,6 @@ export default function OutfitPreviewModal({ productId, outOfStock, onClose, onO
   const undertone = profile?.undertone || "";
   const [look, setLook] = useState<CompleteLookResponse | null>(null);
   const [failed, setFailed] = useState(false);
-  const [angle, setAngle] = useState<Angle>("front");
   const [presetChoice, setPresetChoice] = useState<Preset | null>(null);
   const preset: Preset = presetChoice ?? profile?.body_preset ?? "regular";
 
@@ -47,7 +46,10 @@ export default function OutfitPreviewModal({ productId, outOfStock, onClose, onO
   const bodyGender: BodyGender =
     look?.gender === "women" || look?.gender === "men" ? look.gender : profile?.gender === "female" ? "women" : "men";
   const picks = useMemo(() => (look ? look.slots.map((slot) => slot.pick).filter((pick): pick is NonNullable<typeof pick> => Boolean(pick)) : []), [look]);
-  const layout = useMemo(() => layoutLook(look ? [look.anchor, ...picks] : [], bodyGender, preset, angle), [look, picks, bodyGender, preset, angle]);
+  const layout = useMemo(
+    () => (look ? layoutLook(look.anchor, picks, bodyGender, preset) : { layers: [], notShown: [] }),
+    [look, picks, bodyGender, preset],
+  );
   const rows: { title: string; item: ApiItem }[] = look
     ? [{ title: "Your pick", item: look.anchor }, ...look.slots.filter((s) => s.pick).map((s) => ({ title: SLOT_TITLES[s.kind || s.slot] ?? s.slot, item: s.pick as ApiItem }))]
     : [];
@@ -63,7 +65,7 @@ export default function OutfitPreviewModal({ productId, outOfStock, onClose, onO
           <div className="bg-slate-50 p-6 flex items-start justify-center">
             {look ? (
               <div className="w-full max-w-xs">
-                <Mannequin layout={layout} angle={angle} preset={preset} onAngle={setAngle} onPreset={setPresetChoice} />
+                <Mannequin layout={layout} gender={bodyGender} preset={preset} onPreset={setPresetChoice} />
               </div>
             ) : (
               <p className="py-24 text-sm font-bold text-slate-600">{failed ? "We could not build a preview for this product." : "Dressing the mannequin..."}</p>

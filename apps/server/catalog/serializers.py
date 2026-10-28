@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from .engine.color import display_hex
 from .engine.kinds import KINDS, infer_kind, is_kids_name, slot_of_kind
 from .models import Category, Color, Product, Style
 
@@ -112,6 +113,13 @@ class ProductSerializer(serializers.ModelSerializer):
         data['image'] = instance.image.url if instance.image else None
         for name in ('mannequin_image', 'back_image'):
             data[name] = getattr(instance, name).url if getattr(instance, name) else None
+        # One hex the mannequin SVG can always paint with: hex field, primary colour, name lookup, grey.
+        data['display_hex'] = display_hex(
+            instance.color_hex,
+            instance.primary_color.hex if instance.primary_color_id else '',
+            instance.color_name,
+            instance.color,
+        ) or '#9CA3AF'
         return data
 
     def get_category_slug(self, instance):

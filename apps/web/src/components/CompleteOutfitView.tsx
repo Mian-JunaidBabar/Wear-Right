@@ -8,7 +8,7 @@ import { useAuth } from "@/features/auth/AuthProvider";
 import { useCart } from "@/features/cart/useCart";
 import { recommenderApi, type ApiItem, type CompleteLookResponse, type LookEntry } from "@/features/recommender/api";
 import { normalizeSkinTone } from "@/features/recommender/recommendationRules";
-import { layoutLook, type Angle, type BodyGender, type Preset } from "@/features/mannequin/layout";
+import { layoutLook, type BodyGender, type Preset } from "@/features/mannequin/layout";
 import Mannequin from "@/components/Mannequin";
 import { PLACEHOLDER_IMAGE } from "@/lib/config";
 import { notify } from "@/lib/notify";
@@ -65,7 +65,6 @@ export default function CompleteOutfitView() {
   // The shopper's chosen entry for each slot (default: the best pick). Keyed by kind or slot.
   const [chosen, setChosen] = useState<Record<string, LookEntry | null>>({});
 
-  const [angle, setAngle] = useState<Angle>("front");
   const [presetChoice, setPresetChoice] = useState<Preset | null>(null);
   const preset: Preset = presetChoice ?? profile?.body_preset ?? "regular";
 
@@ -98,8 +97,8 @@ export default function CompleteOutfitView() {
   const bodyGender: BodyGender =
     look?.gender === "women" || look?.gender === "men" ? look.gender : profile?.gender === "female" ? "women" : "men";
   const layout = useMemo(
-    () => layoutLook(look ? [look.anchor, ...picked] : [], bodyGender, preset, angle),
-    [look, picked, bodyGender, preset, angle],
+    () => (look ? layoutLook(look.anchor, picked, bodyGender, preset) : { layers: [], notShown: [] }),
+    [look, picked, bodyGender, preset],
   );
   const choosePreset = (next: Preset) => {
     setPresetChoice(next);
@@ -224,7 +223,7 @@ export default function CompleteOutfitView() {
             </div>
 
             <div className="lg:sticky lg:top-24">
-              <Mannequin layout={layout} angle={angle} preset={preset} onAngle={setAngle} onPreset={choosePreset} />
+              <Mannequin layout={layout} gender={bodyGender} preset={preset} onPreset={choosePreset} />
             </div>
           </div>
         ) : null}

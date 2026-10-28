@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from catalog.engine.color import REFERENCE_COLORS, dominant_palette, nearest_color, palette_from_image
+from catalog.engine.color import REFERENCE_COLORS, display_hex, dominant_palette, nearest_color, palette_from_image
+from core.tests.factories import ProductFactory
 
 
 def _rgb(hex_value):
@@ -89,3 +90,38 @@ def test_shares_add_up_to_one():
     palette = dominant_palette(rgb, k=3)
 
     assert sum(entry["share"] for entry in palette) == pytest.approx(1.0, abs=0.01)
+
+
+# --- display_hex: the one colour fallback chain shared by the API and the recommender adapter ---
+
+
+def test_display_hex_prefers_the_product_hex_field():
+    assert display_hex('#112233', '#aabbcc', 'Navy Blue', 'Navy Blue') == '#112233'
+
+
+def test_display_hex_falls_back_to_the_primary_colour_hex():
+    assert display_hex('', '#aabbcc', 'Navy Blue', 'Navy Blue') == '#aabbcc'
+
+
+def test_display_hex_falls_back_to_the_colour_name():
+    assert display_hex('', '', 'Navy Blue', 'Navy Blue') == '#000080'
+    # the legacy `color` label is used when `color_name` is empty
+    assert display_hex('', '', '', 'Light Grey') == '#d3d3d3'
+    # an unknown name yields '' (the callers add the last resort themselves)
+    assert display_hex('', '', 'Luminous Green', 'Luminous Green') == ''
+
+
+@pytest.mark.django_db
+def test_display_hex_is_grey_when_nothing_is_known(api_client):
+    ProductFactory(color='', color_name='', name='No Colour Tee')
+    body = api_client.get('/api/products/').json()
+    row = next(product for product in body['products'] if product['name'] == 'No Colour Tee')
+    assert row['display_hex'] == '#9CA3AF'
+
+
+@pytest.mark.django_db
+def test_display_hex_reaches_the_api_with_the_product_hex(api_client):
+    ProductFactory(color_hex='#112233', name='Hex Tee')
+    body = api_client.get('/api/products/').json()
+    row = next(product for product in body['products'] if product['name'] == 'Hex Tee')
+    assert row['display_hex'] == '#112233'

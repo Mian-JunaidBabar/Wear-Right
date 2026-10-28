@@ -1,49 +1,24 @@
 /**
- * Places garment cut-outs on a 2D mannequin. Pure functions, no React.
+ * Decides which items the flat 2D mannequin draws and in which stacking order.
  *
- * The anchor map (public/mannequin/anchors.json) gives, for every body (gender, size, angle), the box
- * where each slot's garment goes on an 800 x 1600 canvas. A garment is an <img> that fills its box with
- * object-fit: contain, so its own proportions are kept. Layer order follows the PRD: bottom, top,
- * outerwear, shoes, accessories.
+ * Pure functions, no React. The anchor (the product the shopper opened) is always drawn; look
+ * picks follow; when two items want the same layer (a second top) the anchor wins and the other
+ * item is listed in `notShown`. Colours come straight from the API's `display_hex`, with a grey
+ * fallback so an uncoloured product still renders.
  */
-import anchors from "../../../public/mannequin/anchors.json";
+
 import type { ApiItem } from "@/features/recommender/api";
+import { geometryFor, type Geometry } from "./geometry";
 
 export type Preset = "slim" | "regular" | "plus";
-export type Angle = "front" | "back";
 export type BodyGender = "men" | "women";
 
 export const PRESETS: Preset[] = ["slim", "regular", "plus"];
-export const PRESET_LABELS: Record<Preset, string> = { slim: "Slim (waist 30-32)", regular: "Regular (waist 34-38)", plus: "Plus (waist 40+)" };
-
-type Box = [number, number, number, number];
-type Config = {
-  canvas: { width: number; height: number };
-  z_order: Record<string, number>;
-  hidden_in_back: string[];
-  bodies: Record<string, { image: string; slots: Record<string, Box> }>;
+export const PRESET_LABELS: Record<Preset, string> = {
+  slim: "Slim (waist 30-32)",
+  regular: "Regular (waist 34-38)",
+  plus: "Plus (waist 40+)",
 };
-const config = anchors as unknown as Config;
-
-export type Layer = {
-  id: number;
-  name: string;
-  slot: string;
-  src: string;
-  /** Percentages of the canvas, so the layout scales with the mannequin's size. */
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-  z: number;
-  /** Where a garment sits inside its box: shoes rest on the floor, everything else hangs from the top. */
-  align: "top" | "bottom" | "center";
-  usesFrontPhoto: boolean;
-};
-export type Skipped = { id: number; name: string; reason: string };
-export type Layout = { body: string; layers: Layer[]; skipped: Skipped[]; notes: string[] };
-
-const ACCESSORY_KINDS: [string, string][] = [["tie", "tie"], ["watch", "watch"], ["belt", "belt"], ["cap", "cap"], ["sunglass", "sunglasses"]];
 
 /** Waist in inches to a body preset (PRD: slim 30-32, regular 34-38, plus 40 and up). */
 export function presetFromWaist(inches: number): Preset {
@@ -51,64 +26,91 @@ export function presetFromWaist(inches: number): Preset {
   return inches <= 38 ? "regular" : "plus";
 }
 
-export function bodyFor(gender: BodyGender, preset: Preset, angle: Angle) {
-  return config.bodies[`${gender}/${preset}/${angle}`];
-}
+export type Layer = {
+  id: number;
+  name: string;
+  kind: string;
+  slot: string;
+  z: number;
+  hex: string;
+  isAnchor: boolean;
+};
 
-/** The anchor-map key for a product: its slot, or for accessories the kind read from its name. */
-export function anchorKey(item: Pick<ApiItem, "slot" | "name">): string | null {
-  if (item.slot !== "accessory") return item.slot ?? null;
-  const name = item.name.toLowerCase();
-  return ACCESSORY_KINDS.find(([word]) => name.includes(word))?.[1] ?? null;
-}
+export type Layout = { layers: Layer[]; notShown: { id: number; name: string }[] };
 
-function zFor(key: string): number {
-  const order = config.z_order;
-  return order[key] ?? order[["tie", "watch", "cap", "sunglasses"].includes(key) ? "accessory" : key] ?? order.accessory;
-}
+/** Kinds with a shape; anything else (bag, unknown) is listed, not drawn. */
+export const DRAWABLE_KINDS = new Set([
+  "tshirt", "shirt", "polo", "kurta", "kameez", "dress", "jeans", "trousers", "shorts", "shalwar",
+  "jacket", "hoodie", "blazer", "waistcoat", "dupatta", "belt", "tie", "sneakers", "formal_shoes",
+  "boots", "sandals", "watch", "cap", "sunglasses",
+]);
 
-function alignFor(key: string): Layer["align"] {
-  if (key === "footwear") return "bottom";
-  return ["watch", "cap", "sunglasses", "tie", "belt"].includes(key) ? "center" : "top";
-}
+/** Which body layer a kind occupies: kinds within one layer conflict with each other. */
+const LAYER_OF_KIND: Record<string, string> = {
+  tshirt: "top", shirt: "top", polo: "top",
+  jeans: "bottom", trousers: "bottom", shorts: "bottom", shalwar: "bottom",
+  sneakers: "footwear", formal_shoes: "footwear", boots: "footwear", sandals: "footwear",
+  jacket: "outerwear", hoodie: "outerwear", blazer: "outerwear",
+  kurta: "kurta", kameez: "kurta", dress: "dress", dupatta: "dupatta",
+  belt: "belt", tie: "tie", watch: "watch", cap: "cap", sunglasses: "sunglasses",
+};
 
-export function layoutLook(items: ApiItem[], gender: BodyGender, preset: Preset, angle: Angle): Layout {
-  const body = bodyFor(gender, preset, angle);
-  const { width, height } = config.canvas;
-  const layers: Layer[] = [];
-  const skipped: Skipped[] = [];
-  const notes: string[] = [];
+/** z order (PRD stack): bottom, top, outerwear, shoes, accessories on top of everything. */
+const Z_BY_LAYER: Record<string, number> = {
+  bottom: 10, top: 20, belt: 25, outerwear: 30, tie: 32, dupatta: 35, footwear: 40,
+  watch: 50, cap: 50, sunglasses: 50, kurta: 20, dress: 20,
+};
 
-  for (const item of items) {
-    const key = anchorKey(item);
-    const box = key ? body.slots[key] : undefined;
-    if (!key || !box) {
-      skipped.push({ id: item.id, name: item.name, reason: "This kind of item has no place on the mannequin." });
-      continue;
-    }
-    if (angle === "back" && config.hidden_in_back.includes(key)) {
-      skipped.push({ id: item.id, name: item.name, reason: "Not visible from the back." });
-      continue;
-    }
-    const backPhoto = angle === "back" ? item.back_image : null;
-    const src = backPhoto || item.mannequin_image;
-    if (!item.mannequin_ready || !src) {
-      skipped.push({
-        id: item.id,
-        name: item.name,
-        reason: item.mannequin_note ? `Photo not usable here: ${item.mannequin_note}.` : "No mannequin photo yet.",
-      });
-      continue;
-    }
-    const usesFrontPhoto = angle === "back" && !backPhoto;
-    if (usesFrontPhoto) notes.push(`${item.name} has no back photo, so its front is shown.`);
-    const [x, y, w, h] = box;
-    layers.push({
-      id: item.id, name: item.name, slot: key, src,
-      left: (x / width) * 100, top: (y / height) * 100, width: (w / width) * 100, height: (h / height) * 100,
-      z: zFor(key), align: alignFor(key), usesFrontPhoto,
-    });
+/** Untagged products fall back to a coarse shape from their slot. */
+const FALLBACK_KINDS: Record<string, string> = { top: "shirt", bottom: "trousers", footwear: "sneakers" };
+const FALLBACK_LAYERS: Record<string, string> = { top: "top", bottom: "bottom", footwear: "footwear" };
+
+/** An item's kind: what it is, or the accessory read from its name, or the slot fallback. */
+export function kindOf(item: Pick<ApiItem, "slot" | "name"> & { kind?: string | null }): string {
+  if (item.kind && DRAWABLE_KINDS.has(item.kind)) return item.kind;
+  if (item.slot === "accessory") {
+    const name = item.name.toLowerCase();
+    const accessory = [
+      ["tie", "tie"], ["watch", "watch"], ["belt", "belt"], ["cap", "cap"], ["sun", "sunglasses"],
+    ].find(([word]) => name.includes(word));
+    if (accessory) return accessory[1];
   }
-  layers.sort((a, b) => a.z - b.z || a.id - b.id);
-  return { body: body.image, layers, skipped, notes };
+  return item.slot && FALLBACK_KINDS[item.slot] ? FALLBACK_KINDS[item.slot] : "";
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- part of the call signature; the renderer uses gender/preset to pick its geometry
+export function layoutLook(anchor: ApiItem, picks: ApiItem[], _gender: BodyGender, _preset: Preset): Layout {
+  const hexOf = (item: ApiItem): string => item.display_hex || item.color_hex || "#9CA3AF";
+  const layers: Layer[] = [];
+  const notShown: { id: number; name: string }[] = [];
+  const usedLayers = new Set<string>();
+
+  const put = (item: ApiItem, isAnchor: boolean) => {
+    const kind = kindOf(item);
+    const layer = (kind && LAYER_OF_KIND[kind]) || (item.slot && FALLBACK_LAYERS[item.slot]) || "";
+    if (!kind || !layer) {
+      notShown.push({ id: item.id, name: item.name });
+      return;
+    }
+    if (usedLayers.has(layer) && !isAnchor) {
+      notShown.push({ id: item.id, name: item.name });
+      return;
+    }
+    usedLayers.add(layer);
+    layers.push({
+      id: item.id, name: item.name, kind, slot: item.slot ?? "",
+      z: Z_BY_LAYER[layer] ?? 30, hex: hexOf(item), isAnchor,
+    });
+  };
+
+  put(anchor, true);
+  for (const pick of picks) put(pick, false);
+
+  layers.sort((a, b) => a.z - b.z || +b.isAnchor - +a.isAnchor || a.id - b.id);
+  return { layers, notShown };
+}
+
+/** Geometry for a renderer; exported so the SVG component and the tests share one source. */
+export function geometry(gender: BodyGender, preset: Preset): Geometry {
+  return geometryFor(gender, preset);
 }

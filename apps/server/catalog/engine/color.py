@@ -32,6 +32,20 @@ def nearest_color(hex_value):
     )
 
 
+# name -> hex lookup for colour names, without the CIEDE2000 machinery.
+COLOUR_NAME_HEX = dict(REFERENCE_COLORS)
+
+
+def display_hex(color_hex, primary_hex, color_name, legacy_color):
+    """One colour fallback chain shared by the product API and the recommender adapter.
+
+    The product's hex field wins, then its related primary colour, then the colour *name* mapped
+    against the reference colours. '' when nothing is known; callers add their own last resort
+    (the API sends #9CA3AF grey, the recommender falls back to the name string).
+    """
+    return color_hex or primary_hex or COLOUR_NAME_HEX.get(color_name or legacy_color or '', '')
+
+
 def _hex_from_cv_lab(lab):
     """Convert one CIELAB triple (as returned by OpenCV) to a hex colour inside the sRGB gamut."""
     return Color("lab-d65", [float(value) for value in lab]).convert("srgb").fit().to_string(hex=True)

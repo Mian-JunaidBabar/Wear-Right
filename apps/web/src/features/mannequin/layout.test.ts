@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vitest";
 import type { ApiItem } from "@/features/recommender/api";
-import { anchorKey, bodyFor, layoutLook, presetFromWaist, PRESETS } from "./layout";
+import { geometry, kindOf, layoutLook, presetFromWaist, PRESETS } from "./layout";
 
 let nextId = 1;
-const garment = (slot: string, extra: Partial<ApiItem> = {}): ApiItem => ({
-  id: nextId++, name: `${slot} ${nextId}`, slot, price: 1000, mannequin_image: `/media/${slot}.png`, mannequin_ready: true, ...extra,
+const item = (kind: string, extra: Partial<ApiItem> = {}): ApiItem => ({
+  id: nextId++,
+  name: `${kind} ${nextId}`,
+  kind: extra.kind ?? kind,
+  slot: extra.slot ?? null,
+  display_hex: "#112233",
+  price: 1000,
+  ...extra,
 });
+
+const menGeometry = geometry("men", "regular");
+const womenGeometry = geometry("women", "regular");
 
 describe("presetFromWaist", () => {
   it.each([[30, "slim"], [32, "slim"], [33, "slim"], [34, "regular"], [38, "regular"], [39, "plus"], [44, "plus"]])("%i inches is %s", (inches, preset) => {
@@ -13,104 +22,108 @@ describe("presetFromWaist", () => {
   });
 });
 
-describe("the anchor map", () => {
-  it("has a body for every gender, size and angle, with a box for every slot", () => {
+describe("geometry", () => {
+  it("stays inside the 400x800 canvas and keeps heights constant across sizes", () => {
     for (const gender of ["men", "women"] as const)
-      for (const preset of PRESETS)
-        for (const angle of ["front", "back"] as const) {
-          const body = bodyFor(gender, preset, angle);
-          expect(body.image).toBe(`/mannequin/${gender}-${preset}-${angle}.png`);
-          for (const slot of ["top", "bottom", "outerwear", "kurta", "dupatta", "footwear", "belt", "watch", "tie", "cap", "sunglasses"]) {
-            const [x, y, w, h] = body.slots[slot];
-            expect(x).toBeGreaterThanOrEqual(0);
-            expect(y).toBeGreaterThanOrEqual(0);
-            expect(x + w).toBeLessThanOrEqual(800);
-            expect(y + h).toBeLessThanOrEqual(1600);
-          }
+      for (const preset of PRESETS) {
+        const g = geometry(gender, preset);
+        for (const y of [g.head.centre.y, g.shoulders[0].y, g.waist.y, g.hips.y, g.crotch.y, g.knees[0].y, g.ankles[0].y, g.floor]) {
+          expect(y).toBeGreaterThanOrEqual(0);
+          expect(y).toBeLessThanOrEqual(800);
         }
+        for (const p of [...g.shoulders, ...g.wrists, g.crotch]) {
+          expect(p.x).toBeGreaterThanOrEqual(0);
+          expect(p.x).toBeLessThanOrEqual(400);
+        }
+        // heights do not change between sizes
+      }
+    expect(geometry("men", "slim").floor).toBe(menGeometry.floor);
+    expect(geometry("men", "plus").shoulders[0].y).toBe(menGeometry.shoulders[0].y);
   });
 
-  it("makes the slot boxes wider for a larger size", () => {
-    const widthOf = (preset: "slim" | "regular" | "plus") => bodyFor("men", preset, "front").slots.top[2];
-    expect(widthOf("slim")).toBeLessThan(widthOf("regular"));
-    expect(widthOf("regular")).toBeLessThan(widthOf("plus"));
+  it("scales the torso, not the arms, between sizes", () => {
+    const slim = geometry("men", "slim");
+    const plus = geometry("men", "plus");
+    expect(slim.shoulders[0].x).toBeGreaterThan(menGeometry.shoulders[0].x);
+    expect(plus.shoulders[0].x).toBeLessThan(menGeometry.shoulders[0].x);  });
+
+  it("gives women a narrower waist and wider hips than men", () => {
+    expect(womenGeometry.waist.left).toBeGreaterThan(menGeometry.waist.left);
+    expect(womenGeometry.hips.left).toBeLessThan(menGeometry.hips.left);
   });
 });
 
-describe("anchorKey", () => {
-  it("uses the slot, and the kind in the name for accessories", () => {
-    expect(anchorKey({ slot: "top", name: "Shirt" })).toBe("top");
-    expect(anchorKey({ slot: "accessory", name: "Fastrack Black Watch" })).toBe("watch");
-    expect(anchorKey({ slot: "accessory", name: "Silk Tie" })).toBe("tie");
-    expect(anchorKey({ slot: "accessory", name: "Aviator Sunglasses" })).toBe("sunglasses");
-    expect(anchorKey({ slot: "accessory", name: "Mystery thing" })).toBeNull();
-    expect(anchorKey({ slot: null, name: "Untagged" })).toBeNull();
+describe("kindOf", () => {
+  it("uses the product kind when it is drawable", () => {
+    expect(kindOf({ slot: "top", name: "Whatever", kind: "polo" })).toBe("polo");
+  });
+
+  it("reads accessories from the name when the slot is accessory", () => {
+    expect(kindOf({ slot: "accessory", name: "Fastrack Black Watch", kind: null })).toBe("watch");
+    expect(kindOf({ slot: "accessory", name: "Silk Tie", kind: null })).toBe("tie");
+    expect(kindOf({ slot: "accessory", name: "Aviator Sunglasses", kind: null })).toBe("sunglasses");
+    expect(kindOf({ slot: "accessory", name: "Mystery thing", kind: null })).toBe("");
+  });
+
+  it("falls back to a coarse shape from the slot", () => {
+    expect(kindOf({ slot: "top", name: "Untagged", kind: null })).toBe("shirt");
+    expect(kindOf({ slot: "bottom", name: "Untagged", kind: null })).toBe("trousers");
+    expect(kindOf({ slot: "footwear", name: "Untagged", kind: null })).toBe("sneakers");
+    expect(kindOf({ slot: null, name: "Untagged", kind: null })).toBe("");
   });
 });
 
 describe("layoutLook", () => {
-  it("stacks layers bottom, top, outerwear, shoes, accessories", () => {
-    const look = [garment("footwear"), garment("outerwear"), garment("top"), garment("bottom"), garment("accessory", { name: "Black Watch" })];
-    const { layers } = layoutLook(look, "men", "regular", "front");
-    expect(layers.map((l) => l.slot)).toEqual(["bottom", "top", "outerwear", "footwear", "watch"]);
-  });
-
-  it("puts each garment in its slot's box as percentages of the canvas", () => {
-    const top = garment("top");
-    const [layer] = layoutLook([top], "women", "plus", "front").layers;
-    const [x, y, w, h] = bodyFor("women", "plus", "front").slots.top;
-    expect([layer.left, layer.top, layer.width, layer.height]).toEqual([(x / 800) * 100, (y / 1600) * 100, (w / 800) * 100, (h / 1600) * 100]);
-  });
-
-  it("rests shoes on the floor and hangs clothes from the top of their box", () => {
-    const { layers } = layoutLook([garment("footwear"), garment("top")], "men", "regular", "front");
-    expect(Object.fromEntries(layers.map((l) => [l.slot, l.align]))).toEqual({ top: "top", footwear: "bottom" });
-  });
-
-  it("swaps the body and the boxes when the size changes", () => {
-    const top = garment("top");
-    const slim = layoutLook([top], "men", "slim", "front");
-    const plus = layoutLook([top], "men", "plus", "front");
-    expect(slim.body).toBe("/mannequin/men-slim-front.png");
-    expect(plus.body).toBe("/mannequin/men-plus-front.png");
-    expect(plus.layers[0].width).toBeGreaterThan(slim.layers[0].width);
-  });
-
-  it("does not place a photo that shows a person, and says why", () => {
-    const model = garment("top", { mannequin_ready: false, mannequin_note: "a person is in the photo" });
-    const result = layoutLook([model], "men", "regular", "front");
-    expect(result.layers).toEqual([]);
-    expect(result.skipped[0].reason).toContain("a person is in the photo");
-  });
-
-  it("skips items with no mannequin photo, no slot, or an unknown accessory", () => {
-    const result = layoutLook(
-      [garment("top", { mannequin_image: null }), garment("accessory", { name: "Mystery" }), { id: 99, name: "x", slot: null, price: 1 }],
-      "men", "regular", "front",
+  it("orders layers by z (bottom below top below outerwear below shoes below accessories)", () => {
+    const { layers } = layoutLook(
+      item("shirt", { slot: "top" }),
+      [
+        item("sneakers", { slot: "footwear" }),
+        item("hoodie", { slot: "outerwear" }),
+        item("jeans", { slot: "bottom" }),
+        item("watch", { slot: "accessory", name: "Black Watch" }),
+      ],
+      "men",
+      "regular",
     );
+    expect(layers.map((l) => l.kind)).toEqual(["jeans", "shirt", "hoodie", "sneakers", "watch"]);
+    expect(layers.map((l) => l.isAnchor)).toEqual([false, true, false, false, false]);
+  });
+
+  it("colors every layer with the product colour", () => {
+    const anchor = item("kurta", { slot: "kurta", display_hex: "#aa0000" });
+    const { layers } = layoutLook(anchor, [], "women", "regular");
+    expect(layers[0].hex).toBe("#aa0000");
+  });
+
+  it("always draws the anchor, even when nothing else fits yet", () => {
+    const { layers } = layoutLook(item("polo", { slot: "top" }), [], "men", "regular");
+    expect(layers.map((l) => l.kind)).toEqual(["polo"]);
+    expect(layers[0].isAnchor).toBe(true);
+  });
+
+  it("lists a second piece on one layer under the body (the anchor wins its layer)", () => {
+    const polo = item("polo", { slot: "top" });
+    const result = layoutLook(
+      item("shirt", { slot: "top" }),
+      [polo, item("watch", { slot: "accessory", name: "Watch" })],
+      "men",
+      "regular",
+    );
+    expect(result.layers.map((l) => l.kind)).toEqual(["shirt", "watch"]);
+    expect(result.notShown).toEqual([{ id: polo.id, name: polo.name }]);
+  });
+
+  it("lists products with no drawable shape (bags) under the body", () => {
+    const bag = item("bag", { slot: "accessory", name: "Leather Bag" });
+    const result = layoutLook(bag, [], "men", "regular");
     expect(result.layers).toEqual([]);
-    expect(result.skipped).toHaveLength(3);
+    expect(result.notShown).toEqual([{ id: bag.id, name: bag.name }]);
   });
 
-  it("uses the back photo in the back view when there is one", () => {
-    const shirt = garment("top", { back_image: "/media/back.png" });
-    const [layer] = layoutLook([shirt], "men", "regular", "back").layers;
-    expect(layer.src).toBe("/media/back.png");
-    expect(layer.usesFrontPhoto).toBe(false);
-  });
-
-  it("falls back to the front photo in the back view and says so", () => {
-    const shirt = garment("top", { name: "Linen Shirt" });
-    const result = layoutLook([shirt], "men", "regular", "back");
-    expect(result.layers[0].src).toBe("/media/top.png");
-    expect(result.layers[0].usesFrontPhoto).toBe(true);
-    expect(result.notes).toEqual(["Linen Shirt has no back photo, so its front is shown."]);
-    expect(layoutLook([shirt], "men", "regular", "front").notes).toEqual([]);
-  });
-
-  it("hides ties and sunglasses from the back", () => {
-    const result = layoutLook([garment("accessory", { name: "Silk Tie" }), garment("accessory", { name: "Sunglasses" })], "men", "regular", "back");
-    expect(result.layers).toEqual([]);
-    expect(result.skipped.map((s) => s.reason)).toEqual(["Not visible from the back.", "Not visible from the back."]);
+  it("uses grey for items with no colour", () => {
+    const anchor = { ...item("shirt", { slot: "top" }), display_hex: null, color_hex: null };
+    const [layer] = layoutLook(anchor, [], "men", "regular").layers;
+    expect(layer.hex).toBe("#9CA3AF");
   });
 });
