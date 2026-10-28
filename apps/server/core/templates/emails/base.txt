@@ -1,0 +1,8 @@
+WEAR RIGHT
+Right Style. Right You.
+
+{% block content %}{% endblock %}
+
+--
+Wear Right - personal styling for your skin tone.
+If you did not ask for this email, you can ignore it.

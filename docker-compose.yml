@@ -19,5 +19,14 @@ services:
       timeout: 5s
       retries: 5
 
+  # Local mail catcher: Django sends SMTP to :1025, the inbox is at http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit
+    container_name: wearright-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    restart: unless-stopped
+
 volumes:
   wearright_pg:
