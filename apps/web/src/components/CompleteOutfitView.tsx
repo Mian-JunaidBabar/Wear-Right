@@ -83,7 +83,9 @@ export default function CompleteOutfitView() {
       .then((data) => {
         if (cancelled) return;
         setLook(data);
-        setChosen(Object.fromEntries(data.slots.map((slot) => [slot.kind || slot.slot, slot.pick])));
+        // Seed only real picks: a slot with no pick must stay "No match in stock",
+        // because a null entry here means the shopper skipped it (board.ts skipped semantics).
+        setChosen(Object.fromEntries(data.slots.filter((slot) => slot.pick).map((slot) => [slot.kind || slot.slot, slot.pick])));
         setErrorMessage("");
         setLoadedFor(requestKey);
       })
