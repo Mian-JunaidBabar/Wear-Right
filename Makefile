@@ -5,7 +5,11 @@ VENV   := $(SERVER)/venv
 PY     := $(VENV)/bin/python
 PIP    := $(VENV)/bin/pip
 
-.PHONY: help demo demo-data demo-reset db-up db-down db-reset venv env install migrate seed models test-models mannequin-assets demo-catalog import-catalog process-images test test-api test-web e2e check build dev
+# Where product photos live. Must match MEDIA_ROOT in apps/server/.env —
+# override here (make media-backup MEDIA_ROOT=/path) if MEDIA_ROOT was moved.
+MEDIA_ROOT ?= $(SERVER)/media
+
+.PHONY: help demo demo-data demo-reset db-up db-down db-reset venv env install migrate seed models test-models mannequin-assets demo-catalog import-catalog process-images media-backup test test-api test-web e2e check build dev
 
 help:
 	@grep -E '^[a-z-]+:' Makefile | cut -d: -f1 | tr '\n' ' '; echo
@@ -66,6 +70,10 @@ demo-catalog:
 # Removes backgrounds and extracts colours for existing products that have a photo but no colour.
 process-images:
 	$(PY) $(SERVER)/manage.py process_product_images
+
+# Copies every product photo into a dated tar.gz in the home folder, e.g. ~/wear-right-media-2026-10-28.tgz.
+media-backup:
+	tar czf ~/wear-right-media-$$(date +%F).tgz -C $(MEDIA_ROOT) .
 
 # Runs only the tests that load the real downloaded models (needs `make models`).
 test-models: db-up

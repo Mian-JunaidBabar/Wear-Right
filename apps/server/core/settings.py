@@ -149,7 +149,12 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# Product photos live outside the code: point MEDIA_ROOT at any folder (see .env.example).
+MEDIA_ROOT = Path(os.environ.get('MEDIA_ROOT', BASE_DIR / 'media'))
+# Local deployments serve /media/ from Django (core/urls.py) while DEBUG is on or off.
+# In production put a web server in front of Django, point it at MEDIA_ROOT and set
+# SERVE_MEDIA=False so Django stops serving files itself.
+SERVE_MEDIA = os.environ.get('SERVE_MEDIA', 'True').lower() in ('true', '1', 'yes')
 
 # Email: in development Mailpit receives everything at localhost:1025 and shows it at
 # http://localhost:8025 (see docker-compose.yml). Point these at any SMTP provider to deploy.
