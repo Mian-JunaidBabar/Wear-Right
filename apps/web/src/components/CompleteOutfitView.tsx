@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "@/lib/navigation";
 import { ArrowLeft, ShoppingCart, Sparkles } from "lucide-react";
 import { CartProduct } from "@/features/cart/types";
@@ -8,8 +8,9 @@ import { useAuth } from "@/features/auth/AuthProvider";
 import { useCart } from "@/features/cart/useCart";
 import { recommenderApi, type ApiItem, type CompleteLookResponse, type LookEntry } from "@/features/recommender/api";
 import { normalizeSkinTone } from "@/features/recommender/recommendationRules";
-import { layoutLook, type BodyGender, type Preset } from "@/features/mannequin/layout";
-import Mannequin from "@/components/Mannequin";
+import { buildOutfitBoardTiles } from "@/features/outfit/board";
+import OutfitBoard from "@/components/OutfitBoard";
+import ProductImage from "@/components/ProductImage";
 import { PLACEHOLDER_IMAGE } from "@/lib/config";
 import { notify } from "@/lib/notify";
 
@@ -51,7 +52,7 @@ function toCartProduct(item: ApiItem): CartProduct {
 
 export default function CompleteOutfitView() {
   const navigate = useNavigate();
-  const { user, profile, updateProfile } = useAuth();
+  const { user, profile } = useAuth();
   const { addToCart } = useCart();
   const [searchParams] = useSearchParams();
 
@@ -67,9 +68,9 @@ export default function CompleteOutfitView() {
   const [errorMessage, setErrorMessage] = useState("");
   // The shopper's chosen entry for each slot (default: the best pick). Keyed by kind or slot.
   const [chosen, setChosen] = useState<Record<string, LookEntry | null>>({});
-
-  const [presetChoice, setPresetChoice] = useState<Preset | null>(null);
-  const preset: Preset = presetChoice ?? profile?.body_preset ?? "regular";
+  // The slot row the board is pointing at (a tile was clicked).
+  const [highlight, setHighlight] = useState<string | null>(null);
+  const rowRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const requestKey = `${productId}|${depth}|${undertone}|${shopperGender}`;
   const loading = Boolean(productId) && loadedFor !== requestKey;
@@ -97,18 +98,30 @@ export default function CompleteOutfitView() {
   }, [productId, depth, undertone, shopperGender, requestKey]);
 
   const picked = useMemo(() => Object.values(chosen).filter((entry): entry is LookEntry => Boolean(entry)), [chosen]);
-  const bodyGender: BodyGender =
-    look?.gender === "women" || look?.gender === "men" ? look.gender : profile?.gender === "female" ? "women" : "men";
-  const layout = useMemo(
-    () => (look ? layoutLook(look.anchor, picked, bodyGender, preset) : { layers: [], notShown: [] }),
-    [look, picked, bodyGender, preset],
+  const boardItems = useMemo(
+    () =>
+      look
+        ? buildOutfitBoardTiles(
+            look.anchor,
+            look.anchor_slot,
+            look.slots.map((slot) => ({ slot: slot.slot, kind: slot.kind, required: slot.required, pick: slot.pick })),
+            chosen,
+          )
+        : [],
+    [look, chosen],
   );
-  const choosePreset = (next: Preset) => {
-    setPresetChoice(next);
-    if (profile) void updateProfile({ body_preset: next }).catch(() => undefined);
-  };
 
   const total = (look ? Number(look.anchor.price || 0) : 0) + picked.reduce((sum, entry) => sum + Number(entry.price || 0), 0);
+
+  const selectFromBoard = (itemId: number) => {
+    if (!look) return;
+    const slot = look.slots.find((candidate) => [candidate.pick, ...candidate.swaps].some((entry) => entry?.id === itemId));
+    const target = slot ? slot.kind || slot.slot : look.anchor.id === itemId ? "anchor" : null;
+    if (!target) return;
+    rowRefs.current[target]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlight(target);
+    window.setTimeout(() => setHighlight((current) => (current === target ? null : current)), 1800);
+  };
 
   const addWholeLook = () => {
     if (!look) return;
@@ -156,16 +169,31 @@ export default function CompleteOutfitView() {
             <p className="text-sm font-black text-slate-700">Building your look...</p>
           </div>
         ) : look ? (
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 items-start">
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
             <div className="space-y-5">
-            <ItemRow title="Your pick" entry={look.anchor} note="The piece you started from." />
+            <section
+              data-testid="look-slot-anchor"
+              ref={(node) => {
+                rowRefs.current["anchor"] = node;
+              }}
+              className={`bg-white border rounded-3xl p-5 transition-shadow ${highlight === "anchor" ? "border-brand-gold ring-2 ring-brand-gold" : "border-brand-border/60"}`}
+            >
+              <ItemRow title="Your pick" entry={look.anchor} note="The piece you started from." />
+            </section>
 
             {look.slots.map((slot) => {
               const key = slot.kind || slot.slot;
               const options = [slot.pick, ...slot.swaps].filter((entry): entry is LookEntry => Boolean(entry));
               const current = chosen[key];
               return (
-                <section key={key} data-testid={`look-slot-${key}`} className="bg-white border border-brand-border/60 rounded-3xl p-5">
+                <section
+                  key={key}
+                  data-testid={`look-slot-${key}`}
+                  ref={(node) => {
+                    rowRefs.current[key] = node;
+                  }}
+                  className={`bg-white border rounded-3xl p-5 transition-shadow ${highlight === key ? "border-brand-gold ring-2 ring-brand-gold" : "border-brand-border/60"}`}
+                >
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-sm font-black uppercase tracking-widest text-slate-700">
                       {SLOT_TITLES[key] ?? key}
@@ -189,7 +217,7 @@ export default function CompleteOutfitView() {
                           className={`w-20 rounded-xl overflow-hidden border-2 ${current?.id === option.id ? "border-emerald-600" : "border-slate-200"}`}
                           title={option.name}
                         >
-                          <img src={option.image || PLACEHOLDER_IMAGE} alt={option.name} className="w-full h-24 object-cover bg-cream-card/60" />
+                          <ProductImage src={option.image} alt={option.name} className="w-full h-24 bg-cream-card/60" />
                         </button>
                       ))}
                       {!slot.required && (
@@ -226,7 +254,10 @@ export default function CompleteOutfitView() {
             </div>
 
             <div className="lg:sticky lg:top-24">
-              <Mannequin layout={layout} gender={bodyGender} preset={preset} onPreset={choosePreset} />
+              <OutfitBoard items={boardItems} onSelect={selectFromBoard} />
+              <p className="mt-3 text-xs text-slate-500 font-semibold text-center">
+                Tap a piece on the board to find its row in the list.
+              </p>
             </div>
           </div>
         ) : null}
@@ -238,10 +269,10 @@ export default function CompleteOutfitView() {
 function ItemRow({ title, entry, note, compact }: { title?: string; entry: ApiItem; note?: string; compact?: boolean }) {
   return (
     <div className={compact ? "flex gap-4 items-center" : "bg-white border border-brand-border/60 rounded-3xl p-5 flex gap-5 items-center"}>
-      <img
-        src={entry.image || PLACEHOLDER_IMAGE}
+      <ProductImage
+        src={entry.image}
         alt={entry.name}
-        className={`${compact ? "w-24 h-28" : "w-28 h-32"} object-cover rounded-2xl bg-cream-card/60`}
+        className={`${compact ? "w-24 h-28" : "w-28 h-32"} rounded-2xl bg-cream-card/60`}
       />
       <div className="min-w-0">
         {title && <p className="text-[10px] uppercase tracking-widest text-sage-green font-black mb-1">{title}</p>}

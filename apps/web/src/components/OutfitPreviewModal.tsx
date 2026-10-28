@@ -2,12 +2,13 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { ShoppingBag, X } from "lucide-react";
-import Mannequin from "@/components/Mannequin";
+import { useNavigate } from "@/lib/navigation";
 import { useAuth } from "@/features/auth/AuthProvider";
-import { layoutLook, type BodyGender, type Preset } from "@/features/mannequin/layout";
 import { recommenderApi, type ApiItem, type CompleteLookResponse } from "@/features/recommender/api";
 import { normalizeSkinTone } from "@/features/recommender/recommendationRules";
-import { PLACEHOLDER_IMAGE } from "@/lib/config";
+import { buildOutfitBoardTiles } from "@/features/outfit/board";
+import OutfitBoard from "@/components/OutfitBoard";
+import ProductImage from "@/components/ProductImage";
 
 type Props = {
   productId: number | string;
@@ -22,16 +23,15 @@ const SLOT_TITLES: Record<string, string> = {
   dupatta: "Dupatta", accessory: "Accessory", tie: "Tie", watch: "Watch", belt: "Belt",
 };
 
-/** Quick look at a product's outfit on the mannequin, opened from the shop. */
+/** Quick look at a product's outfit board, opened from the shop. */
 export default function OutfitPreviewModal({ productId, outOfStock, onClose, onOrder, onFullLook }: Props) {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const depth = normalizeSkinTone(user.contrastType || "medium");
   const undertone = profile?.undertone || "";
   const shopperGender = profile?.gender === "female" ? "women" : "men";
   const [look, setLook] = useState<CompleteLookResponse | null>(null);
   const [failed, setFailed] = useState(false);
-  const [presetChoice, setPresetChoice] = useState<Preset | null>(null);
-  const preset: Preset = presetChoice ?? profile?.body_preset ?? "regular";
 
   useEffect(() => {
     let cancelled = false;
@@ -44,16 +44,21 @@ export default function OutfitPreviewModal({ productId, outOfStock, onClose, onO
     };
   }, [productId, depth, undertone, shopperGender]);
 
-  const bodyGender: BodyGender =
-    look?.gender === "women" || look?.gender === "men" ? look.gender : profile?.gender === "female" ? "women" : "men";
-  const picks = useMemo(() => (look ? look.slots.map((slot) => slot.pick).filter((pick): pick is NonNullable<typeof pick> => Boolean(pick)) : []), [look]);
-  const layout = useMemo(
-    () => (look ? layoutLook(look.anchor, picks, bodyGender, preset) : { layers: [], notShown: [] }),
-    [look, picks, bodyGender, preset],
-  );
   const rows: { title: string; item: ApiItem }[] = look
     ? [{ title: "Your pick", item: look.anchor }, ...look.slots.filter((s) => s.pick).map((s) => ({ title: SLOT_TITLES[s.kind || s.slot] ?? s.slot, item: s.pick as ApiItem }))]
     : [];
+
+  const boardItems = useMemo(
+    () =>
+      look
+        ? buildOutfitBoardTiles(
+            look.anchor,
+            look.anchor_slot,
+            look.slots.map((slot) => ({ slot: slot.slot, kind: slot.kind, required: slot.required, pick: slot.pick })),
+          )
+        : [],
+    [look],
+  );
 
   return (
     <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4" role="dialog" aria-label="Outfit preview">
@@ -63,28 +68,26 @@ export default function OutfitPreviewModal({ productId, outOfStock, onClose, onO
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2">
-          <div className="bg-slate-50 p-6 flex items-start justify-center">
+          <div className="bg-cream-base/60 p-6 flex items-start justify-center">
             {look ? (
-              <div className="w-full max-w-xs">
-                <Mannequin layout={layout} gender={bodyGender} preset={preset} onPreset={setPresetChoice} />
-              </div>
+              <OutfitBoard items={boardItems} className="w-full" onSelect={(itemId) => navigate(`/product/${itemId}`)} />
             ) : (
-              <p className="py-24 text-sm font-bold text-slate-600">{failed ? "We could not build a preview for this product." : "Dressing the mannequin..."}</p>
+              <p className="py-24 text-sm font-bold text-slate-600">{failed ? "We could not build a preview for this product." : "Building your outfit board..."}</p>
             )}
           </div>
 
           <div className="p-8">
             <p className="text-[10px] uppercase text-sage-green font-extrabold tracking-widest">Outfit Preview</p>
-            <h3 className="text-2xl font-bold text-brand-dark mt-1">See how this outfit looks</h3>
+            <h3 className="text-2xl font-bold text-brand-dark mt-1">See how this outfit goes together</h3>
             <p className="text-xs text-slate-500 font-semibold mt-2">
-              The pieces are matched to your skin tone and drawn on a mannequin in your size.
+              The pieces are matched to your skin tone and laid out the way you wear them.
             </p>
             <div className="h-px bg-cream-card/60 my-6" />
 
             <div className="space-y-3">
               {rows.map(({ title, item }) => (
                 <div key={`${title}-${item.id}`} className="flex items-center gap-4 bg-cream-base/60 rounded-xl p-3">
-                  <img src={item.image || PLACEHOLDER_IMAGE} alt={item.name} className="w-14 h-16 object-cover rounded-lg bg-white" />
+                  <ProductImage src={item.image} alt={item.name} className="w-14 h-16 rounded-lg bg-white" />
                   <div className="min-w-0">
                     <p className="text-[10px] uppercase tracking-widest text-slate-400 font-black">{title}</p>
                     <p className="text-sm font-bold text-brand-dark truncate">{item.name}</p>

@@ -14,9 +14,12 @@ export type ApiItem = {
   color_hex?: string | null;
   slot?: string | null;
   gender?: string | null;
-  // What the garment actually is (catalog Product.kind) and the colour the mannequin paints it with.
+  // What the garment actually is (catalog Product.kind). display_hex is kept from the old
+  // mannequin work (plan 02) so the API stays stable for any client that paints with it.
   kind?: string | null;
   display_hex?: string | null;
+  // Garment cut-outs from the backend prepare_mannequin_asset pipeline; the outfit board
+  // prefers them (transparent flat-lay look) when mannequin_ready is true.
   mannequin_image?: string | null;
   back_image?: string | null;
   mannequin_ready?: boolean;

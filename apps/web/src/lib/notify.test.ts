@@ -64,7 +64,7 @@ describe("inferKind", () => {
     ["Logged out successfully.", "success"],
     ["This product is currently out of stock.", "error"],
     ["Please enter your full name.", "error"],
-    ["Unable to load mannequin preview.", "error"],
+    ["Unable to load outfit preview.", "error"],
     ["Quantity must be 1 or greater.", "error"],
     ["Welcome back", "info"],
   ])("%s is %s", (message, kind) => {
