@@ -6,8 +6,6 @@ from django.db import transaction
 from .engine.color import palette_from_image
 from .engine.cutout import cut_out
 from .engine.kaggle import product_fields
-from .engine.kinds import infer_kind
-from .engine.tryon_anchors import compute_tryon_anchors
 from .models import Product
 
 
@@ -87,17 +85,8 @@ def prepare_mannequin_asset(product, *, source_image, detector=None, cloth=None)
                 garment, ready, note = extracted, True, NOTE_EXTRACTED
             else:
                 ready, note = False, REASON_NO_SPLIT
-    trimmed = trim_to_content(garment)
-    product.mannequin_image.save(f"{product.pk}.png", ContentFile(_png_bytes(trimmed)), save=False)
+    product.mannequin_image.save(f"{product.pk}.png", ContentFile(_png_bytes(trim_to_content(garment))), save=False)
     product.mannequin_ready = ready
     product.mannequin_note = note
-    # AR try-on needs the same clean cut-out plus anchor dots. A photo with a person in it is
-    # never try-on ready, even when the mannequin can draw a placeholder shape for it.
-    kind = product.kind or infer_kind(product.name, product.category, product.garment_type or '', slot)
-    anchors = compute_tryon_anchors(trimmed, kind) if ready else None
-    product.tryon_anchors = anchors or {}
-    product.tryon_ready = bool(ready and anchors)
-    product.save(update_fields=[
-        "mannequin_image", "mannequin_ready", "mannequin_note", "tryon_anchors", "tryon_ready", "updated_at",
-    ])
+    product.save(update_fields=["mannequin_image", "mannequin_ready", "mannequin_note", "updated_at"])
     return product
