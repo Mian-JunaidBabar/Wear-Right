@@ -38,8 +38,6 @@ import AdminTaxonomy from "@/components/AdminTaxonomy";
 import SettingsSection from "@/components/admin/SettingsSection";
 import TeamSection from "@/components/admin/TeamSection";
 import ToneRulesPanel from "@/components/admin/ToneRulesPanel";
-import ArAnchorsEditor from "@/components/admin/ArAnchorsEditor";
-import type { GarmentAnchors } from "@/features/tryon/place";
 import { useNavigate, usePathname } from "@/lib/navigation";
 import { useAdminAuth } from "@/features/admin/AdminAuthProvider";
 import { adminApi } from "@/features/admin/api";
@@ -86,9 +84,6 @@ type Product = {
   status: string;
   description?: string;
   is_active?: boolean;
-  mannequin_image?: string | null;
-  tryon_anchors?: GarmentAnchors;
-  tryon_ready?: boolean;
   created_at?: string;
 };
 
@@ -389,7 +384,6 @@ export default function AdminView() {
   const [productForm, setProductForm] = useState(emptyProductForm);
   const [productImage, setProductImage] = useState<File | null>(null);
   const [productImagePreview, setProductImagePreview] = useState("");
-  const [productAnchors, setProductAnchors] = useState<GarmentAnchors>({});
   const [suggestingColour, setSuggestingColour] = useState(false);
 
   const canProducts = can("products.view");
@@ -451,7 +445,6 @@ export default function AdminView() {
     setProductForm({ ...emptyProductForm, category: categories[0] || "", cultural_tag: styles[0] || "" });
     setProductImage(null);
     setProductImagePreview("");
-    setProductAnchors({});
     setIsProductModalOpen(true);
   };
 
@@ -481,7 +474,6 @@ export default function AdminView() {
     });
     setProductImage(null);
     setProductImagePreview(getImage(product));
-    setProductAnchors(product.tryon_anchors ?? {});
     setIsProductModalOpen(true);
   };
 
@@ -491,7 +483,6 @@ export default function AdminView() {
     setProductForm(emptyProductForm);
     setProductImage(null);
     setProductImagePreview("");
-    setProductAnchors({});
   };
 
   const sizeTotal =
@@ -537,9 +528,6 @@ export default function AdminView() {
 
     if (productImage) {
       formData.append("image", productImage);
-    }
-    if (Object.keys(productAnchors).length > 0) {
-      formData.append("tryon_anchors", JSON.stringify(productAnchors));
     }
 
     try {
@@ -1826,23 +1814,6 @@ export default function AdminView() {
                   </p>
                 )}
               </div>
-
-              {editingProduct && (
-                <div className="rounded-2xl border border-brand-border/60 bg-cream-base/50 p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-black text-brand-dark">Try-on anchors</h4>
-                    <span className={`text-[10px] font-black uppercase tracking-wider ${editingProduct.tryon_ready ? "text-emerald-700" : "text-slate-400"}`}>
-                      {editingProduct.tryon_ready ? "try-on ready" : "not ready"}
-                    </span>
-                  </div>
-                  <ArAnchorsEditor
-                    image={editingProduct.mannequin_image ?? null}
-                    kind={productForm.kind || editingProduct.kind || ""}
-                    anchors={productAnchors}
-                    onChange={setProductAnchors}
-                  />
-                </div>
-              )}
 
               <button
                 type="submit"
