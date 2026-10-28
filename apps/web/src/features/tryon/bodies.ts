@@ -15,21 +15,10 @@ export type ModelBody = {
   landmarks: Landmark[];
 };
 
-let cached: Promise<ModelBody[]> | null = null;
-
-export function loadBodies(): Promise<ModelBody[]> {
-  if (!cached) {
-    cached = fetch("/tryon/bodies/bodies.json")
-      .then((response) => {
-        if (!response.ok) throw new Error("Could not load the model photos.");
-        return response.json() as Promise<ModelBody[]>;
-      })
-      .catch((error) => {
-        cached = null;
-        throw error;
-      });
-  }
-  return cached;
+export async function loadBodies(): Promise<ModelBody[]> {
+  const response = await fetch("/tryon/bodies/bodies.json");
+  if (!response.ok) throw new Error("Could not load the model photos.");
+  return (await response.json()) as ModelBody[];
 }
 
 export function bodyFor(bodies: ModelBody[], gender: BodyGender, preset: BodyPreset): ModelBody | null {

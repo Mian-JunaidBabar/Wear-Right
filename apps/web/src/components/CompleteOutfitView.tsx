@@ -10,7 +10,6 @@ import { recommenderApi, type ApiItem, type CompleteLookResponse, type LookEntry
 import { normalizeSkinTone } from "@/features/recommender/recommendationRules";
 import { layoutLook, type BodyGender, type Preset } from "@/features/mannequin/layout";
 import Mannequin from "@/components/Mannequin";
-import TryOnModel from "@/components/tryon/TryOnModel";
 import { PLACEHOLDER_IMAGE } from "@/lib/config";
 import { notify } from "@/lib/notify";
 
@@ -216,33 +215,18 @@ export default function CompleteOutfitView() {
                   <p className="text-xs text-amber-300 font-semibold mt-1">Missing in stock: {look.missing.join(", ")}</p>
                 )}
               </div>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => navigate(`/try-on?items=${[look.anchor.id, ...picked.map((item) => item.id)].join(",")}&body=${bodyGender}-${preset}`)}
-                  className="border-2 border-white/70 text-white px-6 py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-white hover:text-slate-950 transition-colors"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Try it on
-                </button>
-                <button
-                  onClick={addWholeLook}
-                  className="bg-brand-gold hover:opacity-90 text-white px-6 py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2"
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  Add whole look to cart
-                </button>
-              </div>
+              <button
+                onClick={addWholeLook}
+                className="bg-brand-gold hover:opacity-90 text-white px-6 py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Add whole look to cart
+              </button>
             </div>
             </div>
 
             <div className="lg:sticky lg:top-24">
-              <TryOnModel
-                items={[look.anchor, ...picked]}
-                gender={bodyGender}
-                preset={preset}
-                onPreset={choosePreset}
-                fallback={<Mannequin layout={layout} gender={bodyGender} preset={preset} onPreset={choosePreset} />}
-              />
+              <Mannequin layout={layout} gender={bodyGender} preset={preset} onPreset={choosePreset} />
             </div>
           </div>
         ) : null}

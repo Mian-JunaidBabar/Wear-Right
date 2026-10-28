@@ -12,8 +12,7 @@ import type { ApiItem } from "@/features/recommender/api";
 import type { CartProduct } from "@/features/cart/types";
 import { bodyFor, loadBodies, type BodyGender, type BodyPreset, type ModelBody } from "@/features/tryon/bodies";
 import { createImagePoseLandmarker, createVideoPoseLandmarker, firstPose, POSE, type Landmark } from "@/features/tryon/pose";
-import type { Garment } from "@/features/tryon/place";
-import { garmentsFromItems, loadImage } from "@/features/tryon/items";
+import type { Garment, GarmentAnchors } from "@/features/tryon/place";
 
 type Tab = "model" | "photo" | "camera";
 const TABS: { id: Tab; label: string }[] = [
@@ -21,6 +20,15 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "photo", label: "Your photo" },
   { id: "camera", label: "Camera" },
 ];
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Could not load ${src}`));
+    image.src = src;
+  });
+}
 
 function toCartProduct(item: ApiItem): CartProduct {
   return {
@@ -115,7 +123,28 @@ export default function TryOnView() {
       .then(async (rows) => {
         if (cancelled) return;
         const found = rows.filter((row): row is ApiItem => Boolean(row));
-        const { garments: ready, unavailable: missing } = await garmentsFromItems(found);
+        const ready: Garment[] = [];
+        const missing: ApiItem[] = [];
+        for (const item of found) {
+          if (!item.tryon_ready || !item.mannequin_image) {
+            missing.push(item);
+            continue;
+          }
+          try {
+            const image = await loadImage(item.mannequin_image);
+            ready.push({
+              id: item.id,
+              name: item.name,
+              kind: item.kind || item.slot || "",
+              image: item.mannequin_image,
+              anchors: (item.tryon_anchors ?? {}) as GarmentAnchors,
+              width: image.naturalWidth,
+              height: image.naturalHeight,
+            });
+          } catch {
+            missing.push(item);
+          }
+        }
         if (cancelled) return;
         setError("");
         setItems(found);
