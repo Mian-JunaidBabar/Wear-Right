@@ -1,18 +1,6 @@
 import { apiGet, apiSend } from "@/lib/api";
 import { API_PATHS } from "@/lib/config";
 
-export type NewOrder = {
-  order_code?: string;
-  customer_name: string;
-  customer_email?: string;
-  customer_phone: string;
-  customer_address: string;
-  product: number;
-  quantity: number;
-  order_status?: string;
-  payment_status: string;
-};
-
 export type OrdersResponse<T> = { status: string; total_orders: number; orders: T[] };
 
 export type ApiOrderItem = {
@@ -87,7 +75,6 @@ export type CheckoutInput = {
 
 /** Cart, checkout and order endpoints. Every one requires a signed-in user. */
 export const ordersApi = {
-  create: (order: NewOrder) => apiSend<{ status: string; message: string; order: unknown }>("POST", API_PATHS.orders, order),
   list: <T = unknown>() => apiGet<OrdersResponse<T>>(API_PATHS.orders),
   detail: <T = ApiOrder>(id: number | string) => apiGet<{ status: string; order: T }>(`${API_PATHS.orders}${id}/`),
   cancel: (id: number | string) =>

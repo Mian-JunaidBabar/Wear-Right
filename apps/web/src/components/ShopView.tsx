@@ -5,7 +5,6 @@ import { useNavigate, useSearchParams } from "@/lib/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Sparkles,
-  ShoppingBag,
   ShoppingCart,
   MessageCircle,
   Eye,
@@ -18,7 +17,6 @@ import {
   Heart,
 } from "lucide-react";
 import { Product } from "@/lib/types";
-import { } from "@/features/cart/types";
 import { ADMIN_WHATSAPP_NUMBER, PLACEHOLDER_IMAGE } from "@/lib/config";
 import { notify } from "@/lib/notify";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -26,7 +24,6 @@ import { useCart } from "@/features/cart/useCart";
 import { useWishlist } from "@/features/wishlist/useWishlist";
 import { catalogApi, type ApiCategory, type ApiStyle } from "@/features/catalog/api";
 import OutfitPreviewModal from "@/components/OutfitPreviewModal";
-import { ordersApi, orderErrorMessage } from "@/features/orders/api";
 
 interface ApiProduct {
   id: number | string;
@@ -116,19 +113,7 @@ export default function ShopView() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [productError, setProductError] = useState("");
 
-  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
-  const [orderSubmitting, setOrderSubmitting] = useState(false);
-
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
-
-  const [orderForm, setOrderForm] = useState({
-    customer_name: "",
-    customer_email: "",
-    customer_phone: "",
-    customer_address: "",
-    quantity: "1",
-    payment_status: "Cash on Delivery",
-  });
 
   const placeholderImage = PLACEHOLDER_IMAGE;
 
@@ -399,10 +384,6 @@ Please share more details.`;
     void orderThroughCheckout(product);
   };
 
-  const closeOrderModal = () => {
-    setIsOrderModalOpen(false);
-  };
-
   const handleWishlistClick = (
     event: React.MouseEvent,
     product: ShopProduct,
@@ -419,70 +400,6 @@ Please share more details.`;
   const openQuickView = (event: React.MouseEvent, product: ShopProduct) => {
     event.stopPropagation();
     setSelectedProduct(product);
-  };
-
-  const submitOrder = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    if (!selectedProduct) {
-      notify("Product is not selected.");
-      return;
-    }
-
-    const requestedQuantity = Number(orderForm.quantity || 1);
-
-    if (
-      !orderForm.customer_name ||
-      !orderForm.customer_phone ||
-      !orderForm.customer_address
-    ) {
-      notify("Name, phone and address are required.");
-      return;
-    }
-
-    if (requestedQuantity <= 0) {
-      notify("Quantity must be 1 or greater.");
-      return;
-    }
-
-    if (requestedQuantity > selectedProduct.stock_quantity) {
-      notify(
-        `Only ${selectedProduct.stock_quantity} item(s) available in stock.`,
-      );
-      return;
-    }
-
-    if (isOutOfStock(selectedProduct)) {
-      notify("This product is currently out of stock.");
-      return;
-    }
-
-    try {
-      setOrderSubmitting(true);
-
-      await ordersApi.create({
-        customer_name: orderForm.customer_name,
-        customer_email: orderForm.customer_email,
-        customer_phone: orderForm.customer_phone,
-        customer_address: orderForm.customer_address,
-        product: Number(selectedProduct.id),
-        quantity: requestedQuantity,
-        order_status: "Pending",
-        payment_status: orderForm.payment_status,
-      });
-
-      notify("Order placed successfully. Admin panel will show this order.");
-
-      setIsOrderModalOpen(false);
-      setIsPreviewModalOpen(false);
-      setSelectedProduct(null);
-      await refreshProducts();
-    } catch (error) {
-      console.error("Order API Error:", error);
-      notify(orderErrorMessage(error));
-    } finally {
-      setOrderSubmitting(false);
-    }
   };
 
   // Men and Women tabs; unisex categories (watches, belts, ...) show under both. Empty categories stay hidden.
@@ -1154,165 +1071,6 @@ Please share more details.`;
         />
       )}
 
-      <AnimatePresence>
-        {isOrderModalOpen && selectedProduct && (
-          <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white max-w-lg w-full rounded-2xl shadow-2xl overflow-hidden border border-brand-border/60 relative text-left"
-            >
-              <button
-                onClick={closeOrderModal}
-                className="absolute top-4 right-4 bg-cream-card/60 hover:bg-slate-200 text-slate-600 rounded-full p-1.5 transition-colors focus:outline-none z-10 shadow cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              <form onSubmit={submitOrder} className="p-6 space-y-4">
-                <div>
-                  <p className="text-[10px] uppercase text-sage-green font-extrabold tracking-widest">
-                    Place Order
-                  </p>
-
-                  <h3 className="text-2xl font-bold text-brand-dark mt-1">
-                    {selectedProduct.name}
-                  </h3>
-
-                  <p className="text-xs text-slate-500 font-bold mt-1">
-                    {formatPrice(selectedProduct.price)} / Cash on Delivery
-                  </p>
-
-                  <p className="text-xs text-slate-400 font-bold mt-1">
-                    Category: {selectedProduct.category}
-                  </p>
-
-                  <p
-                    className={`text-xs font-black mt-2 ${
-                      selectedProduct.stock_quantity <= 5
-                        ? "text-amber-600"
-                        : "text-emerald-600"
-                    }`}
-                  >
-                    Only {selectedProduct.stock_quantity} item(s) available in
-                    stock
-                  </p>
-                </div>
-
-                <div className="h-px bg-cream-card/60" />
-
-                <div>
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
-                    Full Name
-                  </label>
-
-                  <input
-                    value={orderForm.customer_name}
-                    onChange={(event) =>
-                      setOrderForm({
-                        ...orderForm,
-                        customer_name: event.target.value,
-                      })
-                    }
-                    placeholder="Hammad Ahmad"
-                    className="w-full bg-cream-base border border-brand-border/60 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-sage-green/20 focus:border-sage-green"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
-                    Email Optional
-                  </label>
-
-                  <input
-                    type="email"
-                    value={orderForm.customer_email}
-                    onChange={(event) =>
-                      setOrderForm({
-                        ...orderForm,
-                        customer_email: event.target.value,
-                      })
-                    }
-                    placeholder="customer@gmail.com"
-                    className="w-full bg-cream-base border border-brand-border/60 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-sage-green/20 focus:border-sage-green"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
-                    Phone Number
-                  </label>
-
-                  <input
-                    value={orderForm.customer_phone}
-                    onChange={(event) =>
-                      setOrderForm({
-                        ...orderForm,
-                        customer_phone: event.target.value,
-                      })
-                    }
-                    placeholder="03000000000"
-                    className="w-full bg-cream-base border border-brand-border/60 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-sage-green/20 focus:border-sage-green"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
-                    Delivery Address
-                  </label>
-
-                  <textarea
-                    value={orderForm.customer_address}
-                    onChange={(event) =>
-                      setOrderForm({
-                        ...orderForm,
-                        customer_address: event.target.value,
-                      })
-                    }
-                    placeholder="House no, street, city"
-                    rows={3}
-                    className="w-full bg-cream-base border border-brand-border/60 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-sage-green/20 focus:border-sage-green resize-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
-                    Quantity
-                  </label>
-
-                  <input
-                    type="number"
-                    min="1"
-                    max={selectedProduct.stock_quantity}
-                    value={orderForm.quantity}
-                    onChange={(event) =>
-                      setOrderForm({
-                        ...orderForm,
-                        quantity: event.target.value,
-                      })
-                    }
-                    className="w-full bg-cream-base border border-brand-border/60 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-sage-green/20 focus:border-sage-green"
-                  />
-
-                  <p className="text-[10px] text-slate-400 font-bold mt-2">
-                    Maximum allowed quantity: {selectedProduct.stock_quantity}
-                  </p>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={orderSubmitting || isOutOfStock(selectedProduct)}
-                  className="w-full bg-brand-gold hover:opacity-90 disabled:bg-blue-300 text-white text-xs font-bold uppercase tracking-wider py-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-brand-gold/10"
-                >
-                  <ShoppingBag className="w-4 h-4 text-white/80" />
-                  {orderSubmitting ? "Placing Order..." : "Confirm Order"}
-                </button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
