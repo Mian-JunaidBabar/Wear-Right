@@ -1,0 +1,8 @@
+{% extends "emails/base.txt" %}{% block content %}Hi {{ name }},
+
+You have been added to the Wear Right team. Your admin account is ready.
+
+Set your password here (the link works for {{ expires_in_minutes }} minutes):
+{{ reset_url|safe }}
+
+If you were not expecting this, you can ignore this email.{% endblock %}

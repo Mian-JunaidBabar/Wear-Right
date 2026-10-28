@@ -93,9 +93,18 @@ class MemberSerializer(serializers.ModelSerializer):
 class MemberCreateSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=150)
     email = serializers.EmailField(max_length=150)
-    password = serializers.CharField(trim_whitespace=False)
+    password = serializers.CharField(trim_whitespace=False, required=False, allow_blank=True)
     role = serializers.PrimaryKeyRelatedField(queryset=AdminRole.objects.all())
     is_active = serializers.BooleanField(default=True)
+    # When true the admin does not choose a password: the new member gets a set-password email.
+    email_invite = serializers.BooleanField(default=False)
+
+    def validate(self, attrs):
+        if not attrs.get('email_invite') and not attrs.get('password'):
+            raise serializers.ValidationError({'password': ['Set a password or send the member an email link.']})
+        if attrs.get('email_invite'):
+            attrs['password'] = None
+        return attrs
 
 
 class MemberUpdateSerializer(serializers.Serializer):

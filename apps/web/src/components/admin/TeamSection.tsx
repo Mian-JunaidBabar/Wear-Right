@@ -9,10 +9,26 @@ const FIELD =
   "w-full bg-cream-base border border-brand-border/60 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-sage-green/20 focus:border-sage-green";
 const LABEL = "text-xs font-black uppercase tracking-wider text-slate-400 block mb-2";
 
-type MemberForm = { id: number | null; name: string; email: string; password: string; role: number | ""; is_active: boolean };
+type MemberForm = {
+  id: number | null;
+  name: string;
+  email: string;
+  password: string;
+  role: number | "";
+  is_active: boolean;
+  email_invite: boolean;
+};
 type RoleForm = { id: number | null; name: string; description: string; permissions: AdminPermission[] };
 
-const EMPTY_MEMBER: MemberForm = { id: null, name: "", email: "", password: "", role: "", is_active: true };
+const EMPTY_MEMBER: MemberForm = {
+  id: null,
+  name: "",
+  email: "",
+  password: "",
+  role: "",
+  is_active: true,
+  email_invite: false,
+};
 const EMPTY_ROLE: RoleForm = { id: null, name: "", description: "", permissions: [] };
 
 function message(error: unknown, fallback: string) {
@@ -59,15 +75,24 @@ export default function TeamSection() {
   async function saveMember(event: React.FormEvent) {
     event.preventDefault();
     if (!memberForm) return;
-    const { id, name, email, password, role, is_active } = memberForm;
-    if (!name.trim() || role === "" || (id === null && (!email.trim() || !password))) {
-      return notify("Fill in the name, email, password and role.", "error");
+    const { id, name, email, password, role, is_active, email_invite } = memberForm;
+    if (!name.trim() || role === "" || (id === null && !email.trim()) || (id === null && !email_invite && !password)) {
+      return notify(email_invite ? "Fill in the name, email and role." : "Fill in the name, email, password and role.", "error");
     }
     try {
       setSaving(true);
       if (id === null) {
-        await adminApi.createMember({ name: name.trim(), email: email.trim(), password, role, is_active });
-        notify("Team member added.", "success");
+        await adminApi.createMember({
+          name: name.trim(),
+          email: email.trim(),
+          role,
+          is_active,
+          ...(email_invite ? { email_invite: true } : { password }),
+        });
+        notify(
+          email_invite ? "Team member added. They will get an email to set their password." : "Team member added.",
+          "success",
+        );
       } else {
         await adminApi.updateMember(id, { name: name.trim(), role, is_active, ...(password ? { password } : {}) });
         notify("Team member saved.", "success");
@@ -233,6 +258,7 @@ export default function TeamSection() {
                               password: "",
                               role: member.role.id ?? "",
                               is_active: member.is_active,
+                              email_invite: false,
                             })
                           }
                           className="p-2 rounded-lg bg-cream-card/60 text-slate-600 hover:text-sage-green"
@@ -328,16 +354,34 @@ export default function TeamSection() {
                 onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
               />
             </label>
-            <label className="block">
-              <span className={LABEL}>{memberForm.id === null ? "Password" : "New password (leave blank to keep)"}</span>
-              <input
-                type="password"
-                autoComplete="new-password"
-                className={FIELD}
-                value={memberForm.password}
-                onChange={(e) => setMemberForm({ ...memberForm, password: e.target.value })}
-              />
-            </label>
+            {memberForm.id === null && (
+              <label className="flex items-start gap-3 bg-cream-base border border-brand-border/60 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={memberForm.email_invite}
+                  onChange={(e) => setMemberForm({ ...memberForm, email_invite: e.target.checked })}
+                />
+                <span>
+                  Email them a link to set their password
+                  <span className="block text-xs font-semibold text-slate-400 mt-0.5">
+                    The member chooses their own password from the email.
+                  </span>
+                </span>
+              </label>
+            )}
+            {!memberForm.email_invite && (
+              <label className="block">
+                <span className={LABEL}>{memberForm.id === null ? "Password" : "New password (leave blank to keep)"}</span>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  className={FIELD}
+                  value={memberForm.password}
+                  onChange={(e) => setMemberForm({ ...memberForm, password: e.target.value })}
+                />
+              </label>
+            )}
             <label className="block">
               <span className={LABEL}>Role</span>
               <select

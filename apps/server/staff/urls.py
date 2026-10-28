@@ -9,6 +9,8 @@ urlpatterns = [
     path('auth/refresh/', views.AdminRefreshView.as_view(), name='api-admin-refresh'),
     path('auth/me/', views.AdminMeView.as_view(), name='api-admin-me'),
     path('auth/password/', views.AdminPasswordView.as_view(), name='api-admin-password'),
+    path('auth/password/reset/', views.AdminPasswordResetRequestView.as_view(), name='api-admin-password-reset'),
+    path('auth/password/reset/confirm/', views.AdminPasswordResetConfirmView.as_view(), name='api-admin-password-reset-confirm'),
 
     path('dashboard/', views.AdminDashboardAPIView.as_view(), name='api-admin-dashboard'),
 

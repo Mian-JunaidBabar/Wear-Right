@@ -101,6 +101,13 @@ export default function AdminLoginView() {
             <Lock className="w-4 h-4" />
             {submitting ? "Signing in..." : "Sign in"}
           </button>
+
+          <Link
+            href="/admin/forgot-password"
+            className="block text-center text-sm font-black text-brand-gold hover:underline"
+          >
+            Forgot password?
+          </Link>
         </form>
 
         <Link href="/" className="mt-6 flex items-center justify-center gap-2 text-sm font-bold text-slate-500 hover:text-brand-dark">

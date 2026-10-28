@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPrivateAdminPath, isPrivatePath, safeNextPath } from "./routes";
+import { isPrivateAdminPath, isPrivatePath, isPublicAdminPath, safeNextPath } from "./routes";
 
 describe("isPrivatePath", () => {
   it.each(["/profile", "/my-orders", "/orders", "/order-confirmation", "/checkout", "/bookings"])(
@@ -18,7 +18,18 @@ describe("isPrivateAdminPath", () => {
     expect(isPrivateAdminPath(path)).toBe(true),
   );
 
-  it.each(["/admin/login", "/administrator", "/shop"])("%s does not", (path) => expect(isPrivateAdminPath(path)).toBe(false));
+  it.each(["/admin/login", "/admin/forgot-password", "/admin/reset-password", "/administrator", "/shop"])(
+    "%s does not",
+    (path) => expect(isPrivateAdminPath(path)).toBe(false),
+  );
+
+  it("only the three admin auth pages are public inside the panel", () => {
+    expect(isPublicAdminPath("/admin/login")).toBe(true);
+    expect(isPublicAdminPath("/admin/forgot-password")).toBe(true);
+    expect(isPublicAdminPath("/admin/reset-password")).toBe(true);
+    expect(isPublicAdminPath("/admin")).toBe(false);
+    expect(isPublicAdminPath("/admin/login/extra")).toBe(false);
+  });
 
   it("the shop guard does not cover the admin panel", () => expect(isPrivatePath("/admin")).toBe(false));
 });

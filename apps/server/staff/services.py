@@ -6,7 +6,7 @@ from django.db import transaction
 from django.utils.text import slugify
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from accounts.services import split_name
+from accounts.services import send_password_reset_email, split_name
 
 from .authentication import ADMIN_SCOPE
 from .catalog import ALL, DEFAULT_ROLES
@@ -116,22 +116,31 @@ def _is_last_super_admin(member):
 
 
 @transaction.atomic
-def create_member(*, name, email, password, role, is_active=True):
+def create_member(*, name, email, password=None, role, is_active=True, email_invite=False):
     email = email.strip().lower()
     if User.objects.filter(email__iexact=email).exists() or User.objects.filter(username__iexact=email).exists():
         return None, 'An account with this email already exists.'
+    if not email_invite and not password:
+        return None, 'Set a password or send the member an email link.'
     candidate = User(username=email, email=email, first_name=name)
-    try:
-        validate_password(password, user=candidate)
-    except DjangoValidationError as exc:
-        return None, ' '.join(exc.messages)
+    if not email_invite:
+        try:
+            validate_password(password, user=candidate)
+        except DjangoValidationError as exc:
+            return None, ' '.join(exc.messages)
     first_name, last_name = split_name(name)
     # Team accounts are staff-only: the shop login refuses them and they never get a shopper profile.
     user = User.objects.create_user(
-        username=email, email=email, password=password,
+        username=email, email=email, password=None if email_invite else password,
         first_name=first_name, last_name=last_name, is_staff=True,
     )
     member = AdminMember.objects.create(user=user, role=role, is_active=is_active)
+    if email_invite and is_active:
+        # After the member row is committed, and never allowed to fail the creation.
+        transaction.on_commit(lambda: send_password_reset_email(
+            user, audience='admin', template='team_invite',
+            subject='You have been added to the Wear Right team',
+        ))
     return member, None
 
 

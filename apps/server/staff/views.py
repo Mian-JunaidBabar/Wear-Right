@@ -3,11 +3,14 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.settings import api_settings as jwt_settings
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from accounts.serializers import AdminPasswordResetConfirmSerializer, AdminPasswordResetRequestSerializer
 
 from catalog.views import (
     CategoryDetailAPIView, CategoryListCreateAPIView, ColourDetailAPIView, ColourListCreateAPIView,
@@ -147,6 +150,42 @@ class AdminPasswordView(APIView):
         if error:
             return _error(error)
         return Response({'status': 'success', 'message': 'Password changed.'})
+
+
+class AdminPasswordResetRequestView(APIView):
+    """POST /api/admin/auth/password/reset/ : same answer for every address, email only to team accounts."""
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'password_reset'
+    serializer_class = AdminPasswordResetRequestSerializer
+    detail = 'If an account exists for this email, we sent a reset link.'
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'detail': self.detail}, status=status.HTTP_200_OK)
+
+
+class AdminPasswordResetConfirmView(APIView):
+    """POST /api/admin/auth/password/reset/confirm/ : set the password and sign out this panel."""
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'password_reset'
+    serializer_class = AdminPasswordResetConfirmSerializer
+    detail = 'Password has been reset. You can sign in now.'
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        response = Response({'detail': self.detail}, status=status.HTTP_200_OK)
+        clear_admin_cookies(response)
+        return response
 
 
 # ---- dashboard ------------------------------------------------------------------------------------------

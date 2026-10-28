@@ -57,6 +57,9 @@ export const adminAuthApi = {
   updateMe: (name: string) => apiSend<AdminSession>("PATCH", `${A}/auth/me/`, { name }),
   changePassword: (current_password: string, new_password: string) =>
     apiSend<{ status: string; message: string }>("POST", `${A}/auth/password/`, { current_password, new_password }),
+  requestPasswordReset: (email: string) => apiSend<{ detail: string }>("POST", `${A}/auth/password/reset/`, { email }),
+  confirmPasswordReset: (data: { uid: string; token: string; new_password1: string; new_password2: string }) =>
+    apiSend<{ detail: string }>("POST", `${A}/auth/password/reset/confirm/`, data),
 };
 
 export const adminApi = {
@@ -98,8 +101,14 @@ export const adminApi = {
   deleteToneRule: (id: number) => apiSend("DELETE", `${A}/tone-rules/${id}/`),
 
   members: () => apiGet<{ status: string; members: AdminMember[] }>(`${A}/members/`),
-  createMember: (data: { name: string; email: string; password: string; role: number; is_active: boolean }) =>
-    apiSend<{ status: string; member: AdminMember }>("POST", `${A}/members/`, data),
+  createMember: (data: {
+    name: string;
+    email: string;
+    password?: string;
+    role: number;
+    is_active: boolean;
+    email_invite?: boolean;
+  }) => apiSend<{ status: string; member: AdminMember }>("POST", `${A}/members/`, data),
   updateMember: (id: number, data: Partial<{ name: string; role: number; is_active: boolean; password: string }>) =>
     apiSend<{ status: string; member: AdminMember }>("PATCH", `${A}/members/${id}/`, data),
   deleteMember: (id: number) => apiSend("DELETE", `${A}/members/${id}/`),
