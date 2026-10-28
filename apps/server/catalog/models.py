@@ -171,6 +171,10 @@ class Product(TimeStampedModel):
     back_image = models.ImageField(upload_to='products/back/', blank=True, null=True)
     mannequin_ready = models.BooleanField(default=False)
     mannequin_note = models.CharField(max_length=120, blank=True, default='')  # why a photo cannot be placed
+    # AR try-on (phase 6, plan 07): anchor dots in cut-out pixel coordinates, and whether the
+    # browser can draw this item at all (a clean cut-out + anchors for its kind).
+    tryon_anchors = models.JSONField(default=dict, blank=True)
+    tryon_ready = models.BooleanField(default=False)
 
     def profit_per_item(self):
         return self.price - self.cost_price

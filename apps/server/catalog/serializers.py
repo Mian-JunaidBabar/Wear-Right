@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .engine.color import display_hex
 from .engine.kinds import KINDS, infer_kind, is_kids_name, slot_of_kind
+from .engine.tryon_anchors import TRYON_KINDS, anchors_for_kind
 from .models import Category, Color, Product, Style
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
@@ -59,7 +60,50 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = '__all__'
-        read_only_fields = ('category_ref',)
+        # Anchors are written by the admin AR editor; readiness is derived on the server.
+        read_only_fields = ('category_ref', 'tryon_ready')
+
+    def validate_tryon_anchors(self, value):
+        """A dict of named dots in cut-out pixels, or {} when staff clear the anchors.
+
+        The browser trusts these numbers, so reject anything malformed instead of drawing an
+        accidental stroke across the screen.
+        """
+        if value in (None, {}):
+            return {}
+        if not isinstance(value, dict):
+            raise serializers.ValidationError('Anchors must be an object of named points.')
+        family = anchors_for_kind(self.instance.kind if self.instance else '')
+        allowed = {
+            'top': {'l_shoulder', 'r_shoulder', 'hem_center'},
+            'bottom': {'l_waist', 'r_waist', 'hem_center'},
+            'footwear': {'heel', 'toe', 'shoe_box'},
+            'watch': {'center', 'strap_width'},
+            'cap': {'center', 'width'},
+        }.get(family, set())
+        if not allowed:
+            if value:
+                raise serializers.ValidationError('This product kind has no AR anchors.')
+            return {}
+        unknown = set(value) - allowed
+        if unknown:
+            raise serializers.ValidationError(f"Unknown anchor keys: {', '.join(sorted(unknown))}.")
+        for key in allowed - {'strap_width', 'width', 'shoe_box'}:
+            if key not in value:
+                raise serializers.ValidationError(f"Missing anchor: {key}.")
+            point = value[key]
+            if (not isinstance(point, (list, tuple)) or len(point) != 2
+                    or not all(isinstance(number, (int, float)) and not isinstance(number, bool) for number in point)):
+                raise serializers.ValidationError(f"{key} must be [x, y].")
+        if 'shoe_box' in allowed:
+            box = value.get('shoe_box')
+            if (not isinstance(box, (list, tuple)) or len(box) != 4
+                    or not all(isinstance(number, (int, float)) and number >= 0 for number in box)):
+                raise serializers.ValidationError('shoe_box must be [x, y, width, height].')
+        for key in ('strap_width', 'width'):
+            if key in allowed and (not isinstance(value.get(key), (int, float)) or value[key] <= 0):
+                raise serializers.ValidationError(f"{key} must be a positive number.")
+        return value
 
     def validate_external_id(self, value):
         # external_id is unique, so a blank string must be stored as NULL or two blanks would collide.
@@ -216,8 +260,13 @@ class ProductSerializer(serializers.ModelSerializer):
         return product
 
     def update(self, instance, validated_data):
+        anchors_changed = 'tryon_anchors' in validated_data
         validated_data = self._sync_sizes(self._sync_relations(validated_data, instance), instance)
         product = super().update(instance, validated_data)
+        if anchors_changed:
+            # Corrected dots can make a cut-out usable; clearing them cannot.
+            product.tryon_ready = bool(product.mannequin_ready and product.tryon_anchors)
+            product.save(update_fields=['tryon_ready', 'updated_at'])
         self._sync_colour(product)
         return product
 
