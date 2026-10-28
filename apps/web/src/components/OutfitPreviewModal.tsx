@@ -27,6 +27,7 @@ export default function OutfitPreviewModal({ productId, outOfStock, onClose, onO
   const { user, profile } = useAuth();
   const depth = normalizeSkinTone(user.contrastType || "medium");
   const undertone = profile?.undertone || "";
+  const shopperGender = profile?.gender === "female" ? "women" : "men";
   const [look, setLook] = useState<CompleteLookResponse | null>(null);
   const [failed, setFailed] = useState(false);
   const [presetChoice, setPresetChoice] = useState<Preset | null>(null);
@@ -35,13 +36,13 @@ export default function OutfitPreviewModal({ productId, outOfStock, onClose, onO
   useEffect(() => {
     let cancelled = false;
     recommenderApi
-      .completeLook(productId, { depth, undertone })
+      .completeLook(productId, { depth, undertone, gender: shopperGender })
       .then((data) => !cancelled && setLook(data))
       .catch(() => !cancelled && setFailed(true));
     return () => {
       cancelled = true;
     };
-  }, [productId, depth, undertone]);
+  }, [productId, depth, undertone, shopperGender]);
 
   const bodyGender: BodyGender =
     look?.gender === "women" || look?.gender === "men" ? look.gender : profile?.gender === "female" ? "women" : "men";

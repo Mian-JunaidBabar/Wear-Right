@@ -68,6 +68,22 @@ def test_kids_names_are_recognised_with_the_apostrophe_and_the_compound():
     assert is_kids_name("Heavy adult jacket") is False
 
 
+@pytest.mark.parametrize("name", [
+    "Palm Tree Girls Sp Jace Sko White Skirts",
+    "Boys Cotton Hoodie",
+    "Baby Blue Romper",
+    "Infant Sandals",
+])
+def test_boys_girls_baby_and_infant_names_count_as_kids(name):
+    assert is_kids_name(name)
+
+
+@pytest.mark.parametrize("name", ["Boyfriend Jeans", "Girl power tee"])
+def test_adult_names_that_merely_start_with_a_kids_word_are_not_kids(name):
+    # The word boundary keeps "Boyfriend" (and singular "girl") in the adult catalog.
+    assert is_kids_name(name) is False
+
+
 def test_the_serializer_infers_kind_slot_and_gender_on_create(staff_client):
     Category.objects.get(name="Men Shirt")  # seeded table row: slot=top, gender=men
     response = staff_client.post(

@@ -58,6 +58,9 @@ export default function CompleteOutfitView() {
   const productId = searchParams.get("productId");
   const depth = normalizeSkinTone(searchParams.get("skinTone") || user.contrastType || "medium");
   const undertone = searchParams.get("undertone") || profile?.undertone || "";
+  // A unisex anchor carries no gender of its own, so tell the look engine whose body this is;
+  // otherwise it happily pairs a men's shirt with a girls' skirt.
+  const shopperGender = profile?.gender === "female" ? "women" : "men";
 
   const [look, setLook] = useState<CompleteLookResponse | null>(null);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
@@ -68,14 +71,14 @@ export default function CompleteOutfitView() {
   const [presetChoice, setPresetChoice] = useState<Preset | null>(null);
   const preset: Preset = presetChoice ?? profile?.body_preset ?? "regular";
 
-  const requestKey = `${productId}|${depth}|${undertone}`;
+  const requestKey = `${productId}|${depth}|${undertone}|${shopperGender}`;
   const loading = Boolean(productId) && loadedFor !== requestKey;
 
   useEffect(() => {
     if (!productId) return;
     let cancelled = false;
     recommenderApi
-      .completeLook(productId, { depth, undertone })
+      .completeLook(productId, { depth, undertone, gender: shopperGender })
       .then((data) => {
         if (cancelled) return;
         setLook(data);
@@ -91,7 +94,7 @@ export default function CompleteOutfitView() {
     return () => {
       cancelled = true;
     };
-  }, [productId, depth, undertone, requestKey]);
+  }, [productId, depth, undertone, shopperGender, requestKey]);
 
   const picked = useMemo(() => Object.values(chosen).filter((entry): entry is LookEntry => Boolean(entry)), [chosen]);
   const bodyGender: BodyGender =

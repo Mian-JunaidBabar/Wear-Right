@@ -72,8 +72,10 @@ _KIND_PATTERNS = tuple(
 )
 
 # A kids product never complements an adult look, even though most sit in unisex categories.
-# "Kid"/"Kids" with a boundary, "Kid's/Kids'" with an apostrophe, and the compound "kidswear".
-KIDS_RE = re.compile(r"kids?\b|kidswear", re.IGNORECASE)
+# "Kid"/"Kids" with a boundary, "Kid's/Kids'" with an apostrophe, the compound "kidswear", and
+# boys/girls/baby/infant names ("Palm Tree Girls ... Skirt") — the catalog's gender column only
+# says men/women/unisex, so the name is the only evidence a product is childrenswear.
+KIDS_RE = re.compile(r"\b(?:kid|kids|boys|girls|baby|infant)\b|kidswear", re.IGNORECASE)
 
 
 def infer_kind(name, category="", garment_type="", slot=""):
