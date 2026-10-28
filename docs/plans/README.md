@@ -10,6 +10,7 @@ Each plan is a self-contained task for one agent session. Give the agent `CLAUDE
 | 01 | [01-catalog-slots-and-anchor.md](01-catalog-slots-and-anchor.md) | medium | The product you open is not the one on the mannequin. Root cause is missing `slot`/`gender` on products added from the admin panel, so the look engine treats the anchor as "unknown" and fills its slot with another product. Must land before 02. |
 | 02 | [02-mannequin-2d-svg.md](02-mannequin-2d-svg.md) | large | Replace the grey statue + pasted photos with a basic flat 2D SVG mannequin: garments drawn as shapes in the product's colour, two shoes on two feet, watch on the wrist. This is the Phase 6 USP, done the simple way the team decided. |
 | 03 | [03-shop-cleanup.md](03-shop-cleanup.md) | small | Dead legacy order code, the old single-product order endpoint, stale docs, small UI issues found in review. |
+| 04 | [04-password-reset-and-email.md](04-password-reset-and-email.md) | medium | Forgot password for shoppers and admins, Mailpit as the local mail server, a few basic emails (welcome, order placed, order status). Keeps Django auth; explains why not better-auth. |
 
 ## Rules for every plan
 
@@ -25,7 +26,7 @@ From `docs/agent/ROADMAP.md` and `docs/STATUS.md`:
 
 1. **Phase 7: skin tone v2 + `evaluate_scanner`.** Not started. Needs a small labelled photo set from the team (consented photos) before any accuracy number can go in the thesis. Do not start without that data.
 2. **Phase 8: user study scripts, demo hardening** (offline models, backup screen recording, demo checklist). Not started.
-3. **Auth extras** listed as open in STATUS: password reset, login rate limiting. Optional for an FYP; skip unless the supervisor asks.
+3. **Auth extras**: password reset and email are plan 04. Email verification and login rate limiting stay optional.
 4. **Next.js 16.4.0 security advisory**: ask before upgrading (STATUS says so); do it in its own branch after the demo is stable.
 
 Things STATUS still lists as open that are now done or covered: admin static tabs (done in the admin rework, verified by plan 00), mannequin quality (plan 02).

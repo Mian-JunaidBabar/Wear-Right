@@ -85,6 +85,30 @@ Report: files changed, real test/build output, the hand checks, anything left op
 
 ---
 
+## Prompt 05: the rest (cleanup, forgot password, mail)
+
+```
+You are working on Wear Right (FYP). Read CLAUDE.md, docs/STATUS.md, docs/plans/README.md, docs/plans/03-shop-cleanup.md and docs/plans/04-password-reset-and-email.md.
+
+Plans 00 to 02 are done on branch feat/admin-rbac. Work on top of that branch (create feat/password-reset from it). The team's main checkout is on another branch and is still running the old mannequin, so nothing here is merged yet; do not merge, the lead does that.
+
+Step 0, quick integration check of plans 01 and 02 before adding anything (no Playwright): start the app from this branch (make migrate, npm run dev) and open
+http://localhost:3000/complete-outfit?skinTone=dark&undertone=cool&style=casual&productId=325
+and the shop Preview Outfit for a shirt, a pair of sandals and a watch. Confirm: the SVG mannequin (no grey statue), the opened product is on the body, shoes are a pair, watch on the wrist, no kids' or women's items in a men's look. Write what you see in the report. If something from plan 01/02 is broken, fix it first in its own commit.
+
+Then:
+A. Plan 03, items 1 to 5, one commit each.
+B. Plan 04, sections 1 to 4, one commit each. Keep Django auth and dj-rest-auth; do not add better-auth or any new auth framework (the plan explains why). Mailpit goes in docker-compose.yml.
+
+Rules: layered code as in CLAUDE.md, no account enumeration on reset, email failures never break checkout or signup, tests in the same commit as the code.
+
+Testing: run `make test` and `npm --prefix apps/web run build`. Do NOT run Playwright or make e2e. Then do the manual checks listed at the end of plan 04 and the hand checks in plan 03, using the Mailpit inbox at http://localhost:8025.
+
+Report: Step 0 findings, files changed per commit, real make test and build output, each manual check with pass/fail, and anything left open. Update docs/STATUS.md, docs/SETUP.md (Mailpit, FRONTEND_URL, how to see emails) and docs/DEMO.md (forgot-password step).
+```
+
+---
+
 ## Final run (lead, once)
 
 After prompt 03: `make check` (test + build + e2e) on the whole app. Failing specs go back to the agent of the plan that touched that area.
