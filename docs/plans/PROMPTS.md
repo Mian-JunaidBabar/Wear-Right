@@ -109,6 +109,58 @@ Report: Step 0 findings, files changed per commit, real make test and build outp
 
 ---
 
+## Prompt 06: try-on spike (one session, before any integration)
+
+```
+You are working on Wear Right (FYP). Read /home/jb/Projects/Wear-Right/docs/plans/05-virtual-try-on.md first. This session is a spike only: no changes to apps/server or apps/web.
+
+Goal: find out if an open-source virtual try-on model runs well enough on this machine.
+
+1. Report the hardware: `nvidia-smi` (GPU, VRAM, driver, CUDA), RAM, Python version. If there is no NVIDIA GPU, say so and continue on CPU.
+2. Create apps/tryon/ with its own venv (apps/tryon/.venv, gitignored). Clone and install FASHN VTON v1.5 (github.com/fashn-AI/fashn-vton-1.5) as its README says, download the weights into apps/tryon/weights (gitignored).
+3. Prepare inputs in apps/tryon/spike/ (gitignored except the report): 2 body images (one man, one woman, full body, front, plain background; free-licence stock photos, write the URLs and licences down) and 5 products from our catalog (2 tops, 2 bottoms, 1 kurta) using their image files from apps/server/media.
+4. Run: each top on each body, then each bottom on the result, and the kurta as one-pieces. Measure seconds per render and peak VRAM (torch.cuda.max_memory_allocated).
+5. If FASHN fails to install/run or looks bad, repeat steps 2 to 4 with CatVTON (github.com/Zheng-Chong/CatVTON).
+6. Write apps/tryon/spike/REPORT.md: hardware, model(s) tried, install problems and fixes, timing and VRAM table, the output images side by side with the inputs, which garments failed and why, and your recommendation using the decision table in plan 05 ("live + prerender", "catvton", or "prerender only").
+
+Do not integrate anything. Commit only apps/tryon/spike/REPORT.md, the output images, apps/tryon/.gitignore and a short apps/tryon/README.md with the exact install commands that worked.
+```
+
+---
+
+## Prompt 07: try-on integration (after the spike says go)
+
+```
+You are working on Wear Right (FYP). Read CLAUDE.md, docs/STATUS.md, /home/jb/Projects/Wear-Right/docs/plans/05-virtual-try-on.md and apps/tryon/spike/REPORT.md. Use the model and mode the spike recommended. Do only plan 05.
+
+Order, one commit each, tests in the same commit:
+1. apps/tryon service: FastAPI app (health, tryon), model loaded once, GPU lock, TRYON_MODEL switch, fake-pipeline unit tests, one @pytest.mark.models real test. Makefile targets: tryon-install, tryon-weights, tryon (run on :8010). Add it to the root `npm run dev` only when apps/tryon/.venv exists.
+2. Body images: the 6 bodies in apps/server/tryon_bodies with SOURCES.md (URL + licence for each).
+3. Django `tryon` app: TryOnRender model + migration, services (cache key, request_render with a single-thread executor, two-step top then bottom, one-piece path), API (renders POST/GET, status), throttle, prerender_looks command. Category from Product.kind/slot as the plan's mapping table says. Never call the service from inside a request synchronously.
+4. Web: try-on panel in OutfitPreviewModal and CompleteOutfitView with polling, body presets, swap re-render, shoes/accessory chips, and the SVG mannequin fallback with the "AI try-on | Sketch" switch.
+5. Docs: SETUP.md (install, weights, GPU notes, how to prerender before the demo), DEMO.md, STATUS.md, docs/phases/phase-6.md updated with the try-on decision, real timings from the spike, and the honest limits (no shoes/accessories on the body, third-party model, licence).
+
+Testing: `make test` and `npm --prefix apps/web run build`. Do NOT run Playwright or make e2e. Then by hand: start db, Django, Next and the tryon service; open the shop Preview Outfit for 3 shirts, 2 kurtas and a pair of jeans; switch Slim/Plus; swap a piece; stop the tryon service and confirm the SVG fallback appears; run prerender_looks --limit 10 and confirm those previews open instantly. Save screenshots to docs/phases/phase-6-screens/.
+
+Report: files per commit, real test/build output, render times seen in the app, the screenshots, what looks good and what looks wrong.
+```
+
+---
+
+## Prompt 08: skin tone, basic
+
+```
+You are working on Wear Right (FYP). Read CLAUDE.md, docs/STATUS.md and /home/jb/Projects/Wear-Right/docs/plans/06-skin-tone-basic.md. Do only plan 06. Do not change the skin tone algorithm in scanner/engine beyond the quality gate.
+
+Tasks 1 to 3, one commit each, with tests (quality gate thresholds unit-tested on synthetic images; the "Not right? Choose mine" flow saves the confirmed value). Task 4: only if data/eval/labels.csv and photos exist; otherwise write in STATUS.md that the evaluation is waiting for the team's labelled selfies, and stop.
+
+Testing: `make test` and the web build. No Playwright. Check /scan by hand in good light, in a dark room and with a blurry photo.
+
+Report: files, real test/build output, what the scan says in each hand check.
+```
+
+---
+
 ## Final run (lead, once)
 
 After prompt 03: `make check` (test + build + e2e) on the whole app. Failing specs go back to the agent of the plan that touched that area.
