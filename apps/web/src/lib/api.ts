@@ -90,6 +90,8 @@ const NO_REFRESH_PATHS = [
   "/api/auth/login/",
   "/api/auth/register/",
   "/api/auth/logout/",
+  "/api/auth/password/reset/",
+  "/api/auth/password/reset/confirm/",
   REFRESH_PATHS.shop,
   "/api/admin/auth/login/",
   "/api/admin/auth/logout/",

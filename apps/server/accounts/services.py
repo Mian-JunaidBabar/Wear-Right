@@ -1,9 +1,18 @@
+from urllib.parse import urlencode
+
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.contrib.auth.tokens import default_token_generator
 from django.db import transaction
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+
+from core.emails import send_email
 
 from .models import UserProfile
-from .selectors import get_user_by_email
+from .selectors import get_password_reset_target, get_user_by_email
 
 PROFILE_FIELDS = (
     'skin_tone', 'monk_tone', 'undertone', 'favorite_colors', 'avoided_colors', 'body_preset', 'cultural_preference', 'gender', 'preferred_style',
@@ -64,3 +73,50 @@ def save_scan_result(user, *, depth, monk, undertone):
     UserProfile.objects.update_or_create(
         user=user, defaults={'skin_tone': depth, 'monk_tone': monk, 'undertone': undertone},
     )
+
+
+def password_reset_link(user, *, audience='shop'):
+    """The web-app URL a reset email points at. Django serves no HTML for this flow."""
+    path = '/admin/reset-password' if audience == 'admin' else '/reset-password'
+    query = urlencode({
+        'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+        'token': default_token_generator.make_token(user),
+    })
+    return f'{settings.FRONTEND_URL}{path}?{query}'
+
+
+def send_password_reset_email(user, *, audience='shop', subject=None, template='password_reset', extra_context=None):
+    """Send a reset/set-password email. A dead SMTP server logs and returns False, never raises."""
+    context = {
+        'name': user.get_full_name() or user.first_name or 'there',
+        'reset_url': password_reset_link(user, audience=audience),
+        'expires_in_minutes': max(settings.PASSWORD_RESET_TIMEOUT // 60, 1),
+    }
+    context.update(extra_context or {})
+    return send_email(
+        to=user.email,
+        subject=subject or 'Reset your Wear Right password',
+        template=template,
+        context=context,
+    )
+
+
+def request_password_reset(*, email, audience='shop'):
+    """Email a reset link if the address belongs to an eligible account, otherwise do nothing.
+
+    Returns the user or None. Callers must answer the same way in both cases (no enumeration).
+    """
+    user = get_password_reset_target(email=email, audience=audience)
+    if user is not None:
+        send_password_reset_email(user, audience=audience)
+    return user
+
+
+@transaction.atomic
+def reset_password(*, user, new_password):
+    """Set the new password and revoke every refresh token issued before the reset."""
+    user.set_password(new_password)
+    user.save(update_fields=['password'])
+    for token in OutstandingToken.objects.filter(user=user):
+        BlacklistedToken.objects.get_or_create(token=token)
+    return user

@@ -1,11 +1,12 @@
 from django.contrib.auth.models import User
+from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from .models import UserProfile
-from .selectors import email_is_taken, get_or_create_profile
-from .services import authenticate_credentials
+from .selectors import email_is_taken, get_or_create_profile, get_password_reset_target
+from .services import authenticate_credentials, request_password_reset, reset_password
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -77,6 +78,54 @@ class RegisterSerializer(serializers.Serializer):
         except DjangoValidationError as exc:
             raise serializers.ValidationError({'password': list(exc.messages)})
         return attrs
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """Ask for a reset link. The response is the same whether or not the address exists."""
+
+    email = serializers.EmailField()
+    audience = 'shop'
+
+    def save(self):
+        return request_password_reset(email=self.validated_data['email'], audience=self.audience)
+
+
+class AdminPasswordResetRequestSerializer(PasswordResetRequestSerializer):
+    audience = 'admin'
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """Check a reset link and the new password, then let the service write it."""
+
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    new_password1 = serializers.CharField(max_length=128, trim_whitespace=False)
+    new_password2 = serializers.CharField(max_length=128, trim_whitespace=False)
+    audience = 'shop'
+
+    def validate(self, attrs):
+        user = get_password_reset_target(uid=attrs['uid'], audience=self.audience)
+        if user is None or not default_token_generator.check_token(user, attrs['token']):
+            # One message for a bad uid, a bad token and an ineligible account: no hints.
+            raise serializers.ValidationError({'token': ['This reset link is invalid or has expired.']})
+        if attrs['new_password1'] != attrs['new_password2']:
+            raise serializers.ValidationError({'new_password2': ['Passwords do not match.']})
+        try:
+            validate_password(attrs['new_password1'], user=user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({'new_password1': list(exc.messages)})
+        attrs['user'] = user
+        return attrs
+
+    def save(self):
+        return reset_password(
+            user=self.validated_data['user'],
+            new_password=self.validated_data['new_password1'],
+        )
+
+
+class AdminPasswordResetConfirmSerializer(PasswordResetConfirmSerializer):
+    audience = 'admin'
 
 
 class MeUpdateSerializer(serializers.ModelSerializer):

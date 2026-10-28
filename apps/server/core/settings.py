@@ -99,6 +99,9 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
     'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
+    'DEFAULT_THROTTLE_RATES': {
+        'password_reset': '5/hour',
+    },
 }
 
 # JWT lives in httpOnly cookies, never in JS-readable storage.
@@ -115,6 +118,9 @@ REST_AUTH = {
     # Cookie-authenticated requests must carry Django's CSRF token (X-CSRFToken header).
     'JWT_AUTH_COOKIE_USE_CSRF': True,
     'LOGIN_SERIALIZER': 'accounts.serializers.LoginSerializer',
+    # Our serializers: they email the FRONTEND_URL link through core.emails and share one no-enumeration answer.
+    'PASSWORD_RESET_SERIALIZER': 'accounts.serializers.PasswordResetRequestSerializer',
+    'PASSWORD_RESET_CONFIRM_SERIALIZER': 'accounts.serializers.PasswordResetConfirmSerializer',
 }
 
 SIMPLE_JWT = {

@@ -7,7 +7,7 @@ describe("isPrivatePath", () => {
     (path) => expect(isPrivatePath(path)).toBe(true),
   );
 
-  it.each(["/", "/shop", "/product/3", "/scanner", "/login", "/register", "/about", "/profiles-fan-page"])(
+  it.each(["/", "/shop", "/product/3", "/scanner", "/login", "/register", "/forgot-password", "/reset-password", "/about", "/profiles-fan-page"])(
     "%s is public",
     (path) => expect(isPrivatePath(path)).toBe(false),
   );

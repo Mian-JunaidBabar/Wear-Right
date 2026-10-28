@@ -1,9 +1,10 @@
-from dj_rest_auth.jwt_auth import get_refresh_view, set_jwt_cookies
+from dj_rest_auth.jwt_auth import get_refresh_view, set_jwt_cookies, unset_jwt_cookies
 from dj_rest_auth.views import LoginView as BaseLoginView
 from dj_rest_auth.views import LogoutView as BaseLogoutView
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -13,6 +14,8 @@ from .cookies import clear_session_hint, set_session_hint
 from .selectors import get_or_create_profile, get_profiles
 from .serializers import (
     MeUpdateSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
     RegisterSerializer,
     UserProfileSerializer,
     session_payload,
@@ -67,6 +70,42 @@ class RegisterView(APIView):
         set_jwt_cookies(response, str(refresh.access_token), str(refresh))
         set_session_hint(response)
         ensure_csrf_cookie(request)
+        return response
+
+
+class PasswordResetRequestView(APIView):
+    """POST /api/auth/password/reset/ : always the same answer, email sent only for a real shopper."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'password_reset'
+    serializer_class = PasswordResetRequestSerializer
+    detail = 'If an account exists for this email, we sent a reset link.'
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'detail': self.detail}, status=status.HTTP_200_OK)
+
+
+class PasswordResetConfirmView(APIView):
+    """POST /api/auth/password/reset/confirm/ : set the new password and sign this browser out."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'password_reset'
+    serializer_class = PasswordResetConfirmSerializer
+    detail = 'Password has been reset. You can log in now.'
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        response = Response({'detail': self.detail}, status=status.HTTP_200_OK)
+        # The reset may have happened in a browser that was still signed in: drop its cookies.
+        unset_jwt_cookies(response)
+        clear_session_hint(response)
         return response
 
 

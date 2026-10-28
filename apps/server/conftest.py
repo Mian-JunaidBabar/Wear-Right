@@ -33,6 +33,12 @@ def fast_password_hasher(settings):
 
 
 @pytest.fixture(autouse=True)
+def locmem_email(settings):
+    # Never send real SMTP in tests; assertions read mail.outbox.
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+
+
+@pytest.fixture(autouse=True)
 def fake_face_detector(request, monkeypatch):
     """Tests never load MediaPipe unless they are marked `models`; the default detector finds no face."""
     if request.node.get_closest_marker("models"):

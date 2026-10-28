@@ -49,6 +49,13 @@ export const authApi = {
   register: (input: { name: string; email: string; password: string; password_confirm?: string }) =>
     apiSend<Session>("POST", "/api/auth/register/", input),
 
+  /** The answer is deliberately the same for a real and an unknown address. */
+  requestPasswordReset: (email: string) =>
+    apiSend<{ detail: string }>("POST", "/api/auth/password/reset/", { email }),
+
+  confirmPasswordReset: (input: { uid: string; token: string; new_password1: string; new_password2: string }) =>
+    apiSend<{ detail: string }>("POST", "/api/auth/password/reset/confirm/", input),
+
   logout: () => apiSend<{ detail: string }>("POST", "/api/auth/logout/", {}),
 
   updateMe: (patch: ProfilePatch) => apiSend<Session>("PATCH", "/api/auth/me/", patch),

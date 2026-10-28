@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "@/lib/navigation";
 import { safeNextPath } from "@/lib/routes";
-import { ADMIN_WHATSAPP_NUMBER } from "@/lib/config";
 import { useAuth } from "@/features/auth/AuthProvider";
 
 interface AuthViewProps {
@@ -39,8 +38,6 @@ export default function AuthView({ mode }: AuthViewProps) {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  const [forgotMode, setForgotMode] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -85,12 +82,6 @@ export default function AuthView({ mode }: AuthViewProps) {
     }
   };
 
-  const handleBackToLogin = () => {
-    setForgotMode(false);
-    setErrorMsg("");
-    setSuccessMsg("");
-  };
-
   const handleSignOut = async () => {
     await logout();
     setPassword("");
@@ -99,7 +90,6 @@ export default function AuthView({ mode }: AuthViewProps) {
   };
 
   const switchMode = (target: "login" | "register") => {
-    setForgotMode(false);
     setErrorMsg("");
     setSuccessMsg("");
     navigate(`/${target}${nextQuery}`);
@@ -171,36 +161,6 @@ export default function AuthView({ mode }: AuthViewProps) {
                 >
                   Sign Out
                 </button>
-              </div>
-            ) : forgotMode ? (
-              <div>
-                <h3 className="text-4xl font-black text-brand-dark tracking-tight">
-                  Forgot Password
-                </h3>
-
-                <p className="text-sm text-slate-500 font-semibold mt-2 mb-7">
-                  Password reset by email is not available yet. Message the
-                  Wear Right team on WhatsApp and we will help you get back in.
-                </p>
-
-                <div className="space-y-5">
-                  <a
-                    href={`https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodeURIComponent("Hello, I need help resetting my Wear Right password.")}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block text-center w-full bg-brand-gold hover:opacity-90 text-white font-black py-4 rounded-xl uppercase tracking-wider text-sm transition-all cursor-pointer shadow-lg shadow-brand-gold/10"
-                  >
-                    Contact Support
-                  </a>
-
-                  <button
-                    type="button"
-                    onClick={handleBackToLogin}
-                    className="w-full bg-cream-card/60 hover:bg-slate-200 text-slate-700 font-black py-4 rounded-xl uppercase tracking-wider text-sm transition-all cursor-pointer"
-                  >
-                    Back to Login
-                  </button>
-                </div>
               </div>
             ) : (
               <div>
@@ -331,11 +291,7 @@ export default function AuthView({ mode }: AuthViewProps) {
                     <div className="flex items-center justify-end">
                       <button
                         type="button"
-                        onClick={() => {
-                          setForgotMode(true);
-                          setErrorMsg("");
-                          setSuccessMsg("");
-                        }}
+                        onClick={() => navigate("/forgot-password")}
                         className="text-xs font-black text-sage-green hover:text-sage-green transition-colors"
                       >
                         Forgot Password?
