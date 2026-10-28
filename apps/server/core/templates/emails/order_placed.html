@@ -1,0 +1,21 @@
+{% extends "emails/base.html" %}{% block content %}
+<p style="margin:0 0 14px;">Hi {{ customer_name }},</p>
+<p style="margin:0 0 18px;">Thank you for your order <strong>{{ order_code }}</strong>. We have received it and will let you know when it moves along.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 18px;">
+  {% for item in items %}
+  <tr>
+    <td style="padding:10px 0;border-bottom:1px solid #E7E0D2;font-size:14px;">{{ item.name }} <span style="color:#8A8072;">(size {{ item.size }}) x{{ item.quantity }}</span></td>
+    <td align="right" style="padding:10px 0;border-bottom:1px solid #E7E0D2;font-size:14px;white-space:nowrap;">Rs {{ item.line_total }}</td>
+  </tr>
+  {% endfor %}
+  <tr>
+    <td style="padding:12px 0 0;font-weight:800;">Total</td>
+    <td align="right" style="padding:12px 0 0;font-weight:800;white-space:nowrap;">Rs {{ total }}</td>
+  </tr>
+</table>
+<p style="margin:0 0 6px;font-size:14px;"><strong>Payment:</strong> {{ payment_method }}</p>
+<p style="margin:0 0 18px;font-size:14px;"><strong>Deliver to:</strong><br>{{ address }}{% if city %}<br>{{ city }}{% endif %}</p>
+<p style="margin:0;">
+  <a href="{{ order_url }}" style="display:inline-block;background:#C08E3E;color:#FFFFFF;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:999px;">Follow my order</a>
+</p>
+{% endblock %}

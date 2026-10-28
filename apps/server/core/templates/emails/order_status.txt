@@ -1,0 +1,9 @@
+{% extends "emails/base.txt" %}{% block content %}Hi {{ customer_name }},
+
+Your order {{ order_code }} is now {{ status }}.
+
+See the details: {{ order_url }}
+
+If you have a question, reply to this email and our team will help.
+
+Wear Right{% endblock %}

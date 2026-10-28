@@ -1,0 +1,16 @@
+{% extends "emails/base.txt" %}{% block content %}Hi {{ customer_name }},
+
+Thank you for your order {{ order_code }}. We have received it and will let you know when it moves along.
+
+{% for item in items %}- {{ item.name }} (size {{ item.size }}) x{{ item.quantity }} — Rs {{ item.line_total }}
+{% endfor %}
+Total: Rs {{ total }}
+Payment: {{ payment_method }}
+
+Deliver to:
+{{ address }}{% if city %}
+{{ city }}{% endif %}
+
+Follow your order: {{ order_url }}
+
+Wear Right{% endblock %}

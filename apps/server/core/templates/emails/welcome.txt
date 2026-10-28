@@ -1,0 +1,9 @@
+{% extends "emails/base.txt" %}{% block content %}Hi {{ name }},
+
+Welcome to Wear Right. Your account is ready.
+
+Find colours and outfits that suit your skin tone, save your favourites and build a look with the outfit preview.
+
+Start shopping: {{ frontend_url }}/shop
+
+Thanks for joining us.{% endblock %}

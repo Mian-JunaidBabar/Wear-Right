@@ -1,0 +1,9 @@
+{% extends "emails/base.html" %}{% block content %}
+<p style="margin:0 0 14px;">Hi {{ name }},</p>
+<p style="margin:0 0 18px;">Welcome to Wear Right. Your account is ready.</p>
+<p style="margin:0 0 22px;">Find colours and outfits that suit your skin tone, save your favourites and build a look with the outfit preview.</p>
+<p style="margin:0 0 22px;">
+  <a href="{{ frontend_url }}/shop" style="display:inline-block;background:#C08E3E;color:#FFFFFF;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:999px;">Start shopping</a>
+</p>
+<p style="margin:0;">Thanks for joining us.</p>
+{% endblock %}

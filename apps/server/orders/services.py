@@ -1,9 +1,11 @@
 import uuid
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import transaction
 
 from catalog.models import Product
+from core.emails import send_email
 
 from .models import Cart, CartItem, Order, OrderItem
 
@@ -68,6 +70,47 @@ def create_order(serializer, user):
     product.save(update_fields=['stock_quantity', 'status', 'updated_at'])
 
     return order, None
+
+
+def _order_reference(order):
+    return order.order_code or f'#{order.id}'
+
+
+def _order_email_context(order):
+    return {
+        'customer_name': order.customer_name,
+        'order_code': _order_reference(order),
+        'items': [
+            {'name': item.name, 'size': item.size, 'quantity': item.quantity, 'line_total': item.line_total}
+            for item in order.items.all()
+        ],
+        'total': f'{order.total_amount:.2f}',
+        'address': order.customer_address or '',
+        'city': order.city or '',
+        'payment_method': order.get_payment_method_display(),
+        'status': order.order_status,
+        'order_url': f'{settings.FRONTEND_URL}/orders/{order.id}',
+    }
+
+
+def send_order_placed_email(order):
+    """Tell the customer their checkout went through. Failures are swallowed by send_email."""
+    return send_email(
+        to=order.customer_email,
+        subject=f'Your Wear Right order {_order_reference(order)} is placed',
+        template='order_placed',
+        context=_order_email_context(order),
+    )
+
+
+def send_order_status_email(order):
+    """Tell the customer an order changed status (admin update or their cancellation)."""
+    return send_email(
+        to=order.customer_email,
+        subject=f'Your Wear Right order {_order_reference(order)} is now {order.order_status.lower()}',
+        template='order_status',
+        context=_order_email_context(order),
+    )
 
 
 def update_order(serializer):
@@ -224,6 +267,7 @@ def checkout(user, data):
             product.status = 'Out of Stock'
         product.save()
     cart.items.all().delete()
+    transaction.on_commit(lambda: send_order_placed_email(order))
     return order, None
 
 
@@ -254,6 +298,7 @@ def cancel_order(order, user):
             product.save(update_fields=['stock_quantity', 'updated_at'])
         order.order_status = 'Cancelled'
         order.save(update_fields=['order_status', 'updated_at'])
+        transaction.on_commit(lambda: send_order_status_email(order))
     return order, None
 
 
@@ -264,6 +309,7 @@ def change_order_status(order, new_status):
         return None, f'Cannot move an order from {order.order_status} to {new_status}.'
     order.order_status = new_status
     order.save(update_fields=['order_status', 'updated_at'])
+    transaction.on_commit(lambda: send_order_status_email(order))
     return order, None
 
 

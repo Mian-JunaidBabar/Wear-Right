@@ -35,7 +35,18 @@ def register_user(*, email, password, name='', **profile_fields):
         first_name=first_name, last_name=last_name,
     )
     UserProfile.objects.create(user=user, **profile_fields)
+    transaction.on_commit(lambda: send_welcome_email(user))
     return user
+
+
+def send_welcome_email(user):
+    """A hello after sign-up. Failures are logged by send_email and never reach the customer."""
+    return send_email(
+        to=user.email,
+        subject='Welcome to Wear Right',
+        template='welcome',
+        context={'name': user.get_full_name() or user.first_name or 'there'},
+    )
 
 
 def authenticate_credentials(*, identifier, password):
