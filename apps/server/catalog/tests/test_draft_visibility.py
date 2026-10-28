@@ -62,14 +62,15 @@ def test_the_catalog_fields_are_returned_by_the_api(staff_client):
     assert body["color_palette"][0]["name"] == "Navy Blue"
 
 
-def test_a_customer_cannot_order_a_draft(user):
+def test_a_customer_cannot_order_a_draft(user, staff_client):
     client = APIClient()
     client.force_authenticate(user=user)
     draft = ProductFactory(status="Draft", stock_quantity=5)
+    payload = {"customer_name": "Ali", "product": draft.id, "quantity": 1}
 
-    response = client.post(
-        "/api/orders/", {"customer_name": "Ali", "product": draft.id, "quantity": 1}, format="json",
-    )
-
+    # Shoppers cannot reach the legacy single-product order endpoint at all.
+    assert client.post("/api/orders/", payload, format="json").status_code == 403
+    # Staff can call it, and it still refuses an inactive draft.
+    response = staff_client.post("/api/orders/", payload, format="json")
     assert response.status_code == 400
     assert "not available" in str(response.json())

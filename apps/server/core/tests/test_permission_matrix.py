@@ -92,9 +92,9 @@ MATRIX = {
     # profiles: authenticated, scoped
     "GET profiles/": ("GET", "/api/profiles/", None, "json", row(401, 200, 200, 200)),
     "POST profiles/": ("POST", "/api/profiles/", lambda w: {"gender": "female"}, "json", row(401, 201, 201, 201)),
-    # orders: authenticated, scoped; write/delete on an existing order is staff-only
+    # orders: authenticated, scoped for reads; creating via the legacy endpoint and writing/deleting are staff-only
     "GET orders/": ("GET", "/api/orders/", None, "json", row(401, 200, 200, 200)),
-    "POST orders/": ("POST", "/api/orders/", order_json, "json", row(401, 201, 201, 201)),
+    "POST orders/": ("POST", "/api/orders/", order_json, "json", row(401, 403, 403, 201)),
     "GET orders/<id>/": ("GET", "/api/orders/{order}/", None, "json", row(401, 200, 404, 200)),
     "PUT orders/<id>/": ("PUT", "/api/orders/{order}/", lambda w: {"order_status": "Confirmed"}, "json", row(401, 403, 403, 200)),
     "DELETE orders/<id>/": ("DELETE", "/api/orders/{order}/", None, "json", row(401, 403, 403, 200)),
@@ -182,21 +182,29 @@ def test_other_user_cannot_read_or_change_the_owners_order_booking_scan_or_profi
 
 def test_orders_and_bookings_are_owned_by_their_creator(world):
     other = client_for("other", world)
-    r = other.post("/api/orders/", order_json(world), format="json")
-    assert r.json()["order"]["user"] == world["users"]["other"].id
     r = other.post("/api/bookings/", booking_json(world), format="json")
     assert r.json()["booking"]["user"] == world["users"]["other"].id
-    # `user` in the payload is ignored.
-    r = other.post("/api/orders/", {**order_json(world), "user": world["users"]["user"].id}, format="json")
-    assert r.json()["order"]["user"] == world["users"]["other"].id
+
+    # The legacy order endpoint is staff-only, but `user` in the payload is still ignored.
+    staff = client_for("staff", world)
+    r = staff.post("/api/orders/", {**order_json(world), "user": world["users"]["user"].id}, format="json")
+    assert r.json()["order"]["user"] == world["users"]["staff"].id
 
 
-def test_customers_cannot_self_approve_orders(world):
+def test_customers_cannot_create_orders_outside_checkout_or_self_approve_them(world):
+    from orders.models import Order
+
+    before = Order.objects.count()
     r = client_for("user", world).post(
         "/api/orders/", {**order_json(world), "order_status": "Delivered", "payment_status": "Paid"}, format="json"
     )
+    assert r.status_code == 403
+    assert Order.objects.count() == before
+
+    # Even the staff-only legacy creator ignores a client-supplied status.
+    r = client_for("staff", world).post("/api/orders/", {**order_json(world), "order_status": "Delivered"}, format="json")
     order = r.json()["order"]
-    assert (order["order_status"], order["payment_status"]) == ("Pending", "Cash on Delivery")
+    assert order["order_status"] == "Pending"
 
 
 def test_scan_is_stored_only_for_signed_in_users(world):

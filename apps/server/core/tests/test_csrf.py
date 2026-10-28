@@ -23,13 +23,15 @@ def logged_in():
     return client, user, r.cookies["csrftoken"].value
 
 
-def order_payload():
-    return {"customer_name": "Ali", "product": ProductFactory().id, "quantity": 1}
+def mutation_payload():
+    # The customer still has a CSRF-protected write: adding to the cart. The legacy order
+    # endpoint is staff-only now, so it can no longer demonstrate a successful unsafe request.
+    return {"product": ProductFactory().id, "size": "M", "quantity": 1}
 
 
 def test_unsafe_request_without_csrf_header_is_rejected(logged_in):
     client, _, _ = logged_in
-    r = client.post("/api/orders/", order_payload(), format="json")
+    r = client.post("/api/orders/", {"customer_name": "Ali"}, format="json")
     assert r.status_code == 403
     assert r.json()["error"]["code"] == "PermissionDenied"
     assert "CSRF" in r.json()["error"]["message"]
@@ -37,13 +39,13 @@ def test_unsafe_request_without_csrf_header_is_rejected(logged_in):
 
 def test_unsafe_request_with_wrong_csrf_header_is_rejected(logged_in):
     client, _, _ = logged_in
-    r = client.post("/api/orders/", order_payload(), format="json", HTTP_X_CSRFTOKEN="wrong")
+    r = client.post("/api/orders/", {"customer_name": "Ali"}, format="json", HTTP_X_CSRFTOKEN="wrong")
     assert r.status_code == 403
 
 
 def test_unsafe_request_with_csrf_header_succeeds(logged_in):
     client, _, token = logged_in
-    r = client.post("/api/orders/", order_payload(), format="json", HTTP_X_CSRFTOKEN=token)
+    r = client.post("/api/cart/", mutation_payload(), format="json", HTTP_X_CSRFTOKEN=token)
     assert r.status_code == 201
 
 
@@ -55,13 +57,13 @@ def test_safe_requests_need_no_csrf_header(logged_in):
 
 def test_trusted_next_origin_is_accepted(logged_in):
     client, _, token = logged_in
-    r = client.post("/api/orders/", order_payload(), format="json", HTTP_X_CSRFTOKEN=token, HTTP_ORIGIN=NEXT_ORIGIN)
+    r = client.post("/api/cart/", mutation_payload(), format="json", HTTP_X_CSRFTOKEN=token, HTTP_ORIGIN=NEXT_ORIGIN)
     assert r.status_code == 201
 
 
 def test_foreign_origin_is_rejected_even_with_a_valid_token(logged_in):
     client, _, token = logged_in
-    r = client.post("/api/orders/", order_payload(), format="json",
+    r = client.post("/api/cart/", mutation_payload(), format="json",
                     HTTP_X_CSRFTOKEN=token, HTTP_ORIGIN="http://evil.example")
     assert r.status_code == 403
 

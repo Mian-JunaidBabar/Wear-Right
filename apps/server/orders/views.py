@@ -15,7 +15,10 @@ from .services import (
 
 
 class OrderListCreateAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    def get_permissions(self):
+        # Customers create orders through /api/checkout/, which runs size-stock and OrderItem handling.
+        # The legacy single-product POST bypasses both, so only staff may use it.
+        return [IsAuthenticated()] if self.request.method in SAFE_METHODS else [IsStaff()]
 
     def get(self, request):
         orders = get_orders(request.user)
