@@ -1,6 +1,6 @@
 # Setup guide
 
-Wear Right is a local-first project: Next.js on port 3000, Django on port 8000, PostgreSQL + pgvector on port 5433. This guide covers a fresh install, development, a production-style local demo, the database and `.env`, and the problems people actually hit.
+Wear Right is a local-first project: Next.js on port 3000, Django on port 8000, PostgreSQL + pgvector on port 5433, and Mailpit (local email inbox) on port 8025. This guide covers a fresh install, development, a production-style local demo, the database and `.env`, and the problems people actually hit.
 
 The browser only talks to **port 3000**. Next.js proxies `/api/*` and `/media/*` to Django, so do not open the API on 8000 for normal use.
 
@@ -102,8 +102,25 @@ python3 -c 'import secrets; print(secrets.token_urlsafe(50))'
 | `CSRF_TRUSTED_ORIGINS` | No | Defaults to `http://localhost:3000,http://127.0.0.1:3000`. Change this if the web app runs on another origin. |
 | `ML_MODELS_DIR` | No | Defaults to `apps/server/ml_models`. |
 | `BACKEND_URL` | No (web) | Target for Next's proxy. Defaults to `http://127.0.0.1:8000`. |
+| `EMAIL_BACKEND` | No | Defaults to Django's SMTP backend. Tests override it with the in-memory backend. |
+| `EMAIL_HOST` / `EMAIL_PORT` | No | Default `localhost:1025`, the Mailpit SMTP port. |
+| `EMAIL_USE_TLS` | No | `False` locally; Mailpit has no TLS. |
+| `DEFAULT_FROM_EMAIL` | No | Defaults to `Wear Right <no-reply@wearright.local>`. |
+| `FRONTEND_URL` | No | Defaults to `http://localhost:3000`; every link in an email uses it (reset links, order links). Change it if the web app runs on another origin. |
+| `PASSWORD_RESET_TIMEOUT` | No | Seconds a reset link stays valid; default `3600` (one hour). |
 
 `BACKEND_URL` belongs to the web process environment, not `apps/server/.env` (the Next config reads it directly). Start with `BACKEND_URL=http://127.0.0.1:8100 npm --prefix apps/web run dev` if Django runs elsewhere.
+
+### Local email (Mailpit)
+
+`make db-up` starts both Postgres and Mailpit. Mailpit catches every email Django sends: SMTP is on **1025**, and the inbox is at <http://localhost:8025>. There is no sign-in and nothing leaves the machine.
+
+- Open <http://localhost:8025> after requesting a password reset, registering, placing an order or adding a team member. Click a message to read the HTML version; the plain-text part is there too.
+- The reset email contains the link to `/reset-password` (shopper) or `/admin/reset-password` (team). Copy the link from the message and open it in the browser; it points at `FRONTEND_URL`.
+- `docker compose logs mailpit` shows delivery logs. `docker compose restart mailpit` clears a stuck inbox process; the inbox is in memory, so a restart empties it.
+- Do not put real addresses in `apps/server/.env` for local work. To use a real SMTP provider, set `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER` and `EMAIL_HOST_PASSWORD`; the code does not change.
+
+If Mailpit is not running, Django still completes signup, checkout and reset requests. `core.emails.send_email` logs `Could not send email ...` and returns `False` instead of raising; check the Django console for that line.
 
 The JWT cookies are `HttpOnly` and CSRF-protected. For a real HTTPS deployment, `JWT_AUTH_SECURE` in `apps/server/core/settings.py` must become `True`; it is hard-coded `False` for plain-http local use.
 
@@ -115,7 +132,7 @@ Start PostgreSQL:
 make db-up
 ```
 
-This starts the pinned `pgvector/pgvector:pg17` image as container `wearright-db`, exposes **5433**, waits for health, and keeps data in the `wearright_pg` Docker volume.
+This starts the pinned `pgvector/pgvector:pg17` image as container `wearright-db`, exposes **5433**, waits for health, and keeps data in the `wearright_pg` Docker volume. It also starts `wearright-mailpit` (SMTP **1025**, inbox <http://localhost:8025>) so email works without extra setup.
 
 Then create the schema and seed data:
 
@@ -314,7 +331,7 @@ Treat these as required engineering work, not configuration tweaks:
 - `DEBUG=False`, a strong `SECRET_KEY`, explicit `ALLOWED_HOSTS`, and the real `DATABASE_URL`.
 - Set `JWT_AUTH_SECURE=True` (currently hard-coded false) and keep `SameSite`/CSRF origins consistent with the public origin.
 - Host `STATIC_ROOT` and `MEDIA_ROOT` (or object storage) and collect static files.
-- Restrict admin access, add rate limiting/email verification/password reset, and use a managed PostgreSQL with backups.
+- Restrict admin access, add login rate limiting and email verification, configure a real SMTP provider instead of Mailpit, and use a managed PostgreSQL with backups.
 - Do not expose the demo accounts or `DEMO_*_PASSWORD` values.
 
 Until those are done, do not put this on a public server.
@@ -345,7 +362,9 @@ The E2E database is the same database as development. It creates test users and 
 
 ## 9. Common problems
 
-**`make db-up` fails: port 5433 is allocated.** Another Postgres/container is using it. See the port section above. A previous project container may still be running.
+**`make db-up` fails: port 5433 is allocated.** Another Postgres/container is using it. See the port section above. A previous project container may still be running. Mailpit uses **1025** and **8025**; free them or change the compose mapping and `EMAIL_PORT` together.
+
+**No email appears in Mailpit.** Check <http://localhost:8025> (not the Django port) and that `docker ps --filter name=wearright-mailpit` shows it running. Unknown or ineligible reset addresses deliberately send nothing, and the API answer is identical. Look for `Could not send email ...` in the Django console if the container is down.
 
 **Django says `SECRET_KEY environment variable is required`.** `.env` is missing or `DEBUG=False` without a key. Run `make env` and check `apps/server/.env`.
 
@@ -373,9 +392,10 @@ The E2E database is the same database as development. It creates test users and 
 [ ] Docker is running
 [ ] make install completed without errors
 [ ] apps/server/.env has SECRET_KEY, DEBUG=True, DATABASE_URL
-[ ] make db-up is healthy
+[ ] make db-up is healthy (Postgres and Mailpit)
 [ ] make migrate and make seed (or make demo-data) completed
 [ ] http://localhost:3000 loads the storefront
+[ ] http://localhost:8025 opens the Mailpit inbox
 [ ] customer and staff logins work
 [ ] make test passes
 [ ] optional: make models + make test-models

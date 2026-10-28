@@ -26,16 +26,18 @@ models tests        10 passed (real MediaPipe/rembg, 41.23s)
 
 The exact Playwright count and any skipped model-dependent scenarios are in the Phase 5 summary and the final report. Model tests (`make test-models`) still require downloaded weights and were not part of the functional M1 gate.
 
-Gates on the plans 00–03 branch, run on 2026-10-28:
+Gates on the plans 00–04 branch, run on 2026-10-28:
 
 ```
-backend pytest     531 passed, 9 skipped
-web vitest         117 passed (13 files)
+backend pytest     555 passed, 9 skipped
+web vitest         129 passed (15 files)
 tsc --noEmit       clean
 eslint             0 errors, 2 warnings
 next build         passed (after the 16.4.0 security-advisory retry)
 Playwright         not run by this agent; the lead runs it after review
 ```
+
+The email tests use Django's in-memory backend (`mail.outbox`); Mailpit itself was checked by hand in the manual pass, not by pytest.
 
 ## Roadmap phase map
 
@@ -56,6 +58,8 @@ Summaries: `docs/phases/phase-2.md` to `phase-6.md`; walkthrough: `docs/DEMO.md`
 
 - **Auth** uses dj-rest-auth + simplejwt with httpOnly `wr-access` / `wr-refresh` cookies and CSRF double-submit. There is a non-httpOnly `wr-session=1` hint cookie so guests do not trigger `/me/` 401s. Invalid tokens are treated as anonymous; protected endpoints still return 401. See `core/authentication.py`, `core/tests/test_csrf.py`.
 - **Admin sessions are separate from shop sessions.** The admin panel has its own app (`apps/server/staff/`), its own login at `/admin/login`, its own endpoints under `/api/admin/*` and its own JWT cookies (`wr-admin-access` / `wr-admin-refresh`, scoped to the `/api/admin/` path, plus a non-httpOnly `wr-admin-session` hint cookie for the `/admin` proxy redirect). Roles and permissions live in `staff` (`AdminRole`, `AdminMember`, `staff/permissions.py`, keys in `staff/catalog.py`); seeded roles are Super Admin, Manager, Inventory Staff and Order Handler, and every existing staff user was migrated onto Super Admin. Shop login (`/api/auth/login/`) now refuses staff accounts so the two session types cannot mix; admin login refuses users whose account has no admin member. The admin UI hides sections a role cannot use and gates manage buttons behind `products.manage` / `orders.manage` / `bookings.manage` / `catalog.manage` / `team.manage` — the server enforces the same keys.
+- **Password reset stays in Django auth; no new auth framework.** The project keeps Django users and `dj-rest-auth`/simplejwt cookies. Adding better-auth would have put user and session tables in Node, duplicated Django's auth and CSRF/RBAC, and broken the rule that Next.js never touches the database. Instead the existing `PasswordResetForm` token flow is reused behind `POST /api/auth/password/reset/` and `/confirm/`, with separate admin-audience endpoints under `/api/admin/auth/` (and a set-password variant for team invites). The request endpoint always answers "If an account exists for this email, we sent a reset link.", sends nothing for unknown or ineligible accounts (shop ignores staff, admin ignores customers), and both audiences are throttled at 5/hour. Links point at `FRONTEND_URL` (`/reset-password` or `/admin/reset-password`); a successful reset blacklists every outstanding refresh token so old sessions die. Django's `PASSWORD_RESET_TIMEOUT` is one hour.
+- **Email is local-first and never blocks a request.** `docker-compose.yml` runs Mailpit (`axllent/mailpit`) on SMTP 1025 with its inbox at <http://localhost:8025>; `make db-up` starts it with Postgres. Django reads `EMAIL_*`, `DEFAULT_FROM_EMAIL`, `FRONTEND_URL` and `PASSWORD_RESET_TIMEOUT` from the environment with local defaults. `core.emails.send_email` renders both a plain-text and an HTML part from `core/templates/emails/`, and logs and swallows any SMTP or template error, so a dead mail server cannot roll back a signup, checkout or reset. Messages triggered inside a transaction use `transaction.on_commit`. Transactional mail now covers welcome (registration), order placed, order status (admin change or customer cancel), password reset and team invite. Email verification at signup is deliberately out of scope because it would block the seeded demo accounts.
 - **Catalogue keeps the legacy fields** (`category` text, `cultural_tag`, `garment_type`, per-size stock) beside the new `category_ref`, `style`, `primary_color`, `sizes` and `is_active`. A full destructive rewrite would have broken the recommender, mannequin and imported data. `category_ref` is the supported relation; serializers keep both sides in sync.
 - **Products know what they are, not just where they go.** `Product.kind` (`catalog/engine/kinds.py`, migration `0008_product_kind` backfills) is the garment type guessed from the name/category words (tshirt, shirt, kurta, jeans, sandals, dupatta, ..., 24 kinds); the serializer also fills a blank `slot` from the kind and a blank `gender` from the category, without ever clobbering already-set values on partial updates. The look engine uses it: a one-piece anchor (kurta/kameez/dress) covers its own slots (COVERS map in `recommender/engine/looks.py`), so a shirt anchor no longer lets the template re-fill the "Top" slot, kids-named products never pair into adult looks (and never appear in top picks), and the complete-look API reports `anchor_slot` / `anchor_kind`. The mislabelled import row "Heavy Shirt" (garment_type=Accessory) is now correctly a men's top. E2e regression: `e2e/09` test 9f.
 - **Products API is paginated** (12 per page, `page_size` up to 500) and keeps the old `status`, `total_products`, `products` keys for existing callers, while adding `count`, `next`, `previous`, `results`, `page`, `page_size`, `total_pages`. The shop pages client-side over the full seeded catalogue; the server filters are implemented and tested and can be adopted incrementally.
@@ -79,7 +83,7 @@ Summaries: `docs/phases/phase-2.md` to `phase-6.md`; walkthrough: `docs/DEMO.md`
 - Real face-scan accuracy is unmeasured; no labelled photo set has been run. Thresholds are the algorithm's starting values. This is Phase 7 work.
 - Recommendations use colour-theory rules, not measured user preference or sales data. The palette and look ranking need a user study (Phase 8).
 - The mannequin is deliberately basic: flat 2D front view only, no back view, draping or poses. The photo-like realism in the original PRD remains future work.
-- Password reset, email verification, login rate limiting and customer-initiated order editing are not implemented.
+- Email verification at signup and shop/admin login rate limiting are not implemented. Password reset (both audiences) is implemented; customer-initiated order editing is still missing.
 - Demo card payment is not a payment integration and must never be presented as one.
 - The shared Postgres database may contain migrations from other checkouts; merge the branch before switching checkouts. Migrations added in this work: catalog `0005`–`0007`, orders `0003`.
 - `docs/agent/` stays local/gitignored, so phase prompts are not shipped. Only `docs/phases/` summaries are tracked.
@@ -92,6 +96,6 @@ make demo-data      # Postgres, migrations, catalogue, rules, demo customer + st
 npm run dev         # http://localhost:3000
 ```
 
-Demo logins: customer `demo@wearright.local` / `demo12345` (at `/login`); staff `admin@wearright.com` / `admin123` — staff sign in at the admin panel's own login, `/admin/login` (shop login refuses team accounts).
+Demo logins: customer `demo@wearright.local` / `demo12345` (at `/login`); staff `admin@wearright.com` / `admin123` — staff sign in at the admin panel's own login, `/admin/login` (shop login refuses team accounts). Local email lands in Mailpit at <http://localhost:8025>; `make db-up` starts it with Postgres.
 
 Full gate: `make test && make build && make e2e`. The Playwright suite reuses running servers when present.

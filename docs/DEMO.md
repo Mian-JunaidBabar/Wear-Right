@@ -7,7 +7,7 @@ make demo-data      # Postgres, migrations, catalogue, tone rules, demo customer
 make demo           # production build + both servers; open http://localhost:3000
 ```
 
-Use Chrome. The camera works on `localhost` without HTTPS; allow the camera prompt once. Good light matters for the scanner — the manual tone picker is the reliable fallback. `Ctrl+C` stops the servers. If data looks stale, run `make demo-reset && make demo-data` for a fresh database.
+Use Chrome. The camera works on `localhost` without HTTPS; allow the camera prompt once. Good light matters for the scanner — the manual tone picker is the reliable fallback. `Ctrl+C` stops the servers. If data looks stale, run `make demo-reset && make demo-data` for a fresh database. Keep <http://localhost:8025> (Mailpit) open in a second tab for the password-reset and order-email steps; `make demo-data` starts it with the database.
 
 | Who | Email | Password | Where |
 | --- | --- | --- | --- |
@@ -27,6 +27,7 @@ New accounts can be created at `/register`. Staff accounts are refused on the sh
 6. **Checkout.** `/cart` → edit quantities → Checkout. Enter name/phone/address/city. Choose **Cash on delivery**; show that **Card (demo)** only accepts demo data and never asks for card numbers. Place the order. The confirmation page appears and the cart empties.
 7. **Order history.** `/my-orders` → **View order** → status and items. While Pending/Confirmed, cancel it and show that stock is restored. (Place another order if you need one for the admin step.)
 8. **Staff.** In a second window go to `/admin/login` and sign in as admin. Show dashboard stats, product create/edit (live image preview, **Suggest colour**, visible/hidden eye, delete confirmation), and Orders. Change the order to Confirmed/Shipped; the customer’s order detail then shows the new status. Show Team & Roles: add a member with the Order Handler role and sign in as them in a private window — they see Orders/Bookings only and no Team section. Open `/admin/login` with a customer account: it is refused ("no admin access"); shop `/login` refuses team accounts.
+9. **Forgot password.** Sign out, then `/login` → **Forgot Password?** → enter `demo@wearright.local` → **Send reset link**. The page always gives the same "If an account exists…" message. Open <http://localhost:8025>, click the new message, and follow **Choose a new password**. Set a new password, sign in with it, and show that an old tab is signed out on its next request. Show the same flow from `/admin/login` → **Forgot password?** for `admin@wearright.com`; the link opens `/admin/reset-password`, not the shopper page. An unknown address gives the identical message and no email. To demo the team invite, add a member with **Email them a link to set their password** ticked and open that message in Mailpit.
 
 ## If something goes wrong
 
@@ -43,4 +44,4 @@ New accounts can be created at `/register`. Staff accounts are refused on the sh
 - The mannequin is a flat 2D vector drawing now ("fashion flat"): every product is drawn in its own colour at Slim/Regular/Plus body sizes, shoes are a pair and the watch sits on the wrist — but there is no back view, no draping and no photorealistic try-on. That is Phase 6 work.
 - Card payment is a **demo** only. There is no payment processor.
 - Demo prices are placeholders, not market prices.
-- Password reset, email verification and login rate limiting are not implemented.
+- Password reset works for customers and team members, with Mailpit standing in for a real mail provider. Email verification at signup and login rate limiting are still not implemented.
