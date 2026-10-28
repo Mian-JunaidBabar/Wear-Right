@@ -109,40 +109,29 @@ Report: Step 0 findings, files changed per commit, real make test and build outp
 
 ---
 
-## Prompt 06: try-on spike (one session, before any integration)
-
-```
-You are working on Wear Right (FYP). Read /home/jb/Projects/Wear-Right/docs/plans/05-virtual-try-on.md first. This session is a spike only: no changes to apps/server or apps/web.
-
-Goal: find out if an open-source virtual try-on model runs well enough on this machine.
-
-1. Report the hardware: `nvidia-smi` (GPU, VRAM, driver, CUDA), RAM, Python version. If there is no NVIDIA GPU, say so and continue on CPU.
-2. Create apps/tryon/ with its own venv (apps/tryon/.venv, gitignored). Clone and install FASHN VTON v1.5 (github.com/fashn-AI/fashn-vton-1.5) as its README says, download the weights into apps/tryon/weights (gitignored).
-3. Prepare inputs in apps/tryon/spike/ (gitignored except the report): 2 body images (one man, one woman, full body, front, plain background; free-licence stock photos, write the URLs and licences down) and 5 products from our catalog (2 tops, 2 bottoms, 1 kurta) using their image files from apps/server/media.
-4. Run: each top on each body, then each bottom on the result, and the kurta as one-pieces. Measure seconds per render and peak VRAM (torch.cuda.max_memory_allocated).
-5. If FASHN fails to install/run or looks bad, repeat steps 2 to 4 with CatVTON (github.com/Zheng-Chong/CatVTON).
-6. Write apps/tryon/spike/REPORT.md: hardware, model(s) tried, install problems and fixes, timing and VRAM table, the output images side by side with the inputs, which garments failed and why, and your recommendation using the decision table in plan 05 ("live + prerender", "catvton", or "prerender only").
-
-Do not integrate anything. Commit only apps/tryon/spike/REPORT.md, the output images, apps/tryon/.gitignore and a short apps/tryon/README.md with the exact install commands that worked.
-```
+## Prompt 06 and 07 (old, image generation): superseded by Prompt 09. Do not run.
 
 ---
 
-## Prompt 07: try-on integration (after the spike says go)
+## Prompt 09: AR try-on
 
 ```
-You are working on Wear Right (FYP). Read CLAUDE.md, docs/STATUS.md, /home/jb/Projects/Wear-Right/docs/plans/05-virtual-try-on.md and apps/tryon/spike/REPORT.md. Use the model and mode the spike recommended. Do only plan 05.
+You are working on Wear Right (FYP). Read CLAUDE.md, docs/STATUS.md and /home/jb/Projects/Wear-Right/docs/plans/07-ar-try-on.md. Do only plan 07. No image generation and no cloud GPU: everything runs in the browser with MediaPipe Pose Landmarker on the team laptop (Quadro T1000 4 GB, i7-9850H).
 
 Order, one commit each, tests in the same commit:
-1. apps/tryon service: FastAPI app (health, tryon), model loaded once, GPU lock, TRYON_MODEL switch, fake-pipeline unit tests, one @pytest.mark.models real test. Makefile targets: tryon-install, tryon-weights, tryon (run on :8010). Add it to the root `npm run dev` only when apps/tryon/.venv exists.
-2. Body images: the 6 bodies in apps/server/tryon_bodies with SOURCES.md (URL + licence for each).
-3. Django `tryon` app: TryOnRender model + migration, services (cache key, request_render with a single-thread executor, two-step top then bottom, one-piece path), API (renders POST/GET, status), throttle, prerender_looks command. Category from Product.kind/slot as the plan's mapping table says. Never call the service from inside a request synchronously.
-4. Web: try-on panel in OutfitPreviewModal and CompleteOutfitView with polling, body presets, swap re-render, shoes/accessory chips, and the SVG mannequin fallback with the "AI try-on | Sketch" switch.
-5. Docs: SETUP.md (install, weights, GPU notes, how to prerender before the demo), DEMO.md, STATUS.md, docs/phases/phase-6.md updated with the try-on decision, real timings from the spike, and the honest limits (no shoes/accessories on the body, third-party model, licence).
+1. Backend data: Product.tryon_anchors (JSON) + tryon_ready (bool) + migration; catalog/engine/tryon_anchors.py (pure, numpy) with the heuristics in the plan; called from prepare_mannequin_asset; `manage.py compute_tryon_anchors`; serializer exposes the fields, PUT validates anchors (staff only). pytest on synthetic masks.
+2. Pose assets: `make models` also downloads the MediaPipe tasks-vision wasm files and pose_landmarker_lite.task into apps/web/public/mediapipe/ (gitignored); add @mediapipe/tasks-vision to apps/web. src/features/tryon/pose.ts loads them locally (no CDN).
+3. src/features/tryon/place.ts and smooth.ts (pure) with the vitest tests from the plan: 3-point affine for tops and bottoms, shoes per foot mirrored, watch on the left wrist along the forearm, cap on the head, draw order.
+4. Model photos: 6 free-licence full-body stock photos in public/tryon/bodies with SOURCES.md, and a one-off script that writes bodies.json with their landmarks.
+5. /try-on page with Model (default), Photo and Camera tabs, TryOnCanvas, camera permission and error states, "not available for try-on" chips, add-whole-look-to-cart, dev FPS overlay.
+6. Wire it in: "Try it on" buttons in OutfitPreviewModal and CompleteOutfitView; the model view replaces the SVG mannequin as the default panel there (SVG stays as fallback for items without cut-outs); swaps update instantly.
+7. Admin AR anchors editor on the product form (drag the dots on the cut-out, save).
+8. Run `make mannequin-assets` and `compute_tryon_anchors` for the demo products; list how many are tryon_ready.
+9. Docs: STATUS.md, SETUP.md (models, camera permission on localhost), DEMO.md (try-on steps), docs/phases/phase-6.md with the decision (AR over diffusion, why), limits and screenshots.
 
-Testing: `make test` and `npm --prefix apps/web run build`. Do NOT run Playwright or make e2e. Then by hand: start db, Django, Next and the tryon service; open the shop Preview Outfit for 3 shirts, 2 kurtas and a pair of jeans; switch Slim/Plus; swap a piece; stop the tryon service and confirm the SVG fallback appears; run prerender_looks --limit 10 and confirm those previews open instantly. Save screenshots to docs/phases/phase-6-screens/.
+Testing: `make test` and `npm --prefix apps/web run build`. Do NOT run Playwright or make e2e. By hand: the manual checks at the end of the plan, with the FPS you see in camera mode. Save screenshots of model, photo and camera modes to docs/phases/phase-6-screens/.
 
-Report: files per commit, real test/build output, render times seen in the app, the screenshots, what looks good and what looks wrong.
+Report: files per commit, real test/build output, how many demo products are tryon_ready, FPS on the laptop, screenshots, which garment types look good and which need anchor fixes in the admin editor.
 ```
 
 ---

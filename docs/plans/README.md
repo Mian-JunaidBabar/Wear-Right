@@ -10,7 +10,8 @@ Each plan is a self-contained task for one agent session. Give the agent `CLAUDE
 | 01 | [01-catalog-slots-and-anchor.md](01-catalog-slots-and-anchor.md) | medium | The product you open is not the one on the mannequin. Root cause is missing `slot`/`gender` on products added from the admin panel, so the look engine treats the anchor as "unknown" and fills its slot with another product. Must land before 02. |
 | 02 | [02-mannequin-2d-svg.md](02-mannequin-2d-svg.md) | large | Replace the grey statue + pasted photos with a basic flat 2D SVG mannequin: garments drawn as shapes in the product's colour, two shoes on two feet, watch on the wrist. This is the Phase 6 USP, done the simple way the team decided. |
 | 03 | [03-shop-cleanup.md](03-shop-cleanup.md) | small | Dead legacy order code, the old single-product order endpoint, stale docs, small UI issues found in review. |
-| 05 | [05-virtual-try-on.md](05-virtual-try-on.md) | large | The mannequin USP done with a real open-source try-on model (FASHN VTON v1.5, CatVTON fallback) in its own GPU service, cached renders, SVG mannequin as fallback. |
+| 07 | [07-ar-try-on.md](07-ar-try-on.md) | large | **The mannequin USP: instant AR try-on in the browser** (MediaPipe pose + garment cut-outs): camera, photo, and a model-photo view that replaces the SVG mannequin as the default. Runs on the laptop, no image generation. |
+| 05 | [05-virtual-try-on.md](05-virtual-try-on.md) | — | **Superseded by 07** (diffusion try-on needs a GPU we don't have). Kept as thesis future work. |
 | 06 | [06-skin-tone-basic.md](06-skin-tone-basic.md) | small | Skin tone scaled down to an honest, correctable estimate plus a small real evaluation. |
 | 04 | [04-password-reset-and-email.md](04-password-reset-and-email.md) | medium | Forgot password for shoppers and admins, Mailpit as the local mail server, a few basic emails (welcome, order placed, order status). Keeps Django auth; explains why not better-auth. |
 
@@ -26,7 +27,7 @@ Each plan is a self-contained task for one agent session. Give the agent `CLAUDE
 
 From `docs/agent/ROADMAP.md` and `docs/STATUS.md`:
 
-1. **Skin tone**: scaled down to plan 06 (decided 2026-10-28). The mannequin USP is plan 05.
+1. **Skin tone**: scaled down to plan 06 (decided 2026-10-28). The mannequin USP is plan 07 (AR try-on).
 2. **Phase 8: user study scripts, demo hardening** (offline models, backup screen recording, demo checklist). Not started.
 3. **Auth extras**: password reset and email are plan 04. Email verification and login rate limiting stay optional.
 4. **Next.js 16.4.0 security advisory**: ask before upgrading (STATUS says so); do it in its own branch after the demo is stable.

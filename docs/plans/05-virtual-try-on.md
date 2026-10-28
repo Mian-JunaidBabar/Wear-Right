@@ -25,7 +25,50 @@ belts, caps). The try-on image shows top + bottom (or a one-piece such as a kurt
 the look are shown as product chips under the image. The model is third-party; our contribution is the pipeline:
 skin-tone-driven outfit selection, body presets, the try-on service, caching and the shop integration.
 
-## Architecture
+## Hardware reality (decided 2026-10-28)
+
+The team laptop is a Dell Precision 5540: Quadro T1000 **4 GB** (Turing), i7-9850H, 16 GB RAM, ~140 GB free on Linux.
+
+- Turing has no bf16. FASHN v1.5 then falls back to float32: ~972M params x 4 bytes is ~3.9 GB for the weights alone,
+  plus the pose and parsing models. It will not fit in 4 GB. CatVTON in fp16 (~1.8 GB of weights) with attention
+  slicing / CPU offload *might* fit, but slowly (expect minutes per image, measure it).
+- CPU-only diffusion on the i7 is in the range of many minutes per garment. Not usable live.
+
+**So the laptop never generates images during the demo.** Renders are made in batches on a free cloud GPU and
+imported into the app as files. At runtime the app only serves cached images; the GPU is not needed on demo day.
+
+| Where | What it is for |
+| --- | --- |
+| **Kaggle Notebooks (free GPU, T4/P100 16 GB, weekly quota; check the current hours on kaggle.com)** — primary | Batch rendering of every look we want to show. Long sessions, files in/out as datasets, no credit card. |
+| Google Colab free T4 — backup | Same notebook if Kaggle quota runs out. Sessions can drop, so keep batches small and resumable. |
+| The laptop (CatVTON fp16 + offload) — optional | One-off renders while developing, only if the spike shows it works at all. |
+| Live service over a tunnel from Kaggle/Colab — not for the demo | Allowed for experiments only; never on the critical path. |
+
+### Batch pipeline (replaces "live renders" as the main mode)
+
+1. `manage.py export_tryon_batch --products <ids|demo> --presets regular[,slim,plus] --out tryon_batch.zip`:
+   for each chosen anchor product, take the look the recommender builds (best pick + the 2 swaps for top/bottom),
+   expand it into render jobs (body x top/onepiece x bottom), drop jobs already rendered, and write `jobs.json`
+   (key, body, garment file names, categories) plus the body and garment images into the zip.
+2. `apps/tryon/batch_render.py` (runs on Kaggle/Colab; same code as the service's pipeline wrapper): reads `jobs.json`,
+   renders each job (top or one-piece first, then bottom on the result), writes `results/<key>.png` and `results.json`
+   (key, seconds, error). Resumable: skips keys already in `results/`. A notebook `apps/tryon/notebooks/batch_render.ipynb`
+   is just: install, download weights, unzip the batch, run the script, zip `results/`.
+3. `manage.py import_tryon_results results.zip`: creates/updates `TryOnRender` rows as `done` with the image, or `failed`
+   with the error. Idempotent.
+4. Size the batch to the demo: about 40 "hero" products the demo script uses, their best look and swaps, regular body
+   for all and slim/plus only for the hero anchors. Roughly a few hundred renders; at the spike's measured seconds per
+   render that should fit in one or two Kaggle sessions. The spike must report the real number.
+
+### Runtime behaviour
+
+- `GET /api/tryon/renders/?body=&top=&bottom=&onepiece=` → the cached render if it exists, else `404`.
+- Web: if a cached render exists for the current look and preset, show it. If not (the shopper swapped to an unrendered
+  combination), show the SVG mannequin with a small note "AI try-on is available for the recommended looks" and a button
+  "Back to the recommended look". The live POST/queue path stays in the code but is used only when `TRYON_SERVICE_URL`
+  is set and `/health` answers.
+
+## Architecture (service code, shared by batch and optional live mode)
 
 ```
 Next.js  ──/api/tryon/*──▶  Django (tryon app)  ──HTTP──▶  apps/tryon  (FastAPI, own venv, GPU, port 8010)
@@ -69,15 +112,16 @@ Next.js  ──/api/tryon/*──▶  Django (tryon app)  ──HTTP──▶  a
     plan 02 with a small note. A tab "AI try-on | Sketch" lets the user switch. The demo must never show a blank panel.
 - Admin (optional, last): Products table gets a "Pre-render try-on" action; Dashboard shows how many renders are cached.
 
-## Hardware gate (do this before writing integration code)
+## Model decision rule (from the spike on Kaggle)
 
-Unknown yet: the team's GPU. The spike (prompt 06) answers it. Decision rule:
-
-| Spike result | Plan |
+| Spike result on a Kaggle T4/P100 | Use |
 | --- | --- |
-| NVIDIA GPU, a top+bottom render in about 40 s or less | live renders + prerender for the demo |
-| GPU too small / FASHN fails, CatVTON works | switch `TRYON_MODEL=catvton`, same architecture |
-| CPU only or several minutes per render | prerender only (overnight `prerender_looks`), live requests show the cached render or the SVG fallback |
+| FASHN v1.5 installs, runs, and 4 of 5 test garments look right | FASHN (`TRYON_MODEL=fashn`) |
+| FASHN fails or looks wrong, CatVTON looks right | CatVTON (`TRYON_MODEL=catvton`) |
+| Both poor on our catalog photos | stop and report with the images; the lead decides (e.g. only clean flat-lay products get try-on) |
+
+Laptop check (same spike): does CatVTON fp16 + offload run on the T1000 at all, and how many seconds per render.
+This only decides whether local one-off renders are possible; the demo does not depend on it.
 
 ## Tests
 
