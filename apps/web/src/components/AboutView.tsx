@@ -193,17 +193,17 @@ export default function AboutView() {
             </p>
           </div>
 
-          {/* Card 4: Virtual Mannequin Preview */}
+          {/* Card 4: Outfit Board Preview */}
           <div className="flex flex-col items-start text-left p-6 bg-white rounded-2xl border border-blue-200/60 shadow-sm hover:shadow-md transition-shadow relative">
             <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-5">
               <User className="w-5 h-5 text-brand-gold" />
             </div>
             <h3 className="font-sans font-bold text-slate-800 text-base mb-2">
-              Virtual Mannequin Preview
+              Outfit Board Preview
             </h3>
             <p className="text-xs text-slate-500 font-sans leading-relaxed">
-              Preview your complete outfit on an AI-generated mannequin before
-              making your purchase.
+              Preview your complete outfit as a board of the real pieces, laid out the way you
+              wear them, before making your purchase.
             </p>
           </div>
         </div>
