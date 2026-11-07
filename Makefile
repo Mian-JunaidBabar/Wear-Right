@@ -9,7 +9,7 @@ PIP    := $(VENV)/bin/pip
 # override here (make media-backup MEDIA_ROOT=/path) if MEDIA_ROOT was moved.
 MEDIA_ROOT ?= $(SERVER)/media
 
-.PHONY: help demo demo-data demo-reset db-up db-down db-reset venv env install migrate seed models test-models mannequin-assets demo-catalog import-catalog process-images media-backup test test-api test-web e2e check build dev
+.PHONY: help demo demo-data demo-reset db-up db-down db-reset venv env install migrate seed models test-models mannequin-assets demo-catalog import-catalog alpha-import process-images media-backup test test-api test-web e2e check build dev
 
 help:
 	@grep -E '^[a-z-]+:' Makefile | cut -d: -f1 | tr '\n' ' '; echo
@@ -58,6 +58,12 @@ models:
 import-catalog:
 	@test -n "$(SOURCE)" || { echo 'usage: make import-catalog SOURCE=/path/to/kaggle-folder [LIMIT=150]'; exit 1; }
 	$(PY) $(SERVER)/manage.py import_fashion_catalog --source "$(SOURCE)" --limit $(or $(LIMIT),150)
+
+# Imports the Mannequin (alpha) kit (base photo + one render per curated product) as stackable garment layers.
+# SOURCE is the kit folder that holds base/, renders/ and manifest.csv; needs `make models`.
+alpha-import:
+	@test -n "$(SOURCE)" || { echo 'usage: make alpha-import SOURCE=/path/to/mannequin-alpha-kit [GENDER=men] [REBUILD=1]'; exit 1; }
+	$(PY) $(SERVER)/manage.py import_alpha_mannequin --source "$(SOURCE)" --gender $(or $(GENDER),men) $(if $(REBUILD),--rebuild,)
 
 # Crops each garment cut-out for the mannequin and flags photos that show a person (needs `make models`).
 mannequin-assets:

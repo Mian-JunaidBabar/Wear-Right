@@ -59,3 +59,44 @@ Open any product in the shop and choose **Preview Outfit**, or open `/complete-o
 - Photo-realistic or layered try-on, back view, poses and drape.
 - Tint the body with the shopper's detected skin tone.
 - Measure whether the mannequin helps shoppers understand an outfit (Phase 8 user study).
+
+## Mannequin (alpha)
+
+Added 2026-11-07 on `feat/mannequin-alpha` as a separate pilot behind `/mannequin`; the SVG mannequin above is unchanged.
+
+**How it works.** The pilot uses one AI-generated model photo (`extras/mannequin-alpha-kit/base/men.png`) and, for each curated product, one Gemini (Nano Banana Pro) edit of that photo with only that item swapped. `manage.py import_alpha_mannequin` (`make alpha-import SOURCE=extras/mannequin-alpha-kit`) aligns every render to the base with OpenCV ECC, cuts the item out as a transparent layer (tops and bottoms with rembg `u2net_cloth_seg`, shoes and watches by colour difference in their band), extends trouser layers under the tee hem, and rejects renders where the person moved. The thresholds live in `catalog/engine/alpha_layers.py`. Layers are stored in `MannequinBase` / `MannequinLayer` under `MEDIA_ROOT/mannequin_alpha/`. `GET /api/mannequin/alpha/?gender=men` returns the base and approved layers by slot; `/mannequin` stacks them as `<img>` layers so any shirt + trousers + shoes + watch combination shows instantly, and alpha products get a "Try it on the mannequin (alpha)" button. Everything is labelled AI-generated; nothing is generated live.
+
+**Real import.** Run on 2026-11-07 against the pilot kit and the shared catalogue:
+
+```text
+code  slot    outcome        ecc   shift    keep  note
+T1    top     approved     0.999   0.2px   0.29%
+T2    top     approved     0.997   0.6px   0.75%
+T3    top     approved     0.999   0.5px   0.25%
+B1    bottom  approved     0.996   0.4px   0.10%
+B2    bottom  approved     0.998   0.3px   0.11%
+B3    bottom  approved     0.996   0.3px   0.15%
+S1    shoes   approved     0.998   0.3px   0.20%
+S2    shoes   approved     0.999   0.4px   0.26%
+W1    watch   approved     0.998   0.4px   0.15%
+W2    watch   approved     0.997   0.2px   0.16%
+Approved 10, unchanged 0, rejected 0, skipped 0.
+```
+
+A second run reported all 10 rows as `unchanged`, so re-importing the same kit is idempotent. All ten rows were approved; no rows were skipped, missing, Draft or inactive. Two catalogue labels do not match the kit artwork (for example the "Mark Taylor Men Striped Black Trousers" image and layer are dark green, and the "Puma Men Soft Red T-shirt" artwork is a coral polo). That is existing product data, not an import defect; the product data was not edited.
+
+**Screenshots.** Desktop 1440 px and phone 390 px, three outfits each:
+
+| Outfit | Desktop | Phone |
+| --- | --- | --- |
+| A: red tee, light grey trousers, brown shoes, CASIO watch | <img src="phase-6-screens/alpha/desktop-outfit-a.png" width="460"> | <img src="phase-6-screens/alpha/phone-outfit-a.png" width="190"> |
+| B: pink check shirt, blue jeans, blue shoes, Titan watch | <img src="phase-6-screens/alpha/desktop-outfit-b.png" width="460"> | <img src="phase-6-screens/alpha/phone-outfit-b.png" width="190"> |
+| C: brown check shirt, dark green trousers, blue shoes, Titan watch | <img src="phase-6-screens/alpha/desktop-outfit-c.png" width="460"> | <img src="phase-6-screens/alpha/phone-outfit-c.png" width="190"> |
+
+**Limits.**
+
+- Curated pilot set only: ten men's products (three shirts, three trousers, two shoes, two watches). Products without a layer do not get the try-on button.
+- Men only: the API accepts `gender=women`, but the pilot has no women's base or layers.
+- The model is AI-generated and fixed: one body, one pose, one backdrop. It is not the shopper and does not reflect their size or skin tone.
+- Not live try-on: layers are pre-generated edits of the model photo, not a real-time render of the shopper or the product. Fit, drape and fabric behaviour are illustrative.
+
