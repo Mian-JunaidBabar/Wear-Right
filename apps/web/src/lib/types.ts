@@ -11,6 +11,7 @@ export type ViewType =
   | "wishlist"
   | "about"
   | "contact"
+  | "mannequin"
   | "admin";
 
 /** What the UI knows about whoever is browsing. Guests have isLoggedIn: false. */

@@ -26,6 +26,8 @@ import { ADMIN_WHATSAPP_NUMBER, PLACEHOLDER_IMAGE } from "@/lib/config";
 import { useCart } from "@/features/cart/useCart";
 import { useWishlist } from "@/features/wishlist/useWishlist";
 import { catalogApi } from "@/features/catalog/api";
+import { mannequinApi } from "@/features/mannequin/api";
+import { hasProduct } from "@/features/mannequin/dressingRoom";
 import { notify } from "@/lib/notify";
 import ProductImage from "@/components/ProductImage";
 
@@ -253,6 +255,25 @@ function ProductDetail({ id }: { id: string | undefined }) {
       cancelled = true;
     };
   }, [productId]);
+
+  // Mannequin (alpha): offer the dressing room when this product has a garment layer.
+  const [mannequinFor, setMannequinFor] = useState<string | null>(null);
+  useEffect(() => {
+    if (!productId) return;
+    let cancelled = false;
+    mannequinApi
+      .wardrobe("men")
+      .then((wardrobe) => {
+        if (!cancelled && hasProduct(wardrobe, Number(productId))) setMannequinFor(productId);
+      })
+      .catch(() => {
+        // no mannequin for this product; nothing to show
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [productId]);
+  const onMannequin = productId !== null && mannequinFor === productId;
 
   const outfitReady = outfitState !== null && outfitState.productId === productId;
   const outfitData = outfitReady ? outfitState.data : null;
@@ -655,6 +676,18 @@ Please share more details.`;
                 <MessageCircle className="w-4 h-4" />
                 WhatsApp
               </button>
+
+              {/* Mannequin (alpha) */}
+              {onMannequin && (
+                <button
+                  onClick={() => navigate(`/mannequin?product=${product.id}`)}
+                  data-testid="try-on-mannequin"
+                  className="sm:col-span-2 bg-brand-dark hover:opacity-90 text-white py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-200"
+                >
+                  <Shirt className="w-4 h-4" />
+                  Try it on the mannequin (alpha)
+                </button>
+              )}
             </div>
 
             {/* Why This Product */}

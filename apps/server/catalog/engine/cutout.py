@@ -35,3 +35,37 @@ CLOTH_MODEL = "u2net_cloth_seg"
 def cloth_remover(model_dir=None):
     """Build the cloth segmentation function (rembg `u2net_cloth_seg`): photo in, three stacked cut-outs out."""
     return rembg_remover(CLOTH_MODEL, model_dir)
+
+
+def cloth_segmenter(model_dir=None):
+    """Upper/lower body clothes masks (rembg `u2net_cloth_seg`) for the alpha mannequin.
+
+    Returns a function: RGB array or PIL image in, (upper, lower) boolean arrays of the same size out.
+    rembg's cloth session `predict` gives three greyscale masks: upper body, lower body, full body.
+    """
+    import os
+
+    from PIL import Image as PILImage
+
+    if model_dir is not None:
+        os.environ["U2NET_HOME"] = str(model_dir)
+    from rembg import new_session
+
+    session = new_session(CLOTH_MODEL)
+
+    def segment(image):
+        if not hasattr(image, "convert"):
+            image = PILImage.fromarray(image)
+        masks = session.predict(image.convert("RGB"))
+        return cloth_masks_from_predict(masks)
+
+    return segment
+
+
+def cloth_masks_from_predict(masks):
+    """(upper, lower) boolean arrays from rembg's cloth `predict` output (a list of greyscale masks)."""
+    import numpy as np
+
+    if len(masks) < 2:
+        raise ValueError(f"cloth segmentation returned {len(masks)} masks, expected 3 (upper, lower, full)")
+    return np.asarray(masks[0].convert("L")) > 127, np.asarray(masks[1].convert("L")) > 127

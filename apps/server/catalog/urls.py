@@ -1,4 +1,6 @@
 from django.urls import path
+
+from .alpha_views import AlphaWardrobeAPIView
 from .views import (
     CategoryDetailAPIView, CategoryListCreateAPIView, ColourDetailAPIView, ColourListCreateAPIView,
     ProductColourSuggestionAPIView, ProductDetailAPIView, ProductListCreateAPIView,
@@ -15,4 +17,5 @@ urlpatterns = [
     path('colors/<int:row_id>/', ColourDetailAPIView.as_view(), name='api-color-detail'),
     path('styles/', StyleListCreateAPIView.as_view(), name='api-styles'),
     path('styles/<int:row_id>/', StyleDetailAPIView.as_view(), name='api-style-detail'),
+    path('mannequin/alpha/', AlphaWardrobeAPIView.as_view(), name='api-mannequin-alpha'),
 ]

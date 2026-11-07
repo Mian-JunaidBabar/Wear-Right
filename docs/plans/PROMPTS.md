@@ -193,3 +193,74 @@ Report: files, real test/build output, what the scan says in each hand check.
 ## Final run (lead, once)
 
 After prompt 03: `make check` (test + build + e2e) on the whole app. Failing specs go back to the agent of the plan that touched that area.
+
+---
+
+## Prompt 13: Mannequin (alpha) pilot (plan 11)
+
+Note: prompt numbers are the order they were written, not plan numbers (Prompt 08 is plan 06, Prompt 12 is plan 10). This one is plan 11.
+
+Run it in two sessions. Session 1 is Part A only.
+
+```
+You are working on Wear Right (FYP). Read CLAUDE.md, docs/STATUS.md, docs/plans/README.md, docs/plans/08-outfit-board-and-media.md (what exists now) and docs/plans/11-mannequin-alpha-pilot.md. Also read /home/jb/Projects/Wear-Right/extras/mannequin-alpha-kit/GUIDE.md (absolute path: extras/ is gitignored, so a worktree does not have it) so you know how the renders are made. Do only Part A of plan 11.
+
+1. catalog/engine/alpha_layers.py (pure, no Django): normalise, default_regions, align (ORB+RANSAC, ECC refine, slot masked out), pose_check, extract_layer (colour difference x slot region x u2net_cloth_seg masks, clean-up, feather), composite. Thresholds are constants at the top, commented as starting values.
+2. Commands alpha_regions and alpha_check, exactly as in the plan.
+3. The synthetic pytest tests from the plan, plus one @pytest.mark.models test for the cloth model (add it to download_models.py if missing).
+4. Run the gate: alpha_regions --preview on /home/jb/Projects/Wear-Right/extras/mannequin-alpha-kit/base/men.png, then alpha_check on renders/T1_20024.png (slot top) and renders/B1_31562.png (slot bottom). Save outputs to docs/phases/phase-6-screens/alpha/gate/.
+
+Run `make test`. No Playwright. One commit for code + tests, one for the gate outputs.
+
+Then STOP. Report: files, real test output, the printed reports for both renders, the PASS/REJECT verdicts, and your honest judgment of the layers (only the shirt? only the trousers? edges?). Do not loosen a threshold to make a render pass. Do not start Part B.
+```
+
+Session 2, after the lead says go and the team has all renders in the kit:
+
+```
+You are working on Wear Right (FYP). Read CLAUDE.md, docs/STATUS.md, docs/plans/README.md and docs/plans/11-mannequin-alpha-pilot.md. Part A is done (see docs/phases/phase-6-screens/alpha/gate/). Do Parts B to E.
+
+Order, one commit each, tests in the same commit:
+1. Part B: MannequinBase / MannequinLayer / MannequinLook + migration, services, import_alpha_mannequin and alpha_preview commands, Makefile targets.
+2. Part C: the resolve endpoint, alpha_mannequin on ProductSerializer (Exists annotation), ?mannequin=alpha, the admin endpoints with RBAC. pytest for every endpoint.
+3. Part D: lib/api.ts functions, useAlphaMannequin, AlphaMannequin.tsx, tabs in CompleteOutfitView and OutfitPreviewModal, the ProductDetailView button, the ShopView badge and filter, the admin section. vitest.
+4. Part E: make alpha-import SOURCE=/home/jb/Projects/Wear-Right/extras/mannequin-alpha-kit, make alpha-preview, REVIEW.md, approve the good ones in the admin, hand checks in the browser, docs.
+
+Testing: `make test` and `npm --prefix apps/web run build`. No Playwright.
+
+Report: commits, real test/build output, the import table, REVIEW.md, screenshots, and what is still weak.
+```
+
+---
+
+## Prompt 14: verify the mannequin dressing room (code already written, plan 11)
+
+Use this instead of Prompt 13. The lead has written the code; your job is to run it, test it and fix real defects only.
+
+```
+You are working on Wear Right (FYP). Read CLAUDE.md, docs/STATUS.md (the "Mannequin (alpha)" decision) and docs/plans/README.md. The Mannequin (alpha) dressing room is already written. Do not redesign it; run it, test it and fix only real defects, each with a test.
+
+New and changed files:
+- apps/server/catalog/engine/alpha_layers.py (pure engine), catalog/engine/cutout.py (cloth_segmenter)
+- apps/server/catalog/models.py (MannequinBase, MannequinLayer) + migrations/0009_mannequin_alpha.py
+- apps/server/catalog/alpha_services.py, alpha_selectors.py, alpha_views.py, urls.py (/api/mannequin/alpha/)
+- apps/server/catalog/management/commands/import_alpha_mannequin.py, Makefile target alpha-import
+- apps/server/catalog/tests/alpha_fixtures.py, test_alpha_layers.py, test_alpha_mannequin.py
+- apps/web/src/features/mannequin/api.ts, dressingRoom.ts, dressingRoom.test.ts
+- apps/web/src/components/DressingRoomView.tsx, apps/web/src/app/mannequin/page.tsx
+- apps/web/src/lib/types.ts, lib/navigation.ts, components/Navbar.tsx (Mannequin link), components/ProductDetailView.tsx (button)
+
+Steps:
+1. `make migrate`. If makemigrations --check reports a difference for catalog, fix the migration file to match the models (do not change the models).
+2. `make models` if apps/server/ml_models/rembg/models/u2net_cloth_seg is missing.
+3. `make alpha-import SOURCE=extras/mannequin-alpha-kit` and paste the full table it prints. All 10 rows should be "approved". If a row is skipped because no product has that external_id, or a product is Draft, report it; do not edit product data yourself.
+4. `make test` (pytest + vitest + tsc + eslint) and `npm --prefix apps/web run build`. Fix failures caused by the new code. Do NOT run Playwright or make e2e.
+5. `npm run dev`, open http://localhost:3000/mannequin and check by hand: the Mannequin link in the navbar; picking each shirt, trousers, shoes and watch changes the model instantly; picking the worn item again takes it off; Shuffle and Reset; the total; "View" opens the product; a shirt with no trousers chosen and trousers with no shirt chosen both look right at the waist; phone width (390px). Open a pilot product page (e.g. the pink shirt) and check the "Try it on the mannequin (alpha)" button opens /mannequin wearing that shirt; a non-alpha product has no button.
+6. Save screenshots to docs/phases/phase-6-screens/alpha/ (desktop + phone, 3 different outfits).
+7. Update docs/phases/phase-6.md with a short "Mannequin (alpha)" section: how it works (from STATUS.md), the real import table, the screenshots, and limits (curated set, men only, AI-generated model, not live try-on).
+
+Commit on a branch feat/mannequin-alpha: one commit for the lead's code as given, then one commit per fix, then docs.
+
+Report: the import table, real make test and build output, each fix with its cause, the hand-check results and anything that still looks off (seams, wrong item, slow swaps).
+```
+
