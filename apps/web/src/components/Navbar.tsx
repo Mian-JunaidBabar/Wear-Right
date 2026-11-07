@@ -20,6 +20,7 @@ import {
   Heart,
   Info,
   Phone,
+  Shirt,
 } from "lucide-react";
 import { ViewType } from "@/lib/types";
 import { ADMIN_WHATSAPP_NUMBER } from "@/lib/config";
@@ -80,6 +81,7 @@ function ShopNavbar() {
     { id: "home" as ViewType, label: "Home", icon: Home },
     { id: "shop" as ViewType, label: "Shop", icon: ShoppingBag },
     { id: "facescan" as ViewType, label: "Face Scan", icon: Camera },
+    { id: "mannequin" as ViewType, label: "Mannequin", icon: Shirt },
     { id: "about" as ViewType, label: "About", icon: Info },
     { id: "contact" as ViewType, label: "Contact", icon: Phone },
   ];

@@ -45,6 +45,7 @@ export const VIEW_PATHS: Record<ViewType, string> = {
   wishlist: "/wishlist",
   about: "/about",
   contact: "/contact",
+  mannequin: "/mannequin",
   admin: "/admin",
 };
 
