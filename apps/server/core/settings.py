@@ -173,4 +173,11 @@ PASSWORD_RESET_TIMEOUT = int(os.environ.get('PASSWORD_RESET_TIMEOUT', '3600'))  
 # Local AI model weights (rembg, MediaPipe). Filled by `make models`; never committed.
 ML_MODELS_DIR = Path(os.environ.get('ML_MODELS_DIR', BASE_DIR / 'ml_models'))
 
+# Demo catalog: shoppers only see products that are on the mannequin (staff still see everything).
+SHOP_MANNEQUIN_ONLY = os.environ.get('SHOP_MANNEQUIN_ONLY', 'False').lower() in ('true', '1', 'yes')
+
+# Face scan photo checks: override any threshold from scanner/engine/quality.py THRESHOLDS, e.g.
+# SKIN_SCAN_QUALITY = {"cast_b_warm_fail": 24.0}. Empty uses the defaults.
+SKIN_SCAN_QUALITY = {}
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

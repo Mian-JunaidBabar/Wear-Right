@@ -40,7 +40,7 @@ def cloth_remover(model_dir=None):
 def cloth_segmenter(model_dir=None):
     """Upper/lower body clothes masks (rembg `u2net_cloth_seg`) for the alpha mannequin.
 
-    Returns a function: RGB array or PIL image in, (upper, lower) boolean arrays of the same size out.
+    Returns a function: RGB array or PIL image in, (upper, lower, full) boolean arrays of the same size out.
     rembg's cloth session `predict` gives three greyscale masks: upper body, lower body, full body.
     """
     import os
@@ -63,9 +63,12 @@ def cloth_segmenter(model_dir=None):
 
 
 def cloth_masks_from_predict(masks):
-    """(upper, lower) boolean arrays from rembg's cloth `predict` output (a list of greyscale masks)."""
+    """(upper, lower, full) boolean arrays from rembg's cloth `predict` output (a list of greyscale masks).
+
+    The full-body mask matters for kurtas and kameez: the model labels a long shirt as "full", not "upper".
+    """
     import numpy as np
 
-    if len(masks) < 2:
+    if len(masks) < 3:
         raise ValueError(f"cloth segmentation returned {len(masks)} masks, expected 3 (upper, lower, full)")
-    return np.asarray(masks[0].convert("L")) > 127, np.asarray(masks[1].convert("L")) > 127
+    return tuple(np.asarray(mask.convert("L")) > 127 for mask in masks[:3])

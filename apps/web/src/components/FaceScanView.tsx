@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { ApiError } from "@/lib/api";
-import { scannerApi } from "@/features/scanner/api";
+import { scannerApi, type QualityCheck } from "@/features/scanner/api";
 import { recommenderApi, type Palette as TonePalette } from "@/features/recommender/api";
 
 type ScanState = "idle" | "camera" | "scanning" | "complete" | "error";
@@ -60,6 +60,8 @@ export default function FaceScanView() {
   const [manualSubmitting, setManualSubmitting] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [, setFramesAnalyzed] = useState<number | null>(null);
+  // Photo quality checks from the server (colour of the light, blur, side light, head turn).
+  const [qualityChecks, setQualityChecks] = useState<QualityCheck[]>([]);
 
   const telemetrySteps = [
     "ACCESSING CAMERA STREAM...",
@@ -270,6 +272,7 @@ export default function FaceScanView() {
       setBackendMessage(data.message || "");
       setUndertone(data.undertone ?? null);
       setMonk(data.monk ?? null);
+      setQualityChecks(data.quality?.checks ?? []);
       setJewelry(null);
       setSunReaction(null);
       setFramesAnalyzed(data.total_frames_analyzed || blobs.length);
@@ -290,9 +293,12 @@ export default function FaceScanView() {
         setDetectedTone("Rescan Required");
         setConfidenceScore(0);
         setLightingQuality("Unknown");
+        // The server says why: no face, too dark, yellow light, light from one side, head turned...
+        const details = (error.details ?? {}) as { quality?: { checks?: QualityCheck[] } | null };
         setBackendMessage(
-          "We could not find a clear face in that photo. Please scan again or pick your tone below.",
+          error.message || "We could not find a clear face in that photo. Please scan again or pick your tone below.",
         );
+        setQualityChecks(details.quality?.checks ?? []);
         setUndertone(null);
         setMonk(null);
         setJewelry(null);
@@ -381,6 +387,7 @@ export default function FaceScanView() {
     setErrorMessage("");
     setCountdown(null);
     setFramesAnalyzed(null);
+    setQualityChecks([]);
   };
 
   // The palette comes from the server's tone rules, so it follows depth and undertone (including the override).
@@ -676,6 +683,24 @@ export default function FaceScanView() {
                 </div>
               )}
 
+              {/* Photo quality checks: why a scan was rejected, or what lowered the confidence */}
+              {qualityChecks.some((check) => check.status !== "pass") && (
+                <ul data-testid="scan-quality" className="space-y-1.5 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                  {qualityChecks
+                    .filter((check) => check.status !== "pass")
+                    .map((check) => (
+                      <li key={check.key} className="flex items-start gap-2 text-xs font-semibold text-amber-800">
+                        <span
+                          className={`mt-1 inline-block h-2 w-2 shrink-0 rounded-full ${
+                            check.status === "fail" ? "bg-red-500" : "bg-amber-500"
+                          }`}
+                        />
+                        {check.message}
+                      </li>
+                    ))}
+                </ul>
+              )}
+
               {/* Colour palette from the server's tone rules */}
               {!isWarningResult && (
                 <div data-testid="scan-palette">
@@ -714,16 +739,20 @@ export default function FaceScanView() {
                         ? "dark"
                         : "medium";
                     navigate(
-                      `/recommended?skinTone=${finalTone}&undertone=${undertone ?? ""}&confidence=${confidenceScore || ""}`,
+                      // A confident result goes straight to the colour theme (only clothes in this palette);
+                      // a warning result shows all good matches so the shopper can judge.
+                      `/recommended?skinTone=${finalTone}&undertone=${undertone ?? ""}&confidence=${confidenceScore || ""}${
+                        isWarningResult ? "" : "&theme=palette"
+                      }`,
                     );
                   }}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase py-4.5 tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-blue-900/10 cursor-pointer border-none flex items-center justify-center gap-2.5 hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <Sparkles className="w-4 h-4 text-white" />
-                  View Recommended Products
+                  {isWarningResult ? "View Recommended Products" : "Yes, that's me: show clothes in my colours"}
                 </button>
 
-                {isWarningResult && (
+                {(
                   <button
                     onClick={() => {
                       resetScan();
@@ -731,7 +760,7 @@ export default function FaceScanView() {
                     }}
                     className="w-full border-2 border-slate-300 hover:border-slate-500 text-slate-700 font-bold text-xs uppercase py-4 tracking-widest rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer bg-transparent hover:scale-[1.02] active:scale-[0.98]"
                   >
-                    Pick my tone instead
+                    {isWarningResult ? "Pick my tone instead" : "Not right? Choose my tone"}
                   </button>
                 )}
 

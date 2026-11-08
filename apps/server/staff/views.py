@@ -12,6 +12,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.serializers import AdminPasswordResetConfirmSerializer, AdminPasswordResetRequestSerializer
 
+from catalog.alpha_views import MannequinLayerDetailAPIView, MannequinLayerListAPIView
 from catalog.views import (
     CategoryDetailAPIView, CategoryListCreateAPIView, ColourDetailAPIView, ColourListCreateAPIView,
     ProductColourSuggestionAPIView, ProductDetailAPIView, ProductListCreateAPIView, StyleDetailAPIView,
@@ -353,6 +354,14 @@ class AdminToneRuleList(AdminAPIMixin, ToneRuleListCreateAPIView):
 
 class AdminToneRuleDetail(AdminAPIMixin, ToneRuleDetailAPIView):
     admin_permissions = _perms('products', write='catalog.manage')
+
+
+class AdminMannequinLayers(AdminAPIMixin, MannequinLayerListAPIView):
+    admin_permissions = {'GET': 'products.view', 'POST': 'products.manage'}
+
+
+class AdminMannequinLayerDetail(AdminAPIMixin, MannequinLayerDetailAPIView):
+    admin_permissions = {'PATCH': 'products.manage', 'DELETE': 'products.manage'}
 
 
 class AdminOrderList(AdminAPIMixin, OrderListCreateAPIView):

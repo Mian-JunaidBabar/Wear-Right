@@ -84,7 +84,7 @@ def test_unknown_products_wrong_gender_missing_files_and_moved_renders_are_repor
     ProductFactory(external_id="9100", gender="women")
     moved = [("T9", "9001", "top", "renders/T9_moved.png", dict(top=(200, 40, 40), shift=(60, 0)))]
     kit = make_kit(tmp_path / "kit", rows=moved, extra_manifest=[
-        ["X1", "nope", "top", "", "", "renders/T9_moved.png", "", "", ""],
+        ["X1", "nope", "top", "", "", "renders/T1_9001.png", "", "", ""],
         ["X2", "9100", "top", "", "", "renders/T9_moved.png", "", "", ""],
         ["X3", "9002", "bottom", "", "", "renders/missing.png", "", "", ""],
         ["X4", "9003", "hat", "", "", "renders/T9_moved.png", "", "", ""],
@@ -112,7 +112,11 @@ def test_the_command_prints_one_line_per_render(tmp_path, monkeypatch):
 def test_the_wardrobe_api_is_empty_before_an_import(api_client):
     response = api_client.get(URL)
     assert response.status_code == 200
-    assert response.json() == {"status": "success", "gender": "men", "base": None, "z_order": response.json()["z_order"], "slots": []}
+    body = response.json()
+    assert body == {
+        "status": "success", "gender": "men", "base": None, "z_order": body["z_order"], "slots": [],
+        "groups": [], "exclusive": [],
+    }
 
 
 def test_the_wardrobe_api_lists_approved_layers_by_slot(api_client, tmp_path):
@@ -131,9 +135,13 @@ def test_the_wardrobe_api_lists_approved_layers_by_slot(api_client, tmp_path):
     assert body["z_order"]["top"] > body["z_order"]["bottom"] > body["z_order"]["shoes"]
     slots = {slot["slot"]: slot for slot in body["slots"]}
     assert list(slots) == ["top", "bottom", "watch"]  # shoes layer not approved: no shoes row
-    assert slots["top"]["label"] == "Shirts"
+    assert slots["top"]["label"] == "Shirts & tops"
     item = slots["top"]["items"][0]
-    assert set(item) == {"product_id", "name", "price", "image", "layer", "available"}
+    assert set(item) == {
+        "product_id", "name", "price", "image", "layer", "layers", "category", "color", "sizes",
+        "stock_quantity", "status", "available", "in_stock",
+    }
+    assert item["layers"] == {"wheatish": item["layer"], "fair": item["layer"], "dark": item["layer"]}  # no copies yet
     assert item["product_id"] == made["9001"].id and item["available"] is True
     assert item["layer"].startswith("/media/mannequin_alpha/layers/")
     assert slots["watch"]["items"][0]["available"] is False  # Draft: shown, but not linked

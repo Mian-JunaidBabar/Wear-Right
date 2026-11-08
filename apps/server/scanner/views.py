@@ -25,7 +25,11 @@ class FaceScannerAPIView(APIView):
             # 422 is the standard API failure for "the photo could not be read"; the legacy fields are
             # kept so the current scanner UI can still show its retry message, and the manual picker follows.
             return Response({
-                "error": {"code": "no_face", "message": result["message"], "details": {"reason": result["reason"]}},
+                "error": {
+                    "code": "no_face",
+                    "message": result["message"],
+                    "details": {"reason": result["reason"], "quality": result.get("quality")},
+                },
                 "status": "failed",
                 "detected_skin_tone": result["detected_skin_tone"],
                 "confidence_score": result["confidence_score"],
@@ -33,6 +37,7 @@ class FaceScannerAPIView(APIView):
                 "brightness": result["brightness"],
                 "message": result["message"],
                 "reason": result["reason"],
+                "quality": result.get("quality"),
                 "all_frame_results": result["all_frame_results"]
             }, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
@@ -54,6 +59,7 @@ class FaceScannerAPIView(APIView):
             "selected_frame_debug": result["selected_frame_debug"],
             "total_frames_analyzed": result["total_frames_analyzed"],
             "all_frame_results": result["all_frame_results"],
+            "quality": result.get("quality"),
             "palette": _palette(depth, undertone),
         }, status=status.HTTP_200_OK)
 

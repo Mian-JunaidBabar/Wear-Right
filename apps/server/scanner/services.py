@@ -38,12 +38,15 @@ def _record_scan(user, **fields):
 
 def analyze_face_images(uploaded_images, user=None, detector=None):
     detector = detector or get_detector()
-    frames = [analyze_upload(image, detector) for image in uploaded_images]
+    # Photo quality thresholds (scanner/engine/quality.py THRESHOLDS) can be overridden per deployment.
+    thresholds = getattr(settings, "SKIN_SCAN_QUALITY", None)
+    frames = [analyze_upload(image, detector, quality_thresholds=thresholds) for image in uploaded_images]
     all_frame_results = [legacy_view(frame) for frame in frames]
     final = consensus(frames)
 
     if final is None:
-        failure = frames[0]
+        # Report the first photo that failed a quality check (it has the most useful message), else the first.
+        failure = next((frame for frame in frames if frame.get("quality")), frames[0])
         _record_scan(
             user,
             detected_skin_tone="Rescan Required",
@@ -59,6 +62,7 @@ def analyze_face_images(uploaded_images, user=None, detector=None):
             "brightness": failure["brightness"],
             "message": failure["message"],
             "reason": failure["reason"],
+            "quality": failure.get("quality"),
             "all_frame_results": all_frame_results,
         }
 
@@ -95,5 +99,6 @@ def analyze_face_images(uploaded_images, user=None, detector=None):
             "monk_distance": final["monk_distance"],
         },
         "total_frames_analyzed": len(frames),
+        "quality": final.get("quality"),
         "all_frame_results": all_frame_results,
     }

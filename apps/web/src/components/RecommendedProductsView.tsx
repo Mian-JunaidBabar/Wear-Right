@@ -55,10 +55,14 @@ export default function RecommendedProductsView() {
   const undertone = searchParams.get("undertone") || profile?.undertone || "";
 
   const [selectedStyle, setSelectedStyle] = useState<StyleKey | "">("");
+  // Colour theme: after a scan the shopper says "yes, that's me" and lands here with ?theme=palette, so only
+  // clothes in their palette show. A tapped swatch narrows it to that one colour.
+  const [paletteOnly, setPaletteOnly] = useState(searchParams.get("theme") === "palette");
+  const [colourFilter, setColourFilter] = useState(searchParams.get("colour") || "");
   const [searchText, setSearchText] = useState("");
   const [products, setProducts] = useState<RecommendationProduct[]>([]);
   const [palette, setPalette] = useState<TonePalette>({ best: [], avoid: [] });
-  const requestKey = `${detectedSkinTone}|${undertone}|${selectedStyle}`;
+  const requestKey = `${detectedSkinTone}|${undertone}|${selectedStyle}|${paletteOnly}|${colourFilter}`;
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const loading = loadedKey !== requestKey;
   const [errorMessage, setErrorMessage] = useState("");
@@ -102,7 +106,13 @@ export default function RecommendedProductsView() {
   useEffect(() => {
     let cancelled = false;
     recommenderApi
-      .topPicks({ depth: detectedSkinTone, undertone, style: selectedStyle })
+      .topPicks({
+        depth: detectedSkinTone,
+        undertone,
+        style: selectedStyle,
+        palette_only: paletteOnly ? 1 : undefined,
+        colour: colourFilter || undefined,
+      })
       .then((data) => {
         if (cancelled) return;
         setProducts(data.items.map(toProduct));
@@ -121,7 +131,7 @@ export default function RecommendedProductsView() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- toProduct only reads constants
-  }, [detectedSkinTone, undertone, selectedStyle, requestKey]);
+  }, [detectedSkinTone, undertone, selectedStyle, paletteOnly, colourFilter, requestKey]);
 
   const recommendedProducts = useMemo(() => {
     const search = searchText.trim().toLowerCase();
@@ -207,8 +217,48 @@ export default function RecommendedProductsView() {
           </div>
 
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <ColorBox title="Your best colours" colors={palette.best} />
+            <ColorBox
+              title="Your best colours"
+              colors={palette.best}
+              selected={colourFilter}
+              onPick={(name) => setColourFilter(colourFilter === name ? "" : name)}
+            />
             <ColorBox title="Colours to avoid" colors={palette.avoid} />
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3" data-testid="colour-theme">
+            <span className="text-xs font-black uppercase tracking-widest text-slate-500">Colour theme</span>
+            <button
+              type="button"
+              aria-pressed={paletteOnly}
+              data-testid="theme-palette"
+              onClick={() => setPaletteOnly(true)}
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest ${
+                paletteOnly ? "bg-emerald-600 text-white" : "bg-cream-base text-slate-700 border border-brand-border/60"
+              }`}
+            >
+              Only my colours
+            </button>
+            <button
+              type="button"
+              aria-pressed={!paletteOnly}
+              data-testid="theme-all"
+              onClick={() => setPaletteOnly(false)}
+              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest ${
+                !paletteOnly ? "bg-emerald-600 text-white" : "bg-cream-base text-slate-700 border border-brand-border/60"
+              }`}
+            >
+              All good matches
+            </button>
+            {colourFilter && (
+              <button
+                type="button"
+                onClick={() => setColourFilter("")}
+                className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest bg-white border border-brand-border/60 text-slate-700"
+              >
+                Showing {colourFilter} · clear
+              </button>
+            )}
           </div>
         </div>
 
@@ -366,7 +416,18 @@ export default function RecommendedProductsView() {
   );
 }
 
-function ColorBox({ title, colors }: { title: string; colors: { name: string; hex: string | null }[] }) {
+function ColorBox({
+  title,
+  colors,
+  selected,
+  onPick,
+}: {
+  title: string;
+  colors: { name: string; hex: string | null }[];
+  selected?: string;
+  /** When set, each swatch is a button that filters the picks to that colour. */
+  onPick?: (name: string) => void;
+}) {
   return (
     <div className="bg-cream-base border border-slate-100 rounded-2xl p-4">
       <div className="flex items-center gap-2 mb-3">
@@ -374,21 +435,42 @@ function ColorBox({ title, colors }: { title: string; colors: { name: string; he
         <h3 className="text-xs font-black uppercase tracking-widest text-slate-600">
           {title}
         </h3>
+        {onPick && colors.length > 0 && (
+          <span className="text-[10px] font-semibold text-slate-400">tap a colour to see only that</span>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
         {colors.length === 0 && (
           <span className="text-xs text-slate-400 font-semibold">Scan your face to see your colours.</span>
         )}
-        {colors.map((color) => (
-          <span
-            key={`${title}-${color.name}`}
-            className="bg-white border border-brand-border/60 text-slate-700 pl-2 pr-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1.5"
-          >
-            <span className="w-3.5 h-3.5 rounded-full border border-slate-200" style={{ background: color.hex ?? "#ccc" }} />
-            {color.name}
-          </span>
-        ))}
+        {colors.map((color) => {
+          const swatch = (
+            <>
+              <span className="w-3.5 h-3.5 rounded-full border border-slate-200" style={{ background: color.hex ?? "#ccc" }} />
+              {color.name}
+            </>
+          );
+          const classes = `border pl-2 pr-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1.5 ${
+            selected === color.name ? "bg-emerald-600 text-white border-emerald-600" : "bg-white border-brand-border/60 text-slate-700"
+          }`;
+          return onPick ? (
+            <button
+              key={`${title}-${color.name}`}
+              type="button"
+              aria-pressed={selected === color.name}
+              data-testid="palette-swatch"
+              onClick={() => onPick(color.name)}
+              className={classes}
+            >
+              {swatch}
+            </button>
+          ) : (
+            <span key={`${title}-${color.name}`} className={classes}>
+              {swatch}
+            </span>
+          );
+        })}
       </div>
     </div>
   );

@@ -44,17 +44,27 @@ def reason(item, profile, palette_score):
     return text
 
 
-def rank(items, profile, palette, *, limit=DEFAULT_LIMIT):
-    """Return [{"item", "score", "match", "reason", "colour"}] best first, at most `limit`, 3 per category."""
+def rank(items, profile, palette, *, limit=DEFAULT_LIMIT, palette_only=False, colour=None):
+    """Return [{"item", "score", "match", "reason", "colour"}] best first, at most `limit`, 3 per category.
+
+    palette_only: keep only the shopper's good and best colours (the "show my colour theme" step after a scan).
+    colour: keep only one colour name (the shopper tapped a swatch). Both are ignored for an unknown palette
+    except `colour`, which always filters.
+    """
     scored = []
+    wanted = (colour or "").strip().lower()
     for item in items:
         if not item.size_ok or not gender_ok(item.gender, profile.gender):
             continue
         if item.is_kids:
             continue  # kids products never appear on a grown-up shopper's picks
+        if wanted and colour_label(item).lower() != wanted:
+            continue
         palette_score = palette.score_item(item)
         if palette.known and palette_score <= -2:
             continue  # a colour to avoid is never recommended
+        if palette_only and palette.known and palette_score < 1:
+            continue  # only colours from the shopper's palette
         score = (
             W_PALETTE * palette.normalised(colour_label(item))
             + W_STYLE * style_match(item, profile)

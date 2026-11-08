@@ -8,10 +8,13 @@ What changed from v1 (bugs fixed on purpose):
 - L* is never altered before measuring. v1 applied gamma and CLAHE first, which changed depth.
   Bad light is rejected with a retake prompt instead of being "corrected".
 - Only the cheeks and forehead are sampled (MediaPipe landmarks), not a centre crop.
+- Photo quality gate (quality.py): colour of the light, blur, side light and head turn are checked before
+  measuring. A fail asks for a retake with the reason; each warning lowers the confidence.
 """
 import cv2
 import numpy as np
 
+from .quality import check_quality
 from .regions import region_mask
 from .skin import (
     bgr_to_lab, depth_from_ita, hue_degrees, ita_degrees, nearest_monk, trimmed_median_lab, undertone_from_hue,
@@ -64,7 +67,7 @@ def _fail(reason, message, lighting="Unknown", brightness=0.0):
     return {"ok": False, "reason": reason, "message": message, "lighting": lighting, "brightness": round(brightness, 2)}
 
 
-def analyze_frame(bgr, detector, *, white_balance=WHITE_BALANCE_DEFAULT):
+def analyze_frame(bgr, detector, *, white_balance=WHITE_BALANCE_DEFAULT, quality_thresholds=None, check_photo=True):
     """Analyse one BGR frame. Returns {"ok": True, ...measurements} or {"ok": False, "reason", "message", ...}."""
     if bgr is None:
         return _fail("unreadable", "Image could not be processed.")
@@ -100,10 +103,19 @@ def analyze_frame(bgr, detector, *, white_balance=WHITE_BALANCE_DEFAULT):
     if lighting == "Too Bright":
         return _fail("too_bright", "Your face is overexposed. Scan again in softer, normal light.", lighting, brightness)
 
+    quality = check_quality(bgr, landmarks, (x0, y0, x1, y1), quality_thresholds) if check_photo else None
+    if quality is not None and not quality["ok"]:
+        failed = quality["failed"]
+        result = _fail(failed["key"], failed["message"], lighting, brightness)
+        result["quality"] = quality
+        return result
+
     lab = trimmed_median_lab(bgr_to_lab(region))
     ita, hue = ita_degrees(lab), hue_degrees(lab)
     monk, monk_distance = nearest_monk(lab)
     confidence = 100.0 * min(1.0, len(region) / FULL_CONFIDENCE_PIXELS) * LIGHTING_FACTOR[lighting]
+    if quality is not None:
+        confidence *= quality["confidence_factor"]
     return {
         "ok": True,
         "depth": depth_from_ita(ita),
@@ -118,6 +130,7 @@ def analyze_frame(bgr, detector, *, white_balance=WHITE_BALANCE_DEFAULT):
         "brightness": round(brightness, 2),
         "confidence": round(confidence, 1),
         "white_balance": bool(white_balance),
+        "quality": quality,
     }
 
 
@@ -158,4 +171,5 @@ def consensus(results):
         "frames_used": len(usable),
         "frames_agreeing": len(agreeing),
         "agreement": round(agreement, 2),
+        "quality": best.get("quality"),
     }
