@@ -50,6 +50,46 @@ export type AdminMember = {
 
 export type ToneRule = { id: number; depth: "Fair" | "Medium" | "Dark"; undertone: "warm" | "cool" | "neutral"; color_name: string; score: 2 | 1 | -2 };
 
+export type MannequinGender = "men" | "women";
+export type MannequinSkin = "wheatish" | "fair" | "dark";
+
+/** One mannequin layer row from GET /api/admin/mannequin/layers/ (approved or not). */
+export type MannequinLayerRow = {
+  id: number;
+  gender: MannequinGender;
+  slot: string;
+  slot_label: string;
+  product_id: number;
+  product_name: string;
+  approved: boolean;
+  note: string;
+  layer: string;
+  layer_fair: string | null;
+  layer_dark: string | null;
+  /** Per-skin outcome: "ok", "missing", or why the copy was dropped. */
+  skins: Partial<Record<MannequinSkin, string>>;
+  ecc: number | null;
+  updated_at: string;
+};
+
+export type MannequinBasePhotos = { image: string; fair: string | null; dark: string | null };
+
+export type MannequinLayersResponse = {
+  status: string;
+  bases: Partial<Record<MannequinGender, MannequinBasePhotos>>;
+  layers: MannequinLayerRow[];
+  slots: { value: string; label: string }[];
+};
+
+/** POST response: 201 "Added" or 422 rejected with the `reason` ("does not line up"). */
+export type MannequinUploadResponse = {
+  status: string;
+  outcome: string;
+  reason: string;
+  skins: Partial<Record<MannequinSkin, string>>;
+  report: Record<string, unknown>;
+};
+
 export const adminAuthApi = {
   login: (email: string, password: string) => apiSend<AdminSession>("POST", `${A}/auth/login/`, { email, password }),
   logout: () => apiSend<{ detail: string }>("POST", `${A}/auth/logout/`, {}),
@@ -99,6 +139,15 @@ export const adminApi = {
   createToneRule: (rule: Omit<ToneRule, "id">) => apiSend<{ status: string; rule: ToneRule }>("POST", `${A}/tone-rules/`, rule),
   updateToneRule: (id: number, patch: Partial<ToneRule>) => apiSend("PUT", `${A}/tone-rules/${id}/`, patch),
   deleteToneRule: (id: number) => apiSend("DELETE", `${A}/tone-rules/${id}/`),
+
+  /** Admin Mannequin page: every layer with its checks, plus the base photos and slot list. */
+  mannequinLayers: (gender?: MannequinGender) =>
+    apiGet<MannequinLayersResponse>(`${A}/mannequin/layers/${gender ? `?gender=${gender}` : ""}`),
+  uploadMannequinRender: (formData: FormData) =>
+    apiSend<MannequinUploadResponse>("POST", `${A}/mannequin/layers/`, formData),
+  setMannequinLayerApproved: (id: number, approved: boolean) =>
+    apiSend<{ status: string; id: number; approved: boolean }>("PATCH", `${A}/mannequin/layers/${id}/`, { approved }),
+  deleteMannequinLayer: (id: number) => apiSend<unknown>("DELETE", `${A}/mannequin/layers/${id}/`),
 
   members: () => apiGet<{ status: string; members: AdminMember[] }>(`${A}/members/`),
   createMember: (data: {
