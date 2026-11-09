@@ -251,8 +251,10 @@ function commandInstall() {
   runPython(["-m", "pip", "install", "-r", path.join(SERVER, "requirements.txt")]);
 
   info("Installing Node packages...");
-  runNpm(["install"]);
-  runNpm(["--prefix", WEB, "install"]);
+  // `npm ci` uses the committed lockfile and replaces a stale node_modules
+  // (for example one left at an older Next.js version by a previous checkout).
+  runNpm([existsSync(path.join(ROOT, "package-lock.json")) ? "ci" : "install"]);
+  runNpm(["--prefix", WEB, existsSync(path.join(WEB, "package-lock.json")) ? "ci" : "install"]);
 
   if (!dockerAvailable()) {
     warn("Docker is not available yet. Install/start Docker before running the database commands.");
