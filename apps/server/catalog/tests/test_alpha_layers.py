@@ -96,18 +96,20 @@ def test_base_top_redraws_the_tee_unchanged():
     assert np.abs(out.astype(int) - BASE.astype(int)).max() <= 1
 
 
-def test_cloth_masks_come_from_the_first_two_predict_masks():
+def test_cloth_masks_are_upper_lower_and_full_from_predict():
     upper = Image.new("L", (4, 4), 0)
     upper.putpixel((1, 1), 255)
     lower = Image.new("L", (4, 4), 255)
-    up, low = cloth_masks_from_predict([upper, lower, Image.new("L", (4, 4), 0)])
-    assert up.sum() == 1 and up[1, 1] and low.all()
+    full = Image.new("L", (4, 4), 0)
+    full.putpixel((2, 2), 255)
+    up, low, whole = cloth_masks_from_predict([upper, lower, full])
+    assert up.sum() == 1 and up[1, 1] and low.all() and whole.sum() == 1 and whole[2, 2]
     with pytest.raises(ValueError):
-        cloth_masks_from_predict([upper])
+        cloth_masks_from_predict([upper, lower])
 
 
 @pytest.mark.models
-def test_the_real_cloth_model_returns_two_masks_of_the_image_size():
+def test_the_real_cloth_model_returns_three_masks_of_the_image_size():
     from django.conf import settings
 
     from catalog.engine.cutout import cloth_segmenter
@@ -115,6 +117,6 @@ def test_the_real_cloth_model_returns_two_masks_of_the_image_size():
     weights = settings.ML_MODELS_DIR / "rembg" / "models" / "u2net_cloth_seg" / "u2net_cloth_seg.onnx"
     if not weights.exists():
         pytest.skip("models missing: run `make models`")
-    upper, lower = cloth_segmenter(model_dir=settings.ML_MODELS_DIR / "rembg")(BASE)
-    assert upper.shape == lower.shape == BASE.shape[:2]
-    assert upper.dtype == bool and lower.dtype == bool
+    masks = cloth_segmenter(model_dir=settings.ML_MODELS_DIR / "rembg")(BASE)
+    assert len(masks) == 3
+    assert all(mask.shape == BASE.shape[:2] and mask.dtype == bool for mask in masks)

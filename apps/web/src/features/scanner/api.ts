@@ -1,6 +1,21 @@
 import { apiSend } from "@/lib/api";
 import { API_PATHS } from "@/lib/config";
 
+/** One photo quality check from the scanner (colour of the light, blur, side light, head turn). */
+export type QualityCheck = {
+  key: "cast" | "blur" | "side_light" | "pose" | string;
+  status: "pass" | "warn" | "fail";
+  value: number | null;
+  message: string;
+};
+
+export type ScanQuality = {
+  ok: boolean;
+  checks: QualityCheck[];
+  confidence_factor: number;
+  failed: QualityCheck | null;
+};
+
 export type ScanResponse = {
   status: "success" | "failed";
   detected_skin_tone?: string;
@@ -16,6 +31,8 @@ export type ScanResponse = {
   undertone?: "warm" | "cool" | "neutral";
   agreement?: number;
   reason?: string;
+  /** Photo quality checks of the photo the reading came from (or the one that failed). */
+  quality?: ScanQuality | null;
   /** Colour palette chosen for the detected tone. */
   palette?: {
     best: Array<string | { name: string; hex: string | null }>;

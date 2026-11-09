@@ -21,8 +21,14 @@ def _noise(seed, shape, amount=10):
     return np.random.default_rng(seed).integers(-amount, amount + 1, size=shape)
 
 
-def person(*, top=None, top_box=TEE, bottom=None, shoes=None, watch=None, shift=(0, 0), seed=1):
-    """RGB uint8 array. Colours replace one item each; `shift` moves everything (a badly aligned render)."""
+SKIN = (150, 105, 80)
+FAIR = (225, 190, 165)
+DARK = (95, 62, 45)
+
+
+def person(*, top=None, top_box=TEE, bottom=None, shoes=None, watch=None, shift=(0, 0), seed=1, skin=SKIN):
+    """RGB uint8 array. Colours replace one item each; `skin` recolours head and arms (fair / dark copies);
+    `shift` moves everything (a badly aligned render)."""
     image = np.full((H, W, 3), 205, np.int32) + _noise(seed, (H, W, 3), 6)  # backdrop with grain for ECC
     ramp = np.linspace(-15, 15, H)[:, None, None]
     image = image + ramp.astype(np.int32)
@@ -33,8 +39,8 @@ def person(*, top=None, top_box=TEE, bottom=None, shoes=None, watch=None, shift=
         image[y0:y1, x0:x1] = np.array(colour) + texture[y0:y1, x0:x1]
 
     for arm in ARMS:
-        paint(arm, (150, 105, 80))
-    paint(HEAD, (150, 105, 80))
+        paint(arm, skin)
+    paint(HEAD, skin)
     paint(TROUSERS, bottom or (120, 120, 125))
     paint(top_box if top else TEE, top or (245, 245, 245))
     for foot in SHOES:

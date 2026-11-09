@@ -62,7 +62,8 @@ def top_picks(user, params, limit=DEFAULT_LIMIT):
     products = {p.id: p for p in get_shoppable_products()}
     size = params.get('size') or getattr(getattr(user, 'userprofile', None), 'top_size', '') or ''
     items = [product_to_item(p, size) for p in products.values()]
-    results = rank(items, profile, palette, limit=limit)
+    palette_only = (params.get('palette_only') or params.get('theme') or '').strip().lower() in ('1', 'true', 'yes', 'palette')
+    results = rank(items, profile, palette, limit=limit, palette_only=palette_only, colour=params.get('colour') or None)
     for row in results:
         row['product'] = products[row['item'].id]
     return profile, palette, results

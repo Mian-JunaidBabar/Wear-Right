@@ -6,6 +6,7 @@ Written 2026-11-07 by the lead. Builds on the working men's pilot (plan 11, code
 ## What changes for the user
 
 - A **Men | Women** switch on `/mannequin`. Women get their own base photo.
+- A **Fair | Wheatish | Dark** model-skin switch, defaulting to the shopper's scanned tone. Same clothes layers on all three.
 - New rows on the dressing room: **Kurtas**, **Waistcoats & blazers** (worn over a shirt or kurta), **Sunglasses**, **Caps**.
 - Suits are two products worn together: a blazer (outerwear) + matching trousers (bottom).
 - A kurta replaces the shirt (you cannot wear both); picking one takes the other off.
@@ -78,6 +79,26 @@ thresholds to make a render pass; a rejected render goes back to Hammad.
    gender. The `?product=` focus decides the gender when given (fetch both, pick the one that has the product).
 5. `ProductDetailView.tsx`: check the product's own gender wardrobe (`product.gender`, fallback men) for the
    "Try it on the mannequin" button, and link with `?gender=...&product=...`.
+
+## Part C2: skin-tone variants of each base (fair / wheatish / dark)
+
+Hammad makes `base/men-fair.png`, `base/men-dark.png`, `base/women-fair.png`, `base/women-dark.png`: the same photo as the
+wheatish base with **only the skin colour changed**. Garment layers are still cut against the wheatish base only, so one
+set of layers fits all three skins.
+
+1. `MannequinBase` gets `skin` (`fair` / `wheatish` / `dark`, default `wheatish`); unique on (gender, skin) instead of gender.
+   Layers keep pointing at the wheatish base. Migration.
+2. Import: when `base/<gender>-fair.png` / `-dark.png` exist, align each to the wheatish base (`align`) and check that only
+   skin changed: the share of **cloth pixels** (upper | lower cloth masks of the wheatish base) and **background** pixels
+   with ΔE > 12 must stay under 5 % (starting value). Pass: store it as a variant base (image only; base_top /
+   base_bottom are reused from the wheatish base). Fail: report "clothes or pose changed" and skip it.
+3. API: the wardrobe response adds `variants: {fair: url, wheatish: url, dark: url}` (only those that exist).
+4. Web: a "Model skin: Fair | Wheatish | Dark" switch on `/mannequin` that swaps only the base `<img>` (layers stay).
+   Default from the shopper's last scan (Fair → fair, Medium → wheatish, Dark → dark; with plan 13 presets: Monk 1–3 fair,
+   4–6 wheatish, 7–10 dark), else wheatish. vitest for the default.
+5. Known limit to check by eye: a layer can carry a thin edge of wheatish skin (short sleeves, neckline, watch strap). If it
+   shows on the dark or fair base, shrink those layers' masks by 1–2 px where the base is skin, and say so in the report.
+6. Gate: include `men-fair.png` and `men-dark.png` in the Part A gate; composite T2 + B1 + S1 + W1 on all three skins.
 
 ## Part D: run it and report
 

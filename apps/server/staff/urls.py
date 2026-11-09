@@ -31,6 +31,9 @@ urlpatterns = [
     path('tone-rules/', views.AdminToneRuleList.as_view(), name='api-admin-tone-rules'),
     path('tone-rules/<int:rule_id>/', views.AdminToneRuleDetail.as_view(), name='api-admin-tone-rule-detail'),
 
+    path('mannequin/layers/', views.AdminMannequinLayers.as_view(), name='api-admin-mannequin-layers'),
+    path('mannequin/layers/<int:layer_id>/', views.AdminMannequinLayerDetail.as_view(), name='api-admin-mannequin-layer'),
+
     path('orders/', views.AdminOrderList.as_view(), name='api-admin-orders'),
     path('orders/<int:order_id>/', views.AdminOrderDetail.as_view(), name='api-admin-order-detail'),
     path('orders/<int:order_id>/status/', views.AdminOrderStatus.as_view(), name='api-admin-order-status'),

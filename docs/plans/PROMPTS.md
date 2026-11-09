@@ -275,14 +275,14 @@ Report: the import table, real make test and build output, each fix with its cau
 
 ## Prompt 15: Mannequin v2: women, suits, waistcoats, kurtas, sunglasses, caps (plan 12)
 
-Session 1 (Part A + gate). Start only after Hammad has sent `base/women.png` and the 4 test renders (WT1, WK1, WB2, MO3) into extras/mannequin-alpha-kit/.
+Session 1 (Part A + gate). Start only after Hammad has sent `base/women.png`, `base/men-fair.png`, `base/men-dark.png` and the 4 test renders (WT1, WK1, WB2, MO3) into extras/mannequin-alpha-kit/.
 
 ```
 You are working on Wear Right (FYP). Read CLAUDE.md, docs/STATUS.md (the "Mannequin (alpha)" decision), docs/plans/README.md and docs/plans/12-mannequin-v2-slots-women.md. The men's dressing room from plan 11 works; keep every existing test green. Do only Part A of plan 12 and its gate.
 
 1. Extend catalog/engine/alpha_layers.py and catalog/engine/cutout.py exactly as Part A says (slots, Z_ORDER, 3 cloth masks, kurta / outerwear / wide bottom / eyewear / headwear cutting, problems()).
 2. Synthetic tests for every new rule, in catalog/tests/test_alpha_layers.py (keep the old ones).
-3. The alpha_preview command, then run the gate on WT1, WK1, WB2 (women) and MO3 (men) from extras/mannequin-alpha-kit and save the images to docs/phases/phase-6-screens/alpha/v2-gate/.
+3. The alpha_preview command, then run the gate on WT1, WK1, WB2 (women) and MO3 (men) from extras/mannequin-alpha-kit, plus T2 + B1 + S1 + W1 composited on men.png, men-fair.png and men-dark.png (aligned to men.png), and save the images to docs/phases/phase-6-screens/alpha/v2-gate/.
 
 Run `make test`. No Playwright. Commit on feat/mannequin-v2.
 STOP and report: files changed, real test output, the printed reports, the gate images, and your honest judgement of each layer. Do not loosen thresholds to make a render pass.
@@ -291,7 +291,7 @@ STOP and report: files changed, real test output, the printed reports, the gate 
 Session 2 (after the lead says go and all 30 renders are in the kit):
 
 ```
-You are working on Wear Right (FYP). Read CLAUDE.md, docs/STATUS.md and docs/plans/12-mannequin-v2-slots-women.md. Part A is done (see docs/phases/phase-6-screens/alpha/v2-gate/). Do Parts B, C and D, one commit each, tests in the same commit. The lead has created the product "Olive Suit Trousers" in the admin.
+You are working on Wear Right (FYP). Read CLAUDE.md, docs/STATUS.md and docs/plans/12-mannequin-v2-slots-women.md. Part A is done (see docs/phases/phase-6-screens/alpha/v2-gate/). Do Parts B, C, C2 and D, one commit each, tests in the same commit. The lead has created the product "Olive Suit Trousers" in the admin.
 Testing: `make test` and `npm --prefix apps/web run build`, no Playwright. Then the hand checks and screenshots in Part D.
 Report: both import tables (men, women), real test/build output, screenshots, and anything that looks off.
 ```

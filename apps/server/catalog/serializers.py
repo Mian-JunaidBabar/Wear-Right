@@ -55,6 +55,8 @@ class ProductSerializer(serializers.ModelSerializer):
     category_slug = serializers.SerializerMethodField()
     primary_color_name = serializers.CharField(source='primary_color.name', read_only=True, default=None)
     primary_color_hex = serializers.CharField(source='primary_color.hex', read_only=True, default=None)
+    # Has an approved layer in the dressing room (the shop's "On mannequin" filter and badge).
+    on_mannequin = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -121,6 +123,14 @@ class ProductSerializer(serializers.ModelSerializer):
             instance.color,
         ) or '#9CA3AF'
         return data
+
+    def get_on_mannequin(self, instance):
+        annotated = getattr(instance, 'on_mannequin', None)
+        if annotated is not None:
+            return bool(annotated)
+        if not instance.pk:
+            return False
+        return instance.mannequin_layers.filter(approved=True, base__is_active=True).exists()
 
     def get_category_slug(self, instance):
         if instance.category_ref_id:

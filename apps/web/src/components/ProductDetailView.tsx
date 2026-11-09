@@ -26,8 +26,6 @@ import { ADMIN_WHATSAPP_NUMBER, PLACEHOLDER_IMAGE } from "@/lib/config";
 import { useCart } from "@/features/cart/useCart";
 import { useWishlist } from "@/features/wishlist/useWishlist";
 import { catalogApi } from "@/features/catalog/api";
-import { mannequinApi } from "@/features/mannequin/api";
-import { hasProduct } from "@/features/mannequin/dressingRoom";
 import { notify } from "@/lib/notify";
 import ProductImage from "@/components/ProductImage";
 
@@ -50,6 +48,9 @@ type ApiProduct = {
   size_xl_stock?: number;
   size_xxl_stock?: number;
   status?: string;
+  gender?: string | null;
+  /** Has an approved layer in the mannequin dressing room. */
+  on_mannequin?: boolean;
 };
 
 type OutfitSlot = ApiProduct | null;
@@ -256,24 +257,9 @@ function ProductDetail({ id }: { id: string | undefined }) {
     };
   }, [productId]);
 
-  // Mannequin (alpha): offer the dressing room when this product has a garment layer.
-  const [mannequinFor, setMannequinFor] = useState<string | null>(null);
-  useEffect(() => {
-    if (!productId) return;
-    let cancelled = false;
-    mannequinApi
-      .wardrobe("men")
-      .then((wardrobe) => {
-        if (!cancelled && hasProduct(wardrobe, Number(productId))) setMannequinFor(productId);
-      })
-      .catch(() => {
-        // no mannequin for this product; nothing to show
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [productId]);
-  const onMannequin = productId !== null && mannequinFor === productId;
+  // Mannequin (alpha): offer the dressing room when this product has a garment layer (from the product API).
+  const onMannequin = Boolean(product?.on_mannequin);
+  const mannequinGender = product?.gender === "women" ? "women" : "men";
 
   const outfitReady = outfitState !== null && outfitState.productId === productId;
   const outfitData = outfitReady ? outfitState.data : null;
@@ -680,7 +666,7 @@ Please share more details.`;
               {/* Mannequin (alpha) */}
               {onMannequin && (
                 <button
-                  onClick={() => navigate(`/mannequin?product=${product.id}`)}
+                  onClick={() => navigate(`/mannequin?product=${product.id}&gender=${mannequinGender}`)}
                   data-testid="try-on-mannequin"
                   className="sm:col-span-2 bg-brand-dark hover:opacity-90 text-white py-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-200"
                 >

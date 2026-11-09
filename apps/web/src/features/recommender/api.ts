@@ -56,7 +56,17 @@ export type CompleteLookResponse = {
 
 export type PaletteResponse = Palette & { status: string };
 
-export type ShopperParams = { depth?: string; undertone?: string; gender?: string; style?: string; size?: string };
+export type ShopperParams = {
+  depth?: string;
+  undertone?: string;
+  gender?: string;
+  style?: string;
+  size?: string;
+  /** 1: only colours from the shopper's palette (the "show my colour theme" step after a scan). */
+  palette_only?: number;
+  /** Only this colour name (a tapped swatch). */
+  colour?: string;
+};
 
 function query(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams();

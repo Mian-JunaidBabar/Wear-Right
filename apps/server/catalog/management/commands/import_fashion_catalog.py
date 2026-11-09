@@ -1,3 +1,4 @@
+import csv
 from collections import Counter
 from pathlib import Path
 
@@ -22,6 +23,14 @@ class Command(BaseCommand):
         parser.add_argument("--limit", type=int, default=150, help="How many products to import (default 150).")
         parser.add_argument("--seed", type=int, default=42, help="Selection seed. The same seed picks the same products.")
         parser.add_argument(
+            "--ids", default="",
+            help="Comma-separated Kaggle ids to import instead of a sample, e.g. 20024,33065.",
+        )
+        parser.add_argument(
+            "--ids-from", default="",
+            help="A CSV with an external_id column (the mannequin kit's manifest.csv): import exactly those ids.",
+        )
+        parser.add_argument(
             "--list-article-types", action="store_true",
             help="Print the article types in styles.csv with their counts, then exit.",
         )
@@ -42,7 +51,18 @@ class Command(BaseCommand):
         records, skipped = classify_all(rows)
         with_images = [record for record in records if find_image(source, record.image_id)]
         skipped_no_image = len(records) - len(with_images)
-        selected = select_records(with_images, limit=options["limit"], seed=options["seed"])
+        wanted = self._wanted_ids(options)
+        if wanted:
+            # Only the listed products (the demo set): the rest of the 44k-row dataset is never touched.
+            selected = [record for record in with_images if record.image_id in wanted]
+            missing = sorted(wanted - {record.image_id for record in selected})
+            if missing:
+                self.stderr.write(self.style.WARNING(
+                    f"{len(missing)} listed id(s) not importable (not in styles.csv, unmapped article type, "
+                    f"or no image file): {', '.join(missing)}"
+                ))
+        else:
+            selected = select_records(with_images, limit=options["limit"], seed=options["seed"])
 
         existing = set(
             Product.objects.filter(external_id__in=[record.image_id for record in selected])
@@ -65,6 +85,20 @@ class Command(BaseCommand):
             selected=len(selected), created=created, already_imported=len(selected) - len(todo),
             failed=failed, malformed=malformed, skipped=skipped, skipped_no_image=skipped_no_image,
         )
+
+    def _wanted_ids(self, options):
+        wanted = {item.strip() for item in options["ids"].split(",") if item.strip()}
+        if options["ids_from"]:
+            path = Path(options["ids_from"])
+            try:
+                with path.open(newline="", encoding="utf-8-sig") as handle:
+                    wanted |= {(row.get("external_id") or "").strip() for row in csv.DictReader(handle)}
+            except OSError as exc:
+                raise CommandError(str(exc)) from exc
+            wanted.discard("")
+            if not wanted:
+                raise CommandError(f"{path} has no external_id values")
+        return wanted
 
     def _list_article_types(self, rows):
         counts = Counter(row["articleType"] for row in rows)

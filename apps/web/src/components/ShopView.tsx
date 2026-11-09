@@ -40,12 +40,17 @@ interface ApiProduct {
   image_url?: string | null;
   stock_quantity?: number;
   status?: string;
+  gender?: string | null;
+  /** Has an approved layer in the mannequin dressing room. */
+  on_mannequin?: boolean;
 }
 
 type ShopProduct = Product & {
   category: string;
   stock_quantity: number;
   status: string;
+  gender: string;
+  on_mannequin: boolean;
   color?: string;
   garment_type?: string;
   cultural_tag?: string;
@@ -102,6 +107,8 @@ export default function ShopView() {
     "newest" | "match" | "priceAsc" | "priceDesc"
   >("newest");
   const [selectedCultureStyle, setSelectedCultureStyle] = useState<string>("All");
+  // "On mannequin" filter: only products that can be tried on in the dressing room (?mannequin=1 opens it on).
+  const [mannequinOnly, setMannequinOnly] = useState(searchParams.get("mannequin") === "1");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;
   const [categories, setCategories] = useState<ApiCategory[]>([]);
@@ -164,6 +171,8 @@ export default function ShopView() {
             compatible_skin_tone: item.compatible_skin_tone || "",
             stock_quantity: Number(item.stock_quantity || 0),
             status: item.status || "Active",
+            gender: item.gender || "",
+            on_mannequin: Boolean(item.on_mannequin),
           };
         },
       );
@@ -275,6 +284,10 @@ export default function ShopView() {
       );
     }
 
+    if (mannequinOnly) {
+      result = result.filter((product) => product.on_mannequin);
+    }
+
     if (categorySort === "newest") {
       result.sort((a, b) => Number(b.id) - Number(a.id));
     } else if (categorySort === "match") {
@@ -292,6 +305,7 @@ export default function ShopView() {
     categorySearch,
     categorySort,
     selectedCultureStyle,
+    mannequinOnly,
   ]);
 
   const pageCount = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
@@ -300,7 +314,16 @@ export default function ShopView() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset paging whenever a filter changes
     setPage(1);
-  }, [activeCategory, categorySearch, categorySort, selectedCultureStyle]);
+  }, [activeCategory, categorySearch, categorySort, selectedCultureStyle, mannequinOnly]);
+
+  const mannequinGender = selectedGender === "Women" ? "women" : "men";
+  const mannequinCount = apiProducts.filter(
+    (product) => product.on_mannequin && (product.gender === mannequinGender || product.gender === "unisex"),
+  ).length;
+  const openMannequin = (product?: ShopProduct) => {
+    const gender = product?.gender === "women" ? "women" : product?.gender === "men" ? "men" : mannequinGender;
+    navigate(product ? `/mannequin?product=${product.id}&gender=${gender}` : `/mannequin?gender=${gender}`);
+  };
 
   const openPreviewModal = (product: ShopProduct) => {
     setSelectedProduct(product);
@@ -437,6 +460,44 @@ Please share more details.`;
                 Women
               </button>
             </div>
+
+            {mannequinCount > 0 && (
+              <div
+                data-testid="shop-mannequin-banner"
+                className="mb-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-brand-border/60 bg-white p-5 shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <Shirt className="w-8 h-8 text-brand-gold shrink-0" />
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-brand-gold">Mannequin · alpha</p>
+                    <p className="text-sm font-black text-brand-dark">
+                      Try {mannequinCount} {selectedGender === "Women" ? "women's" : "men's"} products together on the mannequin
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    aria-pressed={mannequinOnly}
+                    data-testid="shop-mannequin-filter"
+                    onClick={() => setMannequinOnly((value) => !value)}
+                    className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest border transition-all ${
+                      mannequinOnly ? "bg-brand-dark text-white border-brand-dark" : "bg-cream-base text-slate-700 border-brand-border/60"
+                    }`}
+                  >
+                    {mannequinOnly ? "Showing mannequin items" : "Only mannequin items"}
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="shop-open-mannequin"
+                    onClick={() => openMannequin()}
+                    className="px-4 py-3 rounded-xl bg-brand-gold text-white text-xs font-black uppercase tracking-widest hover:opacity-90"
+                  >
+                    Open dressing room
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-border/60 pb-4">
               <div>
@@ -611,6 +672,17 @@ Please share more details.`;
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                  <button
+                    type="button"
+                    aria-pressed={mannequinOnly}
+                    data-testid="shop-mannequin-filter-category"
+                    onClick={() => setMannequinOnly((value) => !value)}
+                    className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-xs font-black uppercase tracking-widest transition-all ${
+                      mannequinOnly ? "bg-brand-dark text-white border-brand-dark" : "bg-white text-slate-700 border-brand-border/60"
+                    }`}
+                  >
+                    <Shirt className="w-4 h-4" /> On mannequin
+                  </button>
                   <div className="relative w-full sm:w-72">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
 
@@ -716,6 +788,21 @@ Please share more details.`;
                           ? "OUT OF STOCK"
                           : `${prod.stock_quantity} AVAILABLE`}
                       </div>
+
+                      {prod.on_mannequin && (
+                        <button
+                          type="button"
+                          data-testid="shop-try-on"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openMannequin(prod);
+                          }}
+                          title="Try it on the mannequin"
+                          className="absolute top-12 left-3 z-20 flex items-center gap-1 rounded-lg bg-brand-dark/90 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-sm hover:bg-brand-gold"
+                        >
+                          <Shirt className="w-3 h-3" /> Try on mannequin
+                        </button>
+                      )}
 
                       <button
                         onClick={(event) => handleWishlistClick(event, prod)}

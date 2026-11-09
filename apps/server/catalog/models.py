@@ -192,6 +192,9 @@ class MannequinBase(TimeStampedModel):
     image = models.ImageField(upload_to='mannequin_alpha/base/')
     base_top = models.ImageField(upload_to='mannequin_alpha/base/', blank=True, null=True)
     base_bottom = models.ImageField(upload_to='mannequin_alpha/base/', blank=True, null=True)
+    # The same model with fair / dark skin (made by hand, or assembled from skin-variant renders on import).
+    image_fair = models.ImageField(upload_to='mannequin_alpha/base/', blank=True, null=True)
+    image_dark = models.ImageField(upload_to='mannequin_alpha/base/', blank=True, null=True)
     width = models.PositiveIntegerField(default=960)
     height = models.PositiveIntegerField(default=1280)
     label = models.CharField(max_length=80, default='AI-generated model')
@@ -204,12 +207,18 @@ class MannequinBase(TimeStampedModel):
 
 class MannequinLayer(TimeStampedModel):
     """One product's garment layer on a base. Only approved layers are shown to shoppers."""
-    SLOT_CHOICES = [('top', 'Top'), ('bottom', 'Bottom'), ('shoes', 'Shoes'), ('watch', 'Watch')]
+    SLOT_CHOICES = [
+        ('top', 'Top'), ('kurta', 'Kurta'), ('outerwear', 'Blazer / waistcoat'), ('bottom', 'Bottom'),
+        ('shoes', 'Shoes'), ('watch', 'Watch'), ('eyewear', 'Sunglasses'), ('headwear', 'Cap'),
+    ]
 
     base = models.ForeignKey(MannequinBase, on_delete=models.CASCADE, related_name='layers')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='mannequin_layers')
     slot = models.CharField(max_length=10, choices=SLOT_CHOICES)
     image = models.ImageField(upload_to='mannequin_alpha/layers/')
+    # The same item cut from the fair / dark skin copy of the render (empty: the wheatish layer is used).
+    image_fair = models.ImageField(upload_to='mannequin_alpha/layers/', blank=True, null=True)
+    image_dark = models.ImageField(upload_to='mannequin_alpha/layers/', blank=True, null=True)
     source = models.CharField(max_length=30, default='gemini_app')  # how the render was made
     source_sha = models.CharField(max_length=64, blank=True, default='')  # of the render file
     report = models.JSONField(default=dict, blank=True)  # alignment and quality numbers from the engine

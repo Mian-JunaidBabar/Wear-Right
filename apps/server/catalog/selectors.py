@@ -1,11 +1,22 @@
-from django.db.models import Q
-from .models import Product
+from django.conf import settings
+from django.db.models import Exists, OuterRef, Q
+
+from .models import MannequinLayer, Product
+
+
+def _on_mannequin():
+    """True for a product with an approved layer on an active mannequin base."""
+    return Exists(MannequinLayer.objects.filter(product=OuterRef('pk'), approved=True, base__is_active=True))
+
 
 # Draft products (imported, not yet priced) and switched-off products are only visible to staff.
+# With SHOP_MANNEQUIN_ONLY on (the demo), shoppers only see products that are on the mannequin.
 def get_products(*, include_drafts=False):
-    products = Product.objects.all()
+    products = Product.objects.annotate(on_mannequin=_on_mannequin())
     if not include_drafts:
         products = products.filter(is_active=True).exclude(status='Draft')
+        if getattr(settings, 'SHOP_MANNEQUIN_ONLY', False):
+            products = products.filter(on_mannequin=True)
     return products.order_by('-id')
 
 def get_product(product_id, *, include_drafts=False):
@@ -42,6 +53,9 @@ def filter_products(products, params):
             products = products.filter(**{lookup: params[key]})
         except (KeyError, TypeError, ValueError):
             pass
+    if (params.get('mannequin') or '').strip().lower() in ('1', 'true', 'yes'):
+        products = products.filter(on_mannequin=True) if 'on_mannequin' in products.query.annotations \
+            else products.annotate(on_mannequin=_on_mannequin()).filter(on_mannequin=True)
     in_stock = (params.get('in_stock') or '').strip().lower()
     if in_stock in ('1', 'true', 'yes'):
         products = products.filter(stock_quantity__gt=0)
@@ -65,12 +79,12 @@ def get_categories(*, include_inactive=False):
     from django.db.models import Count
     from .models import Category
 
-    counts = dict(
-        Product.objects.filter(status='Active', stock_quantity__gt=0, is_active=True)
-        .values_list('category').annotate(n=Count('id'))
-    )
+    shoppable = Product.objects.filter(status='Active', stock_quantity__gt=0, is_active=True)
+    if getattr(settings, 'SHOP_MANNEQUIN_ONLY', False):
+        shoppable = shoppable.annotate(on_mannequin=_on_mannequin()).filter(on_mannequin=True)
+    counts = dict(shoppable.values_list('category').annotate(n=Count('id')))
     covers = {}
-    for product in Product.objects.filter(status='Active', stock_quantity__gt=0, is_active=True).order_by('-mannequin_ready', '-id'):
+    for product in shoppable.order_by('-mannequin_ready', '-id'):
         if product.category not in covers:
             photo = product.mannequin_image or product.image
             covers[product.category] = photo.url if photo else None
