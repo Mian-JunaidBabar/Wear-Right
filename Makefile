@@ -2,17 +2,35 @@
 SERVER := apps/server
 WEB    := apps/web
 VENV   := $(SERVER)/venv
-PY     := $(VENV)/bin/python
-PIP    := $(VENV)/bin/pip
+PYTHON ?= python3.12
+
+ifeq ($(OS),Windows_NT)
+PY  := $(VENV)/Scripts/python.exe
+PIP := $(VENV)/Scripts/pip.exe
+else
+PY  := $(VENV)/bin/python
+PIP := $(VENV)/bin/pip
+endif
 
 # Where product photos live. Must match MEDIA_ROOT in apps/server/.env —
 # override here (make media-backup MEDIA_ROOT=/path) if MEDIA_ROOT was moved.
 MEDIA_ROOT ?= $(SERVER)/media
 
-.PHONY: help demo demo-data demo-reset db-up db-down db-reset venv env install migrate seed models test-models mannequin-assets demo-catalog import-catalog alpha-import process-images media-backup test test-api test-web e2e check build dev
+.PHONY: help setup demo demo-build demo-data demo-reset db-up db-down db-reset venv env install migrate seed seed-all models test-models mannequin-assets demo-catalog import-catalog alpha-import process-images media-backup test test-api test-web e2e check build dev
 
 help:
 	@grep -E '^[a-z-]+:' Makefile | cut -d: -f1 | tr '\n' ' '; echo
+
+# Cross-platform aliases. They use the Node task runner, so they also work in
+# Git Bash on Windows; native PowerShell users can call the runner directly.
+setup:
+	node scripts/wearright.mjs install
+
+seed-all:
+	node scripts/wearright.mjs seed
+
+demo-build:
+	node scripts/wearright.mjs build
 
 db-up:
 	docker compose up -d --wait
@@ -26,7 +44,7 @@ db-reset:
 	docker compose up -d --wait
 
 venv:
-	test -x $(PY) || python3.12 -m venv $(VENV)
+	test -x $(PY) || $(PYTHON) -m venv $(VENV)
 
 # Creates apps/server/.env with a random SECRET_KEY the first time (JWTs are signed with it).
 env:

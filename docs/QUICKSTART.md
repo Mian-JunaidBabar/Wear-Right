@@ -1,16 +1,66 @@
 # Wear Right: quick start
 
-Short, step-by-step version of the setup. Full details and troubleshooting: [SETUP.md](SETUP.md).
-Run every command in a terminal from the project folder.
+Short, step-by-step version of the setup. Full details and troubleshooting: [SETUP.md](SETUP.md). Windows-specific notes: [WINDOWS.md](WINDOWS.md).
+Run every command from the project folder.
+
+## Commands for every operating system
+
+The same Node commands work in **PowerShell on Windows** and in a **Linux/macOS terminal**. On Windows use `.\` before the script path; on Linux/macOS use `./`.
+
+| Job | Windows PowerShell | Linux / macOS |
+| --- | --- | --- |
+| Install everything | `node .\scripts\wearright.mjs install` | `node ./scripts/wearright.mjs install` |
+| Seed all demo data | `node .\scripts\wearright.mjs seed` | `node ./scripts/wearright.mjs seed` |
+| Create the production build | `node .\scripts\wearright.mjs build` | `node ./scripts/wearright.mjs build` |
+| Run the production demo | `node .\scripts\wearright.mjs demo` | `node ./scripts/wearright.mjs demo` |
+| Run development mode | `node .\scripts\wearright.mjs dev` | `node ./scripts/wearright.mjs dev` |
+
+Linux/macOS users can still use `make install`, `make demo-data`, `make build` and `make demo` if they prefer.
+
+## First setup on a new machine
+
+### Windows
+
+1. Install **Git**, **Python 3.12** (tick *Add python.exe to PATH*), **Node.js 20.9+**, and **Docker Desktop**. Start Docker Desktop and wait for **Running**.
+2. Open PowerShell in the project folder.
+3. `node .\scripts\wearright.mjs install`
+4. `node .\scripts\wearright.mjs seed`
+5. `node .\scripts\wearright.mjs build`
+6. `node .\scripts\wearright.mjs demo`, then open <http://localhost:3000>.
+
+No WSL terminal or Make is needed. Keep the project in a short path such as `C:\dev\Wear-Right`, not inside OneDrive.
+
+### Linux / macOS
+
+1. Install Git, Docker with Compose, Python 3.12 and Node 20.9+.
+   Ubuntu: `sudo apt install -y git python3.12 python3.12-venv docker.io docker-compose-v2`, then install Node from nodejs.org or nvm.
+   Allow Docker without sudo: `sudo usermod -aG docker "$USER"`, then log out and back in.
+2. `node ./scripts/wearright.mjs install`
+3. `node ./scripts/wearright.mjs seed`
+4. `node ./scripts/wearright.mjs build`
+5. `node ./scripts/wearright.mjs demo`, then open <http://localhost:3000>.
 
 ## Every day: start the project
 
-1. Go to the project folder: `cd ~/Wear-Right` (use the folder where the project is).
-2. Start the database and the local mail inbox: `make db-up`
-3. Apply any new database changes: `make migrate`
-4. Start the website and the backend: `make dev`
-5. Open http://localhost:3000 in the browser.
-6. To stop: press `Ctrl + C` in the terminal, then `make db-down`.
+Windows:
+
+```powershell
+node .\scripts\wearright.mjs dev
+```
+
+Linux/macOS:
+
+```bash
+make dev
+# or: node ./scripts/wearright.mjs dev
+```
+
+This starts Docker, applies migrations, and starts the website plus the backend. Open <http://localhost:3000>.
+Press **Ctrl+C** to stop the servers. To stop the database containers too:
+
+```powershell
+node .\scripts\wearright.mjs db-down
+```
 
 ## Logins for the demo
 
@@ -20,32 +70,43 @@ Run every command in a terminal from the project folder.
 | Admin (Super Admin) | `/admin/login` | admin@wearright.com | admin123 |
 
 Admin and customer accounts are separate: an admin account cannot sign in on the shop, and a customer cannot open
-the admin panel. Emails (password reset, order placed) appear in the local inbox at http://localhost:8025.
+the admin panel. Emails (password reset, order placed) appear in the local inbox at <http://localhost:8025>.
 
 ## For the evaluation: faster demo build
 
-1. `make demo` (builds the website once, then starts it without the development badge).
-2. Open http://localhost:3000
-3. Before the evaluation day, back up the product photos: `make media-backup`
+Windows:
 
-## Fresh setup on a new machine
+```powershell
+node .\scripts\wearright.mjs demo
+```
 
-1. Install the requirements: Git, Docker with Docker Compose, Python 3.12, Node.js 20.9 or newer, and Make.
-   On Ubuntu: `sudo apt install -y git make python3.12 python3.12-venv docker.io docker-compose-v2`, and Node.js from nodejs.org or nvm.
-2. Allow Docker without sudo: `sudo usermod -aG docker $USER`, then log out and log in again.
-3. Copy the project folder to the machine (or clone it) and open a terminal in it.
-4. Install everything: `make install` (creates the Python environment, the settings file `apps/server/.env`, and installs packages).
-5. Put the product photos in the media folder named by `MEDIA_ROOT` in `apps/server/.env`, or restore a backup:
-   `tar xzf ~/wear-right-media-DATE.tgz -C <media folder>`
-6. Start the database and load the demo data and logins: `make demo-data`
-7. Download the AI models used by the face scan and background removal (large download, once): `make models`
-8. Start the project: `make dev` and open http://localhost:3000
+Linux/macOS:
+
+```bash
+make demo
+```
+
+This builds the website once and starts it without the development badge. Before the evaluation day, back up the product photos (Linux/macOS: `make media-backup`).
+
+## Seed data and the mannequin
+
+`seed` creates the products, categories, colours, recommender tone rules, demo customer, and both admin logins. It is safe to run again.
+
+If the mannequin kit is at `extras\mannequin-alpha-kit` (Windows) or `extras/mannequin-alpha-kit` (Linux), the mannequin bases, layers and looks are imported too. If the folder is elsewhere:
+
+```powershell
+node .\scripts\wearright.mjs seed --mannequin-kit "D:\assets\mannequin-alpha-kit"
+```
+
+Only rows marked `done` in the kit's `manifest.csv` are imported. The kit references existing catalogue products, so a **fresh** database needs the Kaggle catalogue import (or a database backup) before the mannequin rows can attach to products. The first mannequin import downloads the required AI models automatically (large, once). Without the kit, `seed` prints a warning and continues with everything else.
 
 ## If something goes wrong
 
 | Problem | Fix |
 | --- | --- |
 | Database will not start, port 5433 in use | Another database is using the port. Stop it, or change the port as described in SETUP.md. |
-| Product photos missing, placeholder images shown | The media folder is empty or in the wrong place. Check `MEDIA_ROOT` in `apps/server/.env` and copy the photos there (step 5). |
+| Product photos missing, placeholder images shown | Check `MEDIA_ROOT` in `apps/server/.env`, then re-run `seed` or restore a media backup. |
 | Login says "team account" | That is an admin account. Use `/admin/login`. |
-| Need a clean database for a walkthrough | `make demo-reset` (deletes orders and accounts made during testing, then reloads the demo data). |
+| Need a clean database for a walkthrough | `db-reset` (deletes orders and accounts made during testing), then `seed`. |
+| `python` not found on Windows | Install Python 3.12 and tick *Add python.exe to PATH*; verify `py -3.12 --version`. |
+| Docker not running | Start Docker Desktop and wait for **Running**; verify `docker compose version`. |

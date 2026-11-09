@@ -10,10 +10,10 @@ The browser only talks to **port 3000**. Next.js proxies `/api/*` and `/media/*`
 | --- | --- |
 | Git | Any recent version |
 | Docker Engine + Compose v2 | `docker compose version` must work. On Linux, the user must be able to run Docker without `sudo` (or prefix commands with it). |
-| Python | **3.12** — the Makefile creates the venv with `python3.12`. |
+| Python | **3.12** — the Makefile (Linux/macOS) or Node task runner (all OS) creates the venv. |
 | Node.js | **20.9 or newer** (Next.js 16). |
 | npm | Ships with Node. |
-| GNU Make | `make --version`. Linux/macOS normally have it; on Windows use WSL2. |
+| GNU Make | Only needed for the `make` shortcuts on Linux/macOS. Windows can use the Node task runner instead (`node scripts\wearright.mjs ...`). |
 | Playwright browsers | Only for end-to-end tests: `cd apps/web && npx playwright install chromium`. |
 
 The AI models are optional for browsing, but required for real face scanning and image cut-out work. They are downloaded separately because they are large (`make models`).
@@ -41,9 +41,22 @@ brew install python@3.12 node make
 # Install Docker Desktop and start it before continuing.
 ```
 
-### Windows
+### Windows (native, no WSL terminal required)
 
-Use WSL2 with a Linux distribution and follow the Ubuntu steps. Run the project from the Linux filesystem (for example `~/projects/Wear-Right`), not `/mnt/c`, for acceptable file-watching and install speed. Docker Desktop must have WSL integration enabled.
+Install Git, Python 3.12 from python.org (tick **Add python.exe to PATH**), Node 20.9+ from nodejs.org, and Docker Desktop. Start Docker Desktop and wait for **Running**. The full guide is [`WINDOWS.md`](WINDOWS.md).
+
+```powershell
+git clone <repository-url> Wear-Right
+cd Wear-Right
+node .\scripts\wearright.mjs install
+node .\scripts\wearright.mjs seed
+node .\scripts\wearright.mjs build
+node .\scripts\wearright.mjs demo
+```
+
+Keep the project in a short path such as `C:\dev\Wear-Right`, not in OneDrive. Docker Desktop uses WSL2 internally, but the project commands run in normal PowerShell.
+
+If you prefer WSL2, follow the Ubuntu steps and run the project from the Linux filesystem (for example `~/projects/Wear-Right`), not `/mnt/c`.
 
 ## 2. Clone and install
 
@@ -61,16 +74,13 @@ make install
 
 If step 2 says the file already exists, it leaves it alone. That is safe.
 
-If `make` is unavailable on Windows/WSL, run the equivalent commands manually:
+If `make` is unavailable (for example on native Windows), use the cross-platform runner instead of the manual commands:
 
-```bash
-python3.12 -m venv apps/server/venv
-cp apps/server/.env.example apps/server/.env
-# edit SECRET_KEY in apps/server/.env
-apps/server/venv/bin/pip install -r apps/server/requirements.txt
-npm install
-npm --prefix apps/web install
+```powershell
+node .\scripts\wearright.mjs install
 ```
+
+It creates the venv with the correct Windows (`venv\Scripts`) or Linux (`venv/bin`) layout, writes `.env` with a random `SECRET_KEY`, and installs both package sets. On Linux/macOS the same command is `node ./scripts/wearright.mjs install`.
 
 Do not commit `.env`, `media/`, `ml_models/`, or `venv/`; they are gitignored.
 
@@ -229,6 +239,12 @@ Prices created by `make demo-catalog` are placeholders, not real prices.
 make dev
 ```
 
+On Windows (PowerShell):
+
+```powershell
+node .\scripts\wearright.mjs dev
+```
+
 or, equivalently:
 
 ```bash
@@ -307,6 +323,13 @@ There is **no deployment configuration** in this repository (no real web server,
 ```bash
 make demo-data     # database + seed, if not already done
 make demo          # next build, then next start + Django
+```
+
+On Windows (PowerShell):
+
+```powershell
+node .\scripts\wearright.mjs seed
+node .\scripts\wearright.mjs demo
 ```
 
 `make demo` runs `npm run build`, starts `next start` on 3000 and Django with `--noreload`. It is faster than dev mode and has no Next development badge. Open <http://localhost:3000>.
