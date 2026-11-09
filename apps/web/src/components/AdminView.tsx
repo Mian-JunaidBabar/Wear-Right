@@ -20,6 +20,7 @@ import {
   Wallet,
   Tags,
   Palette,
+  PersonStanding,
   Sparkles,
   Users,
   Settings,
@@ -39,6 +40,7 @@ import AdminTaxonomy from "@/components/AdminTaxonomy";
 import SettingsSection from "@/components/admin/SettingsSection";
 import TeamSection from "@/components/admin/TeamSection";
 import ToneRulesPanel from "@/components/admin/ToneRulesPanel";
+import MannequinSection from "@/components/admin/MannequinSection";
 import { useNavigate, usePathname } from "@/lib/navigation";
 import { useAdminAuth } from "@/features/admin/AdminAuthProvider";
 import { adminApi } from "@/features/admin/api";
@@ -302,6 +304,7 @@ const SECTION_ICONS: Record<AdminSectionId, React.ComponentType<{ className?: st
   styles: Tags,
   skinTone: Palette,
   outfitRules: Sparkles,
+  mannequin: PersonStanding,
   orders: ShoppingCart,
   bookings: CalendarCheck,
   faceScans: ScanFace,
@@ -1522,6 +1525,8 @@ export default function AdminView() {
           )}
 
           {allowed && activeTab === "team" && <TeamSection />}
+
+          {allowed && activeTab === "mannequin" && <MannequinSection />}
 
           {allowed && activeTab === "settings" && <SettingsSection onLogout={onLogout} />}
         </main>

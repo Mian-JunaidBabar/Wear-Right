@@ -24,6 +24,7 @@ const ADMIN_ROUTES = [
   "/admin/categories",
   "/admin/skin-tones",
   "/admin/outfit-rules",
+  "/admin/mannequin",
   "/admin/orders",
   "/admin/bookings",
   "/admin/face-scans",

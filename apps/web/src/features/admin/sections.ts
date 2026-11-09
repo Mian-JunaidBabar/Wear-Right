@@ -7,6 +7,7 @@ export const ADMIN_SECTIONS = [
   { id: "styles", path: "/admin/categories", label: "Categories & Styles", permission: "products.view" },
   { id: "skinTone", path: "/admin/skin-tones", label: "Skin Tone Matrix", permission: "products.view" },
   { id: "outfitRules", path: "/admin/outfit-rules", label: "Outfit Rules", permission: "products.view" },
+  { id: "mannequin", path: "/admin/mannequin", label: "Mannequin", permission: "products.view" },
   { id: "orders", path: "/admin/orders", label: "Orders", permission: "orders.view" },
   { id: "bookings", path: "/admin/bookings", label: "Bookings", permission: "bookings.view" },
   { id: "faceScans", path: "/admin/face-scans", label: "Face Scans", permission: "scans.view" },

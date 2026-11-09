@@ -84,7 +84,10 @@ def test_unknown_products_wrong_gender_missing_files_and_moved_renders_are_repor
     ProductFactory(external_id="9100", gender="women")
     moved = [("T9", "9001", "top", "renders/T9_moved.png", dict(top=(200, 40, 40), shift=(60, 0)))]
     kit = make_kit(tmp_path / "kit", rows=moved, extra_manifest=[
-        ["X1", "nope", "top", "", "", "renders/T1_9001.png", "", "", ""],
+        # X1 uses the moved render (it exists in the kit) so the importer reaches the
+        # product check and reports "no product", not "render not found" — render-file
+        # existence is checked first (the lead's T1_9001.png is never saved by make_kit).
+        ["X1", "nope", "top", "", "", "renders/T9_moved.png", "", "", ""],
         ["X2", "9100", "top", "", "", "renders/T9_moved.png", "", "", ""],
         ["X3", "9002", "bottom", "", "", "renders/missing.png", "", "", ""],
         ["X4", "9003", "hat", "", "", "renders/T9_moved.png", "", "", ""],

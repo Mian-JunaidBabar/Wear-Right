@@ -7,6 +7,7 @@ from PIL import Image
 from catalog.alpha_services import import_alpha_kit
 from catalog.models import MannequinLayer
 from core.tests.factories import ProductFactory
+from staff.services import create_role
 from staff.tests.test_rbac import client_with_role
 
 from .alpha_fixtures import FAIR, fake_segment, person
@@ -49,8 +50,24 @@ def test_staff_see_every_layer_with_its_checks(tmp_path):
     assert {"value": "kurta", "label": "Kurtas"} in body["slots"]
 
 
-def test_an_order_handler_cannot_open_the_mannequin_page():
-    assert client_with_role("order-handler").get(URL).status_code == 403
+def test_a_role_without_products_view_cannot_open_the_mannequin_page():
+    # The seeded Order Handler deliberately has products.view (needed to read product
+    # names on orders) so it CAN open this page read-only. A role with no product
+    # permission at all is the real RBAC gate.
+    role, error = create_role(name="Bookings only", permissions=["bookings.view"])
+    assert error is None
+    assert client_with_role(role.slug).get(URL).status_code == 403
+
+
+def test_an_order_handler_can_read_layers_but_not_upload_them():
+    client = client_with_role("order-handler")
+    response = client.get(URL)
+    assert response.status_code == 200
+    render = png_upload(person(), "x.png")
+    product = ProductFactory(gender="men")
+    assert client.post(
+        URL, {"product_id": product.id, "slot": "top", "render": render}, format="multipart"
+    ).status_code == 403
 
 
 def test_uploading_a_render_adds_an_approved_layer_with_skin_copies(tmp_path):
